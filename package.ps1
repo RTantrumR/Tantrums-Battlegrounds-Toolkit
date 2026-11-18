@@ -15,7 +15,9 @@
   (or drag the HsbgCardLookup folder into %APPDATA%\HearthstoneDeckTracker\Plugins\ manually).
   Release excludes the dev-only GameStateProbe (it's #if DEBUG).
 #>
-param([string]$Version)
+# -SignPfx / -SignPasswordFile: sign our own binaries (the zip's DLL here, the Setup's set in
+# installer\build.ps1) with that certificate. A release is built with them; without, it is unsigned.
+param([string]$Version, [string]$SignPfx, [string]$SignPasswordFile)
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
@@ -77,6 +79,16 @@ function Copy-Readme($name) {
 Copy-Readme "README.txt"
 Copy-Readme "UA_Readme.txt"
 
+if ($SignPfx) {
+    if (-not (Test-Path $SignPfx)) { throw "Certificate not found: $SignPfx" }
+    if (-not $SignPasswordFile -or -not (Test-Path $SignPasswordFile)) { throw "-SignPasswordFile is required with -SignPfx" }
+    $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $signtool) { throw "signtool.exe not found (Windows SDK)" }
+    & $signtool sign /q /fd sha256 /f $SignPfx /p (Get-Content -Raw $SignPasswordFile).Trim() "$stage\HsbgCardLookup.dll"
+    if ($LASTEXITCODE -ne 0) { throw "signtool failed on the zip's DLL (exit $LASTEXITCODE)" }
+}
+
 $zip = "$dist\HsbgCardLookup-v$Version.zip"
 Compress-Archive -Path "$pkg\*" -DestinationPath $zip -Force
 
@@ -86,6 +98,8 @@ Write-Host "Zip contents:" -ForegroundColor Cyan
 Get-ChildItem $pkg -Recurse -File | ForEach-Object { "  " + $_.FullName.Substring($pkg.Length + 1) }
 
 # The Setup wizard, from the same Release build (installer\build.ps1 stages bin\Release itself).
-$setup = & "$root\installer\build.ps1" -Version $Version -SkipBuild
+$signing = @{}
+if ($SignPfx) { $signing = @{ SignPfx = $SignPfx; SignPasswordFile = $SignPasswordFile } }
+$setup = & "$root\installer\build.ps1" -Version $Version -SkipBuild @signing
 Copy-Item $setup.FullName $dist -Force
 Write-Host "Packaged: $dist\$($setup.Name)" -ForegroundColor Green
