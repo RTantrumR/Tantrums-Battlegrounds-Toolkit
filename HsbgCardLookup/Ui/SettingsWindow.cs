@@ -436,9 +436,45 @@ namespace HsbgCardLookup.Ui
             };
             close.MouseLeftButtonUp += (s, e) => Close();
 
-            stack.Children.Add(close);
+            // The site, one click away: Website on the left, Close on the right.
+            var bottom = new DockPanel { LastChildFill = false };
+            DockPanel.SetDock(close, Dock.Right);
+            bottom.Children.Add(close);
+            var website = WebsiteButton();
+            DockPanel.SetDock(website, Dock.Left);
+            bottom.Children.Add(website);
+            stack.Children.Add(bottom);
 
             ShowPage();
+        }
+
+        // ── Website button: hsbg.cards in its own colours (wood, gold rim, the blue/yellow wordmark) ──
+
+        private static readonly Color SiteWoodDark = Color.FromRgb(0x2A, 0x1A, 0x0A);
+        private static readonly Color SiteWoodMid = Color.FromRgb(0x3D, 0x2A, 0x14);
+        private static readonly Color SiteGold = Color.FromRgb(0xC9, 0xA9, 0x59);
+        private static readonly Color SiteGoldBright = Color.FromRgb(0xE8, 0xD5, 0xA3);
+        private static readonly Color SiteWordBlue = Color.FromRgb(0x52, 0xB8, 0xF0);
+        private static readonly Color SiteWordYellow = Color.FromRgb(0xFF, 0xD7, 0x00);
+
+        private Border WebsiteButton()
+        {
+            var text = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 14 };
+            text.Inlines.Add(new System.Windows.Documents.Run(Strings.T("settings.website") + "  ") { Foreground = new SolidColorBrush(SiteGoldBright) });
+            text.Inlines.Add(new System.Windows.Documents.Run("hsbg") { Foreground = new SolidColorBrush(SiteWordBlue), FontWeight = FontWeights.Bold });
+            text.Inlines.Add(new System.Windows.Documents.Run(".cards") { Foreground = new SolidColorBrush(SiteWordYellow), FontWeight = FontWeights.Bold });
+            var b = new Border
+            {
+                Background = new LinearGradientBrush(SiteWoodMid, SiteWoodDark, 90),
+                BorderBrush = new SolidColorBrush(SiteGold), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 10, 0, 0), Child = text
+            };
+            b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(SiteGoldBright);
+            b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(SiteGold);
+            b.MouseLeftButtonUp += (s, e) => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "")
+                + "?utm_source=toolkit&utm_medium=settings&utm_campaign=website");
+            return b;
         }
 
         private static void OpenUrl(string url)
