@@ -131,7 +131,7 @@ namespace Toolkit.Standalone
         // The panels' areas on the surface. The client scales its UI with the window height and anchors
         // the friends list to the left edge and the game menu to the centre, so sizes are fractions of
         // the height: friends list 0.38 h wide from 0.27 h to 0.95 h; game menu 0.37 h wide from 0.25 h
-        // to 0.61 h (measured on 1920x1080 and narrower windows, see docs/standalone/client-panels.md).
+        // to 0.61 h (HDT's own rects; the friends list measured on 1920x1080, see docs/standalone/client-panels.md).
         private List<Rect> CoveredAreas()
         {
             var list = new List<Rect>(2);
