@@ -278,5 +278,21 @@
   "bell.update.title": "Version {0} is available",
   "bell.update.download": "Download",
   "bell.update.skip": "Skip",
-  "bell.patch.title": "Patch {0} notes"
+  "bell.patch.title": "Patch {0} notes",
+  "settings.website": "Website",
+  "settings.tools.title": "Other tools",
+  "settings.main.toolsHint": "Replays, deck viewer and friend search: more free tools from the same author",
+  "settings.tools.intro": "Each tool is a separate program with its own Setup. Download opens the Setup in your browser; install it the same way you installed this toolkit.",
+  "settings.tools.loading": "Loading the list from hsbg.cards…",
+  "settings.tools.failed": "Couldn't load the list. Check your connection, or see every tool on the website.",
+  "settings.tools.version": "Version {0}",
+  "settings.tools.download": "Download",
+  "settings.tools.releases": "Releases",
+  "settings.tools.page": "About it",
+  "settings.tools.source": "Source code",
+  "settings.tools.risk.mod": "Runs inside Hearthstone as a mod (BepInEx). Blizzard's terms don't allow mods to the game client, so you use it at your own risk.",
+  "settings.tools.risk.thirdParty": "Made by {0}, not by this toolkit's author. We don't check its code, so install it only if you trust its author.",
+  "settings.tools.desc.replayWatcher": "Records your Battlegrounds games and plays them back inside Hearthstone, with a timeline and up to x4 speed.",
+  "settings.tools.desc.deckInspector": "Pick up a deck from the board and turn it around: yours or your opponent's.",
+  "settings.tools.desc.friendSearch": "Adds a search bar to Hearthstone's friends list. Typos are forgiven."
 }

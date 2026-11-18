@@ -402,6 +402,8 @@ namespace HsbgCardLookup.Ui
 
             stack.Children.Add(CategoryRow(Strings.T("settings.updates.title"), UpdatesHint(), null, null, BuildUpdates));
 
+            stack.Children.Add(CategoryRow(Strings.T("settings.tools.title"), Strings.T("settings.main.toolsHint"), null, null, BuildTools));
+
             // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
             bool? autostart = null;
             try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
@@ -433,9 +435,118 @@ namespace HsbgCardLookup.Ui
                 HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Child = closeLabel
             };
             close.MouseLeftButtonUp += (s, e) => Close();
+
             stack.Children.Add(close);
 
             ShowPage();
+        }
+
+        private static void OpenUrl(string url)
+        {
+            try { if (!string.IsNullOrEmpty(url)) Process.Start(url); } catch { /* the browser is best-effort */ }
+        }
+
+        // ── Other tools: the site's /api/v1/plugins list, downloads through the browser ──────────
+
+        private static List<Net.PluginRow> _toolsCache;   // one fetch per session; a failed one is retried on the next visit
+        private static readonly HashSet<string> GameMods = new HashSet<string> { "replay-watcher", "deck-inspector", "friend-search" };
+
+        private void BuildTools()
+        {
+            _currentPage = BuildTools;
+            var stack = NewPage(Strings.T("settings.tools.title"), sub: true);
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.tools.intro"), Foreground = UiKit.TextSecondary, FontSize = 13,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+            });
+            var list = new StackPanel();
+            stack.Children.Add(list);
+
+            if (_toolsCache != null) FillTools(list, _toolsCache);
+            else
+            {
+                list.Children.Add(new TextBlock { Text = Strings.T("settings.tools.loading"), Foreground = UiKit.TextMuted, FontSize = 13 });
+                Task.Run(async () =>
+                {
+                    var rows = await Net.SiteApi.GetPluginsAsync();
+                    if (rows != null) _toolsCache = rows;
+                    _ = Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (_currentPage != (Action)BuildTools) return;   // the player moved on
+                        list.Children.Clear();
+                        if (rows != null) FillTools(list, rows);
+                        else
+                        {
+                            list.Children.Add(new TextBlock
+                            {
+                                Text = Strings.T("settings.tools.failed"), Foreground = Brushes.IndianRed, FontSize = 13,
+                                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+                            });
+                            list.Children.Add(SmallButton(Strings.T("settings.website"), () => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "/tools"))));
+                        }
+                    }));
+                });
+            }
+
+            ShowPage();
+        }
+
+        private void FillTools(StackPanel list, List<Net.PluginRow> rows)
+        {
+            foreach (var t in rows.Where(r => r != null && r.Id != "toolkit"))
+                list.Children.Add(ToolCard(t));
+        }
+
+        // "replay-watcher" → "replayWatcher": catalog key segments are letters and digits only.
+        private static string CamelId(string id) =>
+            string.Concat((id ?? "").Split('-').Select((p, i) => i == 0 || p.Length == 0 ? p : char.ToUpperInvariant(p[0]) + p.Substring(1)));
+
+        private UIElement ToolCard(Net.PluginRow t)
+        {
+            var col = new StackPanel();
+
+            var title = new DockPanel();
+            var version = new TextBlock
+            {
+                Text = t.Latest != null ? Strings.F("settings.tools.version", t.Latest.Version) : "",
+                Foreground = UiKit.TextMuted, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(version, Dock.Right);
+            title.Children.Add(version);
+            title.Children.Add(new TextBlock { Text = t.Name, Foreground = UiKit.TextPrimary, FontSize = 15, FontWeight = FontWeights.SemiBold });
+            col.Children.Add(title);
+
+            // Our own words for our own tools (in the toolkit's language); the site's text for anything else.
+            string descKey = "settings.tools.desc." + CamelId(t.Id), own = Strings.T(descKey);
+            string desc = t.Official && own != descKey ? own : t.Description;
+            if (!string.IsNullOrEmpty(desc))
+                col.Children.Add(new TextBlock { Text = desc, Foreground = UiKit.TextSecondary, FontSize = 13, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+
+            // The risk, said plainly: someone else's code, and/or a change to the game client.
+            var risks = new List<string>();
+            if (!t.Official) risks.Add(Strings.F("settings.tools.risk.thirdParty", t.Author ?? "?"));
+            if (GameMods.Contains(t.Id)) risks.Add(Strings.T("settings.tools.risk.mod"));
+            foreach (var r in risks)
+                col.Children.Add(new TextBlock { Text = r, Foreground = UiKit.AccentBrush, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+
+            var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+            var download = t.Latest?.Downloads?.FirstOrDefault(d => d != null && d.Platform == "windows" && !string.IsNullOrEmpty(d.Url));
+            if (download != null)
+                actions.Children.Add(SmallButton(Strings.T("settings.tools.download"), () => OpenUrl(download.Url)));
+            else if (!string.IsNullOrEmpty(t.ReleasesUrl))
+                actions.Children.Add(SmallButton(Strings.T("settings.tools.releases"), () => OpenUrl(t.ReleasesUrl)));
+            if (!string.IsNullOrEmpty(t.Page))
+                actions.Children.Add(SmallButton(Strings.T("settings.tools.page"), () => OpenUrl(t.Page + "?utm_source=toolkit&utm_medium=settings&utm_campaign=tools")));
+            if (!string.IsNullOrEmpty(t.Repo))
+                actions.Children.Add(SmallButton(Strings.T("settings.tools.source"), () => OpenUrl(t.Repo)));
+            col.Children.Add(actions);
+
+            return new Border
+            {
+                Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 12, 14, 12), Margin = new Thickness(0, 0, 0, 10), Child = col
+            };
         }
 
         private void BuildCardSearch()
