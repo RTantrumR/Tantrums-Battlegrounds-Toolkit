@@ -12,11 +12,13 @@ namespace HsbgCardLookup.Net
     /// </summary>
     public static class SiteApi
     {
+        // Both go through the 2-hour disk cache (SiteCache): the site is asked at most that often, restarts included.
         public static async Task<PatchRow> GetLatestPatchAsync() =>
-            (await AssetClient.GetJsonAsync<Envelope<PatchRow>>(AssetClient.SiteBase + "/api/v1/patches/latest").ConfigureAwait(false))?.Data;
+            (await SiteCache.GetJsonAsync<Envelope<PatchRow>>(AssetClient.SiteBase + "/api/v1/patches/latest").ConfigureAwait(false))?.Data;
 
-        public static async Task<List<PluginRow>> GetPluginsAsync() =>
-            (await AssetClient.GetJsonAsync<Envelope<List<PluginRow>>>(AssetClient.SiteBase + "/api/v1/plugins").ConfigureAwait(false))?.Data;
+        /// <param name="fresh">Ask the site now instead of using a cached answer (a "check for updates" click).</param>
+        public static async Task<List<PluginRow>> GetPluginsAsync(bool fresh = false) =>
+            (await SiteCache.GetJsonAsync<Envelope<List<PluginRow>>>(AssetClient.SiteBase + "/api/v1/plugins", fresh).ConfigureAwait(false))?.Data;
 
         // Every /api/v1 answer comes as { "data": … } (seen on the live site 2026-11-19).
         private sealed class Envelope<T>

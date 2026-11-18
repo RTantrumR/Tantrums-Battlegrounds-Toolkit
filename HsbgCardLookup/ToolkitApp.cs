@@ -177,7 +177,7 @@ namespace HsbgCardLookup
                 // One cacheable request: the site folds every active notice, in every language, into
                 // feed.json. The per-id probe is the pre-feed path, kept only for a site that has not
                 // shipped the feed yet (no feed → probe), never run beside it.
-                var feed = await AssetClient.GetJsonAsync<PluginNoticeFeed>(AssetClient.SiteBase + "/plugin/notifications/feed.json");
+                var feed = await SiteCache.GetJsonAsync<PluginNoticeFeed>(AssetClient.SiteBase + "/plugin/notifications/feed.json");
                 List<PluginNotice> found;
                 if (feed?.Notices != null)
                 {
@@ -234,10 +234,10 @@ namespace HsbgCardLookup
         }
 
         // Start checks exactly once, at launch — with no periodic re-check, a session that outlives
-        // that check's 6h throttle window (very common — BG sessions run 30min-4h, and plenty of
+        // that check's cache window (very common — BG sessions run 30min-4h, and plenty of
         // people leave HDT running for days) would never learn about a release that ships mid-session.
-        // Re-attempt every 20 minutes of uptime; Updater.RunAsync's own persisted 6h throttle is the
-        // real gate, so ~17 of every 18 attempts return null immediately with no network call at all.
+        // Re-attempt every 20 minutes of uptime; Updater.RunAsync's 2-hour disk cache (SiteCache) is the
+        // real gate: most attempts are answered from disk with no network call at all.
         private DateTime _lastUpdateAttempt = DateTime.MinValue;
         private void PollBackgroundUpdateCheck()
         {
@@ -302,7 +302,7 @@ namespace HsbgCardLookup
         }
 
         // User-triggered "Check for updates" — wired to the host's menu, the overlay toolbar's ⟳
-        // icon, and the Settings "Updates" page. Bypasses the 6h throttle and always gives feedback
+        // icon, and the Settings "Updates" page. Bypasses the 2-hour cache and always gives feedback
         // (incl. "up to date" / "couldn't check"). Runs off the UI thread.
         public void CheckForUpdatesInteractive()
         {

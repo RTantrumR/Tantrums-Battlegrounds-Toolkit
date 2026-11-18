@@ -135,6 +135,7 @@
     <Compile Include="Net\AssetClient.cs" />
     <Compile Include="Net\PluginNotice.cs" />
     <Compile Include="Net\SiteApi.cs" />
+    <Compile Include="Net\SiteCache.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="ToolkitApp.cs" />
     <Compile Include="Host\Seams.cs" />

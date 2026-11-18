@@ -59,12 +59,10 @@ namespace HsbgCardLookup.Update
     {
         public const string GitHubRepo = "RTantrumR/HDT-Plugin-Cards";
 
-        private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
-
         private static string ReleasesUrl => "https://github.com/" + GitHubRepo + "/releases/latest";
         private static string ApiLatest => "https://api.github.com/repos/" + GitHubRepo + "/releases/latest";
 
-        /// <param name="manual">User-triggered ("Check for updates" button): skip the 6h throttle and
+        /// <param name="manual">User-triggered ("Check for updates" button): skip the 2h cache and
         /// always return a notice — including "you're up to date" / "couldn't check" — so the UI can
         /// give feedback. The background check (manual=false) stays silent in those cases (returns null),
         /// and also stays silent about a version the user already chose to skip.</param>
@@ -88,13 +86,10 @@ namespace HsbgCardLookup.Update
                             { LinkLabelKey = "updates.viewReleaseNotes" };
                 }
 
-                // 2. Throttle (background only), then check the latest release.
-                if (!manual && DateTime.TryParse(config.LastUpdateCheckUtc, null,
-                        System.Globalization.DateTimeStyles.RoundtripKind, out var last)
-                    && DateTime.UtcNow - last.ToUniversalTime() < CheckInterval)
-                    return null;
-
-                var rel = await AssetClient.GetJsonAsync<GhRelease>(ApiLatest).ConfigureAwait(false);
+                // 2. The latest release, through the 2-hour disk cache (SiteCache): GitHub is asked at most
+                // that often, and a restart inside the window still knows about an update (the old 6h
+                // throttle answered "nothing" there until it ran out).
+                var rel = await SiteCache.GetJsonAsync<GhRelease>(ApiLatest, fresh: manual).ConfigureAwait(false);
                 config.LastUpdateCheckUtc = DateTime.UtcNow.ToString("o");
                 config.Save();
                 if (rel == null)
