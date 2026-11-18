@@ -11,8 +11,8 @@ using HsbgCardLookup.Host;
 namespace HsbgCardLookup.Ui
 {
     /// <summary>
-    /// Small magnifying-glass button on HDT's overlay canvas, docked just left of the game's own
-    /// card-list book in the bottom-right corner during a BG match. Clicking it toggles the search
+    /// Small magnifying-glass button on HDT's overlay canvas, in the bottom-right corner during a BG
+    /// match, sitting right above the game's settings gear. Clicking it toggles the search
     /// overlay — a mouse path for players who don't use (or haven't bound) the summon hotkey.
     /// Update news lives in the <see cref="NotificationBell"/> to its left, which shares this
     /// button's geometry (<see cref="ScaleFor"/> and the reference constants).
@@ -21,7 +21,8 @@ namespace HsbgCardLookup.Ui
     {
         // Reference geometry at 1920×1080, measured from a clean screenshot: the game's book pill
         // sits at (1752..1812, 1033..1076) and the gear at (1844..1905, same row) — ~61×43 pills,
-        // ~31px apart. Ours forms a third pill left of the book with the same size and spacing.
+        // ~31px apart. Ours has the same size and sits straight above the gear, a small gap over it
+        // (owner, 2026-11-19: left of the book it covered the game's own counters on the hero choice).
         // Anchored to the canvas' BOTTOM-RIGHT corner (this corner UI hugs the window corner,
         // unlike the leaderboard column which maps into the centred 16:9 content area).
         // Scaling law = HDT's own (OverlayWindow: LeaderboardTop => Height * 0.15 etc.): HS renders
@@ -30,8 +31,8 @@ namespace HsbgCardLookup.Ui
         // (verified: HearthMirror's API is state-only; HDT's leaderboard "attachment" is exactly this
         // kind of height-fraction constant), so calibrated constants ARE the attachment mechanism.
         internal const double RefBtnW = 61, RefBtnH = 43;
-        internal const double RefRightInset = 199;    // canvas right edge → our right edge (book left − 31 − our width)
-        internal const double RefBottomInset = 1;     // canvas bottom edge → our bottom edge (4 measured, −3 from live calibration)
+        internal const double RefRightInset = 15;     // canvas right edge → our right edge = the gear's right edge (1920 − 1905)
+        internal const double RefBottomInset = 57;    // canvas bottom edge → our bottom edge: 10 px above the gear's top (1033)
         private const double MinScale = 0.60, MaxScale = 2.00;
 
         /// <summary>Height-based scale only (see the constants' comment) — the game never scales by width.</summary>
