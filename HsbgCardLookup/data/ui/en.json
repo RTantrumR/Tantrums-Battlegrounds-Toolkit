@@ -79,7 +79,6 @@
   "overlay.bell.title": "NOTIFICATIONS",
   "overlay.bell.empty": "No new notifications.",
   "overlay.bell.untitled": "Notification",
-  "overlay.bell.open": "Open →",
   "overlay.notice.dismiss": "Dismiss",
   "overlay.update.available": "Update v{0} is available.",
   "overlay.update.downloadPage": "Download the installer ↗",
@@ -95,7 +94,6 @@
   "common.variantTag": "{0}  ·  {1}   ·   {2} / hotkey to close",
   "common.clearFilter": "Clear filter",
   "searchButton.tooltip": "Card search",
-  "searchButton.updateAvailable": "Update available",
   "arrange.positioning": "Positioning: {0}",
   "arrange.target.trinkets": "trinket boxes",
   "arrange.target.anomaly": "anomaly box",
@@ -276,5 +274,9 @@
   "standalone.tray.startNow": "Start now",
   "standalone.tray.exit": "Exit",
   "standalone.bothRunning": "Hearthstone Deck Tracker is running this toolkit's plugin too, so everything shows twice. Switch the plugin off in HDT (Options > Tracker > Plugins) or exit this program from its tray icon.",
-  "plugin.bothRunning": "The standalone Tantrum's Battlegrounds Toolkit is running too, so everything shows twice. Exit it from its tray icon, or switch this plugin off under Options > Tracker > Plugins."
+  "plugin.bothRunning": "The standalone Tantrum's Battlegrounds Toolkit is running too, so everything shows twice. Exit it from its tray icon, or switch this plugin off under Options > Tracker > Plugins.",
+  "bell.update.title": "Version {0} is available",
+  "bell.update.download": "Download",
+  "bell.update.skip": "Skip",
+  "bell.patch.title": "Patch {0} notes"
 }

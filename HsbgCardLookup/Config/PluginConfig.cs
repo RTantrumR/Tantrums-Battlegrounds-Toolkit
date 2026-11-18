@@ -172,6 +172,9 @@ namespace HsbgCardLookup.Config
         public string LastUpdateCheckUtc { get; set; } = "";
         // Highest notification id already seen (bell); larger ids are unread.
         public int PatchNoticeLastSeenId { get; set; } = 0;
+        // The bell's menu: the newest patch-notes version and the toolkit update already seen there.
+        public string PatchSeenVersion { get; set; } = "";
+        public string UpdateSeenVersion { get; set; } = "";
         // Aggregate manifest hash of the art pack already applied; a change triggers re-sync.
         public string ArtPackHash { get; set; } = "";
         // Version the user explicitly chose "Skip" for (background checks won't re-offer it or older;

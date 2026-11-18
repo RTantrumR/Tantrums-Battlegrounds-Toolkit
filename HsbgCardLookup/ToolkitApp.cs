@@ -45,6 +45,7 @@ namespace HsbgCardLookup
         private Game.DarkGiftWatcher _darkGifts;                  // opt-in Dark Gift list (“?” marker by the button)
         private Ui.ArrangeBanner _arrangeBanner;                  // in-game strip shown while positioning
         private Ui.SearchButton _searchButton;                    // in-game 🔍 button by the card-list book
+        private Ui.NotificationBell _bell;                        // in-game bell left of it: updates + patch notes
         private SettingsWindow _settings;
         private CardLanguage _cardLanguage;                      // game content: cards, art, the game's words
         private Dictionary<Key, OverlayBase> _overlays;         // hotkey -> overlay (rebuilt on rewire)
@@ -93,7 +94,8 @@ namespace HsbgCardLookup
             _bgHud = new Game.BgHud(_store, _config, _ui);
             _bgMmr = new Game.BgMmr(_config, _ui, Log, HeroDisplayName);
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
-            _searchButton = new Ui.SearchButton(_config, ToggleSearch, SkipVersion, Log);
+            _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
+            _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
             // Pre-realize the HWND so the first F3 summons in one press (no handle-creation race).
             new System.Windows.Interop.WindowInteropHelper(_overlayLarge).EnsureHandle();
 
@@ -123,6 +125,7 @@ namespace HsbgCardLookup
             _bgMmr?.Poll();      // opt-in in-match opponent-MMR reader
             _darkGifts?.Poll();  // opt-in Dark Gift list (“?” marker above the Dark Discovery button)
             _searchButton?.Poll(); // in-game 🔍 button by the card-list book (shows during a BG match)
+            _bell?.Poll();         // the bell beside it
             PollBackgroundUpdateCheck(); // re-attempt every 20 min so a long session isn't frozen at launch-time state
             _cardLanguage?.PollHdt();      // following the host's language setting: re-read it once a minute
             EnsureCardDataWhenInMatch();   // a match is on and the card language's data isn't here yet → fetch it
@@ -142,6 +145,7 @@ namespace HsbgCardLookup
                 _bgMmr?.CloseAll();
                 _darkGifts?.CloseAll();
                 _searchButton?.CloseAll();
+                _bell?.CloseAll();
                 _overlayLarge?.Close();
                 _overlays = null;
             });
@@ -182,7 +186,7 @@ namespace HsbgCardLookup
                 }
                 else { Log("Notices: no feed yet (site not deployed, or offline) — probing ids"); found = await ProbeNoticesAsync(); }
                 if (found.Count == 0) return;
-                _ui?.BeginInvoke(new Action(() => _overlayLarge?.SetNotices(found)));
+                _bell?.SetNotices(found);
             }
             catch (Exception ex) { Log("CheckNoticesAsync error: " + ex.Message); }
         }
@@ -241,6 +245,21 @@ namespace HsbgCardLookup
             if ((now - _lastUpdateAttempt).TotalMinutes < 20) return;
             _lastUpdateAttempt = now;
             Task.Run(() => CheckForUpdateAsync());
+            Task.Run(() => CheckPatchAsync());   // patch notes go up while people play
+        }
+
+        // The newest patch-notes page, for the bell. No throttle of our own: the site caches the
+        // answer for 5 minutes and this runs at launch and every 20 minutes.
+        private async Task CheckPatchAsync()
+        {
+            try
+            {
+                var patch = await SiteApi.GetLatestPatchAsync();
+                if (patch == null || string.IsNullOrEmpty(patch.Version)) return;
+                Log("Patch notes: latest " + patch.Version + " (" + (patch.PublishedAt ?? "?") + ")");
+                _bell?.SetPatch(patch);
+            }
+            catch (Exception ex) { Log("CheckPatchAsync error: " + ex.Message); }
         }
 
         // Set the current known state and push it to every surface.
@@ -264,7 +283,7 @@ namespace HsbgCardLookup
                 _overlayLarge?.SetUpdateNotice(null, false, null);
 
             _settings?.RefreshUpdateStatus(notice);
-            _searchButton?.SetUpdateState(notice);
+            _bell?.SetUpdateState(notice);
         }
 
         // The user's whole "get the update" action: open the release's Setup wizard download in the
@@ -424,6 +443,7 @@ namespace HsbgCardLookup
             _bgHud?.OnLanguageChanged();
             _bgMmr?.OnLanguageChanged();
             _searchButton?.Relabel();
+            _bell?.Relabel();
             _arrangeBanner?.Relabel();
             _settings?.OnLanguageChanged();
             PushUpdateUi();   // the cached notice renders through its catalog key
@@ -474,6 +494,7 @@ namespace HsbgCardLookup
             _bgMmr?.OnSettingsChanged();    // opponent-MMR reader on/off
             _darkGifts?.OnSettingsChanged(); // Dark Gift panel on/off
             _searchButton?.OnSettingsChanged(); // in-game search button on/off
+            _bell?.OnSettingsChanged();         // stands down during an arrange session
         }
 
         // Enter/leave arrange mode for ONE feature. Everything else on the canvas stands down for the

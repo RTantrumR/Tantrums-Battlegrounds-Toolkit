@@ -64,13 +64,6 @@ namespace HsbgCardLookup.Ui
         private TextBlock _versionText;                       // detail toolbar, set once
         private Border _gearBtn, _refreshBtn;                 // detail toolbar buttons, tooltips set once
 
-        // Notification bell (manual patch-notes notices), right of search.
-        private Border _bell;
-        private Border _bellBadge;
-        private TextBlock _bellCount;
-        private Path _bellGlyph;
-        private Popup _bellPopup;
-        private List<PluginNotice> _notices;
         private bool _smart = true;
         private readonly DispatcherTimer _debounce;
 
@@ -117,11 +110,6 @@ namespace HsbgCardLookup.Ui
             BuildDropdownsInto(_dds);
             DockPanel.SetDock(_dds, Dock.Right);
             topRow.Children.Add(_dds);
-            // Bell sits between the search box and the filter dropdowns (docked right, after dds, so
-            // it lands to the left of the filters). Hidden until there's an unread notification.
-            var bell = BuildBell();
-            DockPanel.SetDock(bell, Dock.Right);
-            topRow.Children.Add(bell);
             _bulbHost = new Border
             {
                 Cursor = Cursors.Hand, Padding = new Thickness(4), Background = Brushes.Transparent,
@@ -246,7 +234,7 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>Either language changed: the filter captions and labels, the set-once texts and
         /// tooltips, then a refresh so names, counts and art follow. The filters survive by value.
-        /// (Everything built on open — the help and bell popups — reads the catalog by itself.)</summary>
+        /// (Everything built on open — the help popup — reads the catalog by itself.)</summary>
         public void OnLanguageChanged()
         {
             RebuildFilters();
@@ -260,9 +248,6 @@ namespace HsbgCardLookup.Ui
             if (_gearBtn != null) _gearBtn.ToolTip = Strings.T("overlay.settingsTooltip");
             if (_refreshBtn != null) _refreshBtn.ToolTip = Strings.T("overlay.checkUpdatesTooltip");
             if (_helpAnchor != null) _helpAnchor.ToolTip = Strings.T("overlay.helpTooltip");
-            if (_bell != null) _bell.ToolTip = Strings.T("overlay.bell.tooltip");
-            UpdateBell();
-            if (_bellPopup != null && _bellPopup.IsOpen) _bellPopup.Child = BuildBellPopupContent();   // notices read in the new language
             Refresh();
         }
 
@@ -626,260 +611,6 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>Re-run the current query/browse (e.g. after the Show-Duos setting changes).</summary>
         public void RefreshPool() => Refresh();
-
-        // ── Notification bell (manual patch-notes notices) ──
-
-        private UIElement BuildBell()
-        {
-            _bellGlyph = new Path
-            {
-                // Feather "bell": body + clapper.
-                Data = Geometry.Parse("M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0"),
-                Stroke = UiKit.TextMuted,
-                StrokeThickness = 1.8,
-                Stretch = Stretch.Uniform,
-                Width = 18,
-                Height = 18,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            _bellCount = new TextBlock
-            {
-                Foreground = Brushes.White, FontSize = 9, FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-            };
-            _bellBadge = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(0xE0, 0x3A, 0x3A)),
-                CornerRadius = new CornerRadius(7), MinWidth = 14, Height = 14,
-                Padding = new Thickness(3, 0, 3, 0),
-                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, -4, -4, 0), Child = _bellCount, Visibility = Visibility.Collapsed
-            };
-            var box = new Grid { Width = 26, Height = 24 };
-            box.Children.Add(_bellGlyph);
-            box.Children.Add(_bellBadge);
-
-            _bell = new Border
-            {
-                Cursor = Cursors.Hand, Background = Brushes.Transparent,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0),
-                Child = box, Visibility = Visibility.Collapsed,
-                ToolTip = Strings.T("overlay.bell.tooltip")
-            };
-            _bell.MouseEnter += (s, e) => _bellGlyph.Stroke = UiKit.AccentBrush;
-            _bell.MouseLeave += (s, e) => { if (_bellPopup == null || !_bellPopup.IsOpen) _bellGlyph.Stroke = UiKit.TextMuted; };
-
-            _bellPopup = new Popup
-            {
-                PlacementTarget = _bell,
-                Placement = PlacementMode.Bottom,
-                StaysOpen = false,
-                AllowsTransparency = true,
-                PopupAnimation = PopupAnimation.Fade,
-                VerticalOffset = 6
-            };
-            // Guard the overlay's focus-loss auto-hide while the popup is open, and mark everything
-            // shown as seen on close (the user has now viewed the panel → badge clears next refresh).
-            _bellPopup.Closed += (s, e) =>
-            {
-                _ownerEndPopup();
-                MarkShownSeen();
-                UpdateBell();
-            };
-
-            _bell.MouseLeftButtonUp += (s, e) => ToggleBellPopup();
-            return _bell;
-        }
-
-        // BeginPopup/EndPopup live on OverlayBase; tiny wrappers so the lambda above reads cleanly.
-        private void _ownerEndPopup() => EndPopup();
-
-        /// <summary>Receive the notices discovered at load; refresh the bell.</summary>
-        public void SetNotices(List<PluginNotice> notices) { _notices = notices; UpdateBell(); }
-
-        // Fresh + active notices, newest first — what the popup lists.
-        private List<PluginNotice> Shown() =>
-            (_notices ?? new List<PluginNotice>())
-                .Where(n => n != null && n.Active && IsFresh(n))
-                .OrderByDescending(n => n.Id).ToList();
-
-        private List<PluginNotice> Unread() =>
-            Shown().Where(n => n.Id > _config.PatchNoticeLastSeenId).ToList();
-
-        private static bool IsFresh(PluginNotice n)
-        {
-            if (string.IsNullOrEmpty(n.Date)) return true;   // no date → treat as current
-            if (DateTime.TryParse(n.Date, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d))
-                return (DateTime.UtcNow - d.ToUniversalTime()).TotalDays <= 7;
-            return true;
-        }
-
-        private void UpdateBell()
-        {
-            if (_bell == null) return;
-            var unread = Unread();
-            // Keep the bell visible while the popup is open even after marking seen, so the popup
-            // (anchored to the bell) doesn't lose its placement target mid-view.
-            bool keepForPopup = _bellPopup != null && _bellPopup.IsOpen;
-            if (unread.Count == 0 && !keepForPopup) { _bell.Visibility = Visibility.Collapsed; return; }
-            _bell.Visibility = Visibility.Visible;
-            _bellBadge.Visibility = unread.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            _bellCount.Text = unread.Count > 9 ? "9+" : unread.Count.ToString();
-        }
-
-        private void MarkShownSeen()
-        {
-            var shown = Shown();
-            if (shown.Count == 0) return;
-            int maxId = shown.Max(n => n.Id);
-            if (maxId > _config.PatchNoticeLastSeenId)
-            {
-                _config.PatchNoticeLastSeenId = maxId;
-                _config.Save();
-            }
-        }
-
-        // First click opens the panel listing notifications; clicking a row there opens its link.
-        private void ToggleBellPopup()
-        {
-            if (_bellPopup == null) return;
-            if (_bellPopup.IsOpen) { _bellPopup.IsOpen = false; return; }
-            _bellPopup.Child = BuildBellPopupContent();
-            BeginPopup();
-            _bellPopup.IsOpen = true;
-        }
-
-        private FrameworkElement BuildBellPopupContent()
-        {
-            var list = new StackPanel();
-            list.Children.Add(new TextBlock
-            {
-                Text = Strings.T("overlay.bell.title"),
-                Foreground = UiKit.AccentBrush, FontSize = 11, FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(14, 11, 14, 6)
-            });
-
-            var shown = Shown();
-            if (shown.Count == 0)
-                list.Children.Add(new TextBlock
-                {
-                    Text = Strings.T("overlay.bell.empty"), Foreground = UiKit.TextMuted, FontSize = 13,
-                    Margin = new Thickness(14, 2, 14, 12)
-                });
-            else
-                foreach (var n in shown) list.Children.Add(NotificationRow(n));
-
-            return new Border
-            {
-                Background = new LinearGradientBrush(UiKit.PanelBg2, UiKit.PanelBg, 90),
-                BorderBrush = UiKit.AccentBrush,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Width = 340,
-                Child = new ScrollViewer
-                {
-                    MaxHeight = 380,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    Content = list
-                }
-            };
-        }
-
-        private Border NotificationRow(PluginNotice n)
-        {
-            bool unread = n.Id > _config.PatchNoticeLastSeenId;
-            var col = new StackPanel();
-
-            var titleRow = new DockPanel { LastChildFill = true };
-            if (unread)
-            {
-                var dot = new System.Windows.Shapes.Ellipse
-                {
-                    Width = 7, Height = 7, Fill = new SolidColorBrush(Color.FromRgb(0xE0, 0x3A, 0x3A)),
-                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
-                };
-                DockPanel.SetDock(dot, Dock.Left);
-                titleRow.Children.Add(dot);
-            }
-            titleRow.Children.Add(new TextBlock
-            {
-                Text = n.TitleFor(Strings.Web) ?? Strings.T("overlay.bell.untitled"),
-                Foreground = UiKit.TextPrimary, FontSize = 14.5, FontWeight = FontWeights.SemiBold,
-                TextWrapping = TextWrapping.Wrap
-            });
-            col.Children.Add(titleRow);
-
-            string description = n.DescriptionFor(Strings.Web);
-            if (!string.IsNullOrEmpty(description))
-                col.Children.Add(new TextBlock
-                {
-                    Text = description, Foreground = UiKit.TextSecondary, FontSize = 12.5,
-                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0)
-                });
-
-            string when = FormatNoticeDate(n.Date);
-            var meta = new DockPanel { LastChildFill = false, Margin = new Thickness(0, 5, 0, 0) };
-            if (!string.IsNullOrEmpty(when))
-            {
-                var dateText = new TextBlock { Text = when, Foreground = UiKit.TextMuted, FontSize = 11 };
-                DockPanel.SetDock(dateText, Dock.Left);
-                meta.Children.Add(dateText);
-            }
-            var open = new TextBlock
-            {
-                Text = Strings.T("overlay.bell.open"), Foreground = UiKit.AccentBrush, FontSize = 11.5, FontWeight = FontWeights.SemiBold
-            };
-            DockPanel.SetDock(open, Dock.Right);
-            meta.Children.Add(open);
-            col.Children.Add(meta);
-
-            var row = new Border
-            {
-                Background = Brushes.Transparent,
-                Padding = new Thickness(14, 9, 14, 9),
-                Cursor = Cursors.Hand,
-                Child = col
-            };
-            row.MouseEnter += (s, e) => row.Background = UiKit.Br(UiKit.RowBgHover);
-            row.MouseLeave += (s, e) => row.Background = Brushes.Transparent;
-            row.MouseLeftButtonUp += (s, e) => OpenNotice(n);
-            return row;
-        }
-
-        // The date in the plugin language: English keeps "Oct 30, 2026"; a language gets its own
-        // culture's short date (the registry's tag), since "MMM d, yyyy" is an English word order.
-        private static string FormatNoticeDate(string iso)
-        {
-            if (string.IsNullOrEmpty(iso)) return null;
-            if (!DateTime.TryParse(iso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d)) return null;
-            var local = d.ToLocalTime();
-            string tag = Locales.ByWeb(Strings.Web)?.Tag;
-            if (tag != null)
-                try { return local.ToString("d", System.Globalization.CultureInfo.GetCultureInfo(tag)); } catch { }
-            return local.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        private void OpenNotice(PluginNotice n)
-        {
-            try
-            {
-                // The language's own link when the notice has one; else the site's patch notes in
-                // that language, which the site serves at /<web>/patch-notes.
-                string url = n.UrlFor(Strings.Web);
-                if (string.IsNullOrEmpty(url))
-                    url = AssetClient.SiteBase + Locales.SitePath(Strings.Web, "/patch-notes") + "?utm_source=hdt&utm_medium=plugin&utm_campaign=patch-notes";
-                Process.Start(url);
-            }
-            catch { /* launching the browser is best-effort */ }
-            // This notice is now seen; closing the popup (StaysOpen=false) finalizes via MarkShownSeen.
-            if (n.Id > _config.PatchNoticeLastSeenId)
-            {
-                _config.PatchNoticeLastSeenId = n.Id;
-                _config.Save();
-            }
-            if (_bellPopup != null) _bellPopup.IsOpen = false;
-        }
 
         /// <summary>Show a dismissible banner at the top of the overlay (auto-update status). An
         /// error notice gets a red tint and, when <paramref name="url"/> is set, a clickable

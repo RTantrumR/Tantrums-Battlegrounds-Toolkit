@@ -6,7 +6,6 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using HsbgCardLookup.Config;
 using HsbgCardLookup.Localization;
-using HsbgCardLookup.Update;
 using HsbgCardLookup.Host;
 
 namespace HsbgCardLookup.Ui
@@ -15,9 +14,8 @@ namespace HsbgCardLookup.Ui
     /// Small magnifying-glass button on HDT's overlay canvas, docked just left of the game's own
     /// card-list book in the bottom-right corner during a BG match. Clicking it toggles the search
     /// overlay — a mouse path for players who don't use (or haven't bound) the summon hotkey.
-    /// Also owns the small "Update available" badge that floats just above itself — this is the one
-    /// surface visible to players who never open F3 or Settings, so it's the actual fix for updates
-    /// otherwise going unnoticed for an entire session (see <see cref="SetUpdateState"/>).
+    /// Update news lives in the <see cref="NotificationBell"/> to its left, which shares this
+    /// button's geometry (<see cref="ScaleFor"/> and the reference constants).
     /// </summary>
     public sealed class SearchButton
     {
@@ -31,10 +29,13 @@ namespace HsbgCardLookup.Ui
         // scales with window HEIGHT only. Neither HDT nor HearthMirror can read real UI positions
         // (verified: HearthMirror's API is state-only; HDT's leaderboard "attachment" is exactly this
         // kind of height-fraction constant), so calibrated constants ARE the attachment mechanism.
-        private const double RefBtnW = 61, RefBtnH = 43;
-        private const double RefRightInset = 199;    // canvas right edge → our right edge (book left − 31 − our width)
-        private const double RefBottomInset = 1;     // canvas bottom edge → our bottom edge (4 measured, −3 from live calibration)
+        internal const double RefBtnW = 61, RefBtnH = 43;
+        internal const double RefRightInset = 199;    // canvas right edge → our right edge (book left − 31 − our width)
+        internal const double RefBottomInset = 1;     // canvas bottom edge → our bottom edge (4 measured, −3 from live calibration)
         private const double MinScale = 0.60, MaxScale = 2.00;
+
+        /// <summary>Height-based scale only (see the constants' comment) — the game never scales by width.</summary>
+        internal static double ScaleFor(double canvasHeight) => Math.Max(MinScale, Math.Min(MaxScale, canvasHeight / 1080.0));
 
         // Matches the game's pills: near-black face, worn-metal rim, silvery glyph.
         private static readonly Color FaceColor = Color.FromArgb(0xE6, 0x22, 0x1C, 0x18);
@@ -43,17 +44,8 @@ namespace HsbgCardLookup.Ui
         private static readonly Color RimHover = Color.FromRgb(0xEF, 0xEB, 0xE2);
         private static readonly Color GlyphColor = Color.FromRgb(0xC9, 0xC4, 0xBC);
 
-        // Badge: same near-black face as the button, gold rim so it reads as "notable" against the
-        // game's own near-black/worn-metal palette without introducing a foreign color.
-        private static readonly Color BadgeFace = Color.FromArgb(0xF0, 0x22, 0x1C, 0x18);
-        private static readonly Color BadgeRim = Color.FromRgb(0xE8, 0xB5, 0x4B);
-        private static readonly Color BadgeText = Color.FromRgb(0xF2, 0xF5, 0xFA);
-        private static readonly Color BadgeCloseIdle = Color.FromRgb(0x8F, 0x88, 0x7E);
-        private static readonly Color BadgeCloseHover = Color.FromRgb(0xEF, 0xEB, 0xE2);
-
         private readonly PluginConfig _config;
         private readonly Action _toggle;             // toggles the search overlay (wired by Plugin)
-        private readonly Action<string> _onSkip;      // badge's ✕ — skip this update version
         private readonly Action<string> _log;
 
         private Border _root;
@@ -63,16 +55,10 @@ namespace HsbgCardLookup.Ui
         private string _lastSig;
         private string _lastLayoutLog;               // dedupe: log geometry only when it changes
 
-        private Border _badge;
-        private TextBlock _badgeText;
-        private Border _badgeClose;
-        private UpdateNotice _updateNotice;
-
-        public SearchButton(PluginConfig config, Action toggle, Action<string> onSkip, Action<string> log = null)
+        public SearchButton(PluginConfig config, Action toggle, Action<string> log = null)
         {
             _config = config;
             _toggle = toggle;
-            _onSkip = onSkip;
             _log = log;
         }
 
@@ -99,22 +85,6 @@ namespace HsbgCardLookup.Ui
         /// <summary>Settings changed — drop the signature so the next poll re-applies.</summary>
         public void OnSettingsChanged() => _lastSig = null;
 
-        /// <summary>Pushed by Plugin whenever the known update state changes (background or manual
-        /// check) — the one source of truth shared with the F3 banner and the Settings "Updates"
-        /// page.</summary>
-        internal void SetUpdateState(UpdateNotice notice)
-        {
-            try
-            {
-                HostServices.Overlay?.Canvas?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    _updateNotice = notice;
-                    RefreshBadge();
-                }));
-            }
-            catch { }
-        }
-
         // ── Canvas thread from here down ─────────────────────────────────────────────────────────
 
         private void Apply(bool show)
@@ -131,13 +101,11 @@ namespace HsbgCardLookup.Ui
             }
             _root.Visibility = Visibility.Visible;
             Layout();
-            RefreshBadge();
         }
 
         private void HideIfShown()
         {
             if (_attached && _root != null) _root.Visibility = Visibility.Collapsed;
-            if (_badge != null) _badge.Visibility = Visibility.Collapsed;
         }
 
         public void CloseAll()
@@ -150,7 +118,6 @@ namespace HsbgCardLookup.Ui
                     if (canvas == null || !_attached) return;
                     canvas.SizeChanged -= OnCanvasSizeChanged;
                     canvas.Children.Remove(_root);
-                    if (_badge != null) canvas.Children.Remove(_badge);
                     _attached = false;
                 }));
             }
@@ -204,88 +171,11 @@ namespace HsbgCardLookup.Ui
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
         }
 
-        private void BuildBadge()
-        {
-            _badgeText = new TextBlock
-            {
-                Foreground = new SolidColorBrush(BadgeText),
-                FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-
-            var closeGlyph = new TextBlock
-            {
-                Text = "✕", Foreground = new SolidColorBrush(BadgeCloseIdle),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            _badgeClose = new Border
-            {
-                Background = Brushes.Transparent, Cursor = Cursors.Hand,
-                VerticalAlignment = VerticalAlignment.Center, Child = closeGlyph
-            };
-            _badgeClose.MouseEnter += (s, e) => closeGlyph.Foreground = new SolidColorBrush(BadgeCloseHover);
-            _badgeClose.MouseLeave += (s, e) => closeGlyph.Foreground = new SolidColorBrush(BadgeCloseIdle);
-            _badgeClose.MouseLeftButtonUp += (s, e) =>
-            {
-                e.Handled = true;
-                try { if (_updateNotice != null) _onSkip?.Invoke(_updateNotice.AvailableVersion); } catch { }
-            };
-            DockPanel.SetDock(_badgeClose, Dock.Right);
-
-            var row = new DockPanel { LastChildFill = true };
-            row.Children.Add(_badgeClose);
-            row.Children.Add(_badgeText);
-
-            _badge = new Border
-            {
-                Background = new SolidColorBrush(BadgeFace),
-                BorderBrush = new SolidColorBrush(BadgeRim),
-                Cursor = Cursors.Hand,
-                Child = row,
-                Visibility = Visibility.Collapsed
-            };
-            _badge.MouseLeftButtonUp += (s, e) =>
-            {
-                e.Handled = true;   // _badgeClose's own handler already ran + stopped bubbling for its clicks
-                try { _toggle?.Invoke(); } catch { }
-            };
-
-            var canvas = HostServices.Overlay?.Canvas;
-            canvas?.Children.Add(_badge);
-            try { HostServices.Overlay?.SetHitTestVisible(_badge); } catch { }
-        }
-
-        // Whether there's currently something worth showing the badge for — a plain "up to date" /
-        // error notice stays silent (that's what the F3 banner and Settings page are for).
-        private bool HasNoteworthyUpdate() =>
-            _updateNotice != null && _updateNotice.AvailableForDownload;
-
-        /// <summary>Re-set the set-once tooltip (and the badge text) in the current plugin language.</summary>
+        /// <summary>Re-set the set-once tooltip in the current plugin language.</summary>
         public void Relabel()
         {
-            try
-            {
-                if (_root != null) _root.ToolTip = Strings.T("searchButton.tooltip");
-                RefreshBadge();
-            }
+            try { if (_root != null) _root.ToolTip = Strings.T("searchButton.tooltip"); }
             catch { }
-        }
-
-        private void RefreshBadge()
-        {
-            bool show = _attached && _root != null && _root.Visibility == Visibility.Visible && HasNoteworthyUpdate();
-            if (show && _badge == null) BuildBadge();
-            if (_badge == null) return;
-
-            if (!show) { _badge.Visibility = Visibility.Collapsed; return; }
-
-            _badgeText.Text = Strings.T("searchButton.updateAvailable");
-            _badgeClose.Visibility = Visibility.Visible;   // the ✕ skips this version
-
-            _badge.Visibility = Visibility.Visible;
-            Layout();   // re-measure — the badge's own width depends on its text
         }
 
         private void Layout()
@@ -295,8 +185,7 @@ namespace HsbgCardLookup.Ui
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
 
-            // Height-based scale only (see the constants' comment) — the game never scales by width.
-            double scale = Math.Max(MinScale, Math.Min(MaxScale, ch / 1080.0));
+            double scale = ScaleFor(ch);
 
             double w = RefBtnW * scale, h = RefBtnH * scale;
             _root.Width = w;
@@ -309,26 +198,6 @@ namespace HsbgCardLookup.Ui
             double top = ch - RefBottomInset * scale - h;
             Canvas.SetLeft(_root, left);
             Canvas.SetTop(_root, top);
-
-            if (_badge != null && _badge.Visibility == Visibility.Visible)
-            {
-                // Wide enough for "Update available" at this scale's font size; centered over the
-                // button, floating just above it with a small gap.
-                double bh = Math.Max(20, h * 0.62);
-                double bw = Math.Max(150 * scale, w * 2.6);
-                double bLeft = left + (w - bw) / 2;
-                double bTop = top - bh - (5 * scale);
-
-                _badge.Width = bw;
-                _badge.Height = bh;
-                _badge.CornerRadius = new CornerRadius(bh * 0.32);
-                _badge.BorderThickness = new Thickness(Math.Max(1.0, 1.6 * scale));
-                _badge.Padding = new Thickness(8 * scale, 0, 4 * scale, 0);
-                _badgeText.FontSize = Math.Max(10, 12 * scale);
-                if (_badgeClose.Child is TextBlock ct) ct.FontSize = Math.Max(10, 12 * scale);
-                Canvas.SetLeft(_badge, bLeft);
-                Canvas.SetTop(_badge, bTop);
-            }
 
             // One line per geometry change — the ground truth for calibrating against screenshots.
             string sig = $"SearchButton layout: canvas {cw:F0}x{ch:F0}, scale {scale:F3}, rect ({left:F0},{top:F0},{w:F0}x{h:F0})";
