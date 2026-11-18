@@ -75,11 +75,13 @@ AppId={{9B1E4C7A-5D62-4F0B-8E3C-2A7F6D9C1B45}
 AppName={#AppDisplayName}
 AppVersion={#AppVersion}
 AppVerName={#AppDisplayName} {#AppVersion}
-AppPublisher=RTantrumR
+AppPublisher=hsbg.cards
 AppPublisherURL=https://github.com/RTantrumR/HDT-Plugin-Cards
 AppSupportURL=https://github.com/RTantrumR/HDT-Plugin-Cards/issues
 AppUpdatesURL=https://github.com/RTantrumR/HDT-Plugin-Cards/releases
 VersionInfoVersion={#AppVersion}
+VersionInfoCompany=hsbg.cards
+VersionInfoCopyright=Copyright © 2026 TantrumUA
 ; The plugin's folder; the mode page swaps in the standalone's (ApplyModeDir) unless /DIR is given.
 DefaultDirName={userappdata}\HearthstoneDeckTracker\Plugins\HsbgCardLookup
 DisableDirPage=yes
@@ -92,8 +94,14 @@ UninstallDisplayName={code:UninstallName}
 UninstallDisplayIcon={code:UninstallIcon}
 OutputDir=out
 OutputBaseFilename=TantrumsBattlegroundsToolkit-Setup-{#AppVersion}
-Compression=lzma2/max
-SolidCompression=yes
+; Stored, not compressed: a packed payload reads as obfuscated to heuristic scanners (the 1.0.0
+; Setup drew Skyhigh's BehavesLike.Win32.ObfuscatedPoly on VirusTotal).
+Compression=none
+; Signed only when installeruild.ps1 gets -SignPfx (it then defines Sign and the "toolkit" tool),
+; which signs the Setup and the uninstaller it writes.
+#ifdef Sign
+SignTool=toolkit
+#endif
 WizardStyle=modern
 ; The language page holds an intro, a row and two columns of seven: a tenth more room than the default.
 WizardSizePercent=110

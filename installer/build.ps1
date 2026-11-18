@@ -10,11 +10,17 @@
   out\messages.iss here — compile the .iss through this script, not on its own.
   package.ps1 calls this with -SkipBuild after its own build and copies the result into dist\.
 
+  -SignPfx <file.pfx> -SignPasswordFile <file> signs our own binaries (the plugin DLL, the standalone
+  exe), the Setup and its uninstaller with that certificate, via the Windows SDK's signtool.exe.
+  Third-party DLLs are left as their authors shipped them. No timestamp server is used.
+
   Inno Setup 6: winget install JRSoftware.InnoSetup
 #>
 param(
     [string]$Version,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [string]$SignPfx,
+    [string]$SignPasswordFile
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,6 +74,23 @@ foreach ($f in "$stage\plugin\HsbgCardLookup.dll", "$stage\standalone\HsbgCardLo
     if ($v -ne $Version -and $v -ne "$Version.0") { throw "Stale build staged: $f is version $v, not $Version (rebuild without -SkipBuild)" }
 }
 
+# Signing (optional): our own binaries now, the Setup and its uninstaller through Inno's SignTool below.
+$signArgs = @()
+if ($SignPfx) {
+    if (-not (Test-Path $SignPfx)) { throw "Certificate not found: $SignPfx" }
+    if (-not $SignPasswordFile -or -not (Test-Path $SignPasswordFile)) { throw "-SignPasswordFile is required with -SignPfx" }
+    $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $signtool) { throw "signtool.exe not found (Windows SDK)" }
+    $pw = (Get-Content -Raw $SignPasswordFile).Trim()
+    foreach ($f in "$stage\plugin\HsbgCardLookup.dll", "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
+        & $signtool sign /q /fd sha256 /f $SignPfx /p $pw $f
+        if ($LASTEXITCODE -ne 0) { throw "signtool failed on $f (exit $LASTEXITCODE)" }
+    }
+    # ISCC replaces $q with a quote and $f with the quoted file it signs.
+    $signArgs = @("/DSign", ('/Stoolkit=$q{0}$q sign /q /fd sha256 /f $q{1}$q /p {2} $f' -f $signtool, $SignPfx, $pw))
+}
+
 # The language page's flags: the plugin's own Ui\Flags.cs rendered to BMPs (out\flags) by
 # tools\RenderFlags.cs, so the wizard shows the same marks as the plugin and the site.
 $outDir = Join-Path $here "out"
@@ -119,7 +142,7 @@ foreach ($section in @("messages", "custom")) {
 New-Item -ItemType Directory -Force -Path (Join-Path $here "out") | Out-Null
 [IO.File]::WriteAllLines((Join-Path $here "out\messages.iss"), $lines, (New-Object Text.UTF8Encoding($true)))
 
-& $iscc "/DAppVersion=$Version" "/Qp" (Join-Path $here "HsbgCardLookup.iss")
+& $iscc "/DAppVersion=$Version" "/Qp" @signArgs (Join-Path $here "HsbgCardLookup.iss")
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed (exit $LASTEXITCODE)" }
 
 $exe = Join-Path $here "out\TantrumsBattlegroundsToolkit-Setup-$Version.exe"

@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("hsbg.cards")]
 [assembly: AssemblyProduct("Tantrum's Battlegrounds Toolkit")]
-[assembly: AssemblyCopyright("")]
+[assembly: AssemblyCopyright("Copyright © 2026 TantrumUA")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
