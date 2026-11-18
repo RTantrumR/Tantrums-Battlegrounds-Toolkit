@@ -87,7 +87,11 @@ namespace Toolkit.Standalone
                         wait = snap != null && snap.IsBattlegrounds ? 250 : 1000;
                         string summary = Summary(snap);
                         if (summary != lastSummary) { Shared.Log(summary); lastSummary = summary; }
-                        ui.BeginInvoke(new Action(() => game.Publish(snap)));
+                        ui.BeginInvoke(new Action(() =>
+                        {
+                            game.Publish(snap);
+                            overlay.SetCovered(snap != null && snap.FriendsListOpen, snap != null && snap.GameMenuOpen);
+                        }));
                     }
                 }) { IsBackground = true, Name = "reader" };
 

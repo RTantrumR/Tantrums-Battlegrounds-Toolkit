@@ -29,6 +29,9 @@ namespace Toolkit.Standalone
     /// element registered with <see cref="RegisterClickable"/>; then it takes real mouse input. It is
     /// WS_EX_NOACTIVATE and answers WM_MOUSEACTIVATE with MA_NOACTIVATE, so a click never moves the
     /// foreground off Hearthstone. The same idea HDT's overlay uses for plugin elements.
+    ///
+    /// Client panels: while Hearthstone's friends list or its Esc game menu is open, the part of the
+    /// surface that panel covers is cut out (<see cref="SetCovered"/>), the way HDT masks its own overlay.
     /// </summary>
     internal sealed class OverlayWindow : Window
     {
@@ -51,6 +54,7 @@ namespace Toolkit.Standalone
         private static readonly TimeSpan ShownRate = TimeSpan.FromMilliseconds(16), HiddenRate = TimeSpan.FromMilliseconds(250);
         private WinEventProc _onForeground;     // held: the hook calls it from native code
         private IntPtr _foregroundHook;
+        private bool _friendsListCover, _gameMenuCover;
 
         public OverlayWindow()
         {
@@ -68,6 +72,7 @@ namespace Toolkit.Standalone
             root.Children.Add(Surface);
             root.Children.Add(_mirrorLayer);
             Content = root;
+            Surface.SizeChanged += (s, e) => { if (_friendsListCover || _gameMenuCover) UpdateMask(); };
 
             SourceInitialized += (s, e) =>
             {
@@ -110,6 +115,51 @@ namespace Toolkit.Standalone
             return IntPtr.Zero;
         }
 
+        /// <summary>
+        /// Cuts the areas of Hearthstone's open panels out of the surface: the friends list on the left,
+        /// the game menu in the middle. The mirrors of our own windows stay whole, since those windows sit
+        /// above the game on screen too.
+        /// </summary>
+        public void SetCovered(bool friendsList, bool gameMenu)
+        {
+            if (friendsList == _friendsListCover && gameMenu == _gameMenuCover) return;
+            _friendsListCover = friendsList; _gameMenuCover = gameMenu;
+            UpdateMask();
+            Log?.Invoke("client panels: friends list " + (friendsList ? "open" : "closed") + ", game menu " + (gameMenu ? "open" : "closed"));
+        }
+
+        // The panels' areas on the surface. The client scales its UI with the window height and anchors
+        // the friends list to the left edge and the game menu to the centre, so sizes are fractions of
+        // the height: friends list 0.38 h wide from 0.27 h to 0.95 h; game menu 0.37 h wide from 0.25 h
+        // to 0.61 h (measured on 1920x1080 and narrower windows, see docs/standalone/client-panels.md).
+        private List<Rect> CoveredAreas()
+        {
+            var list = new List<Rect>(2);
+            double w = Surface.ActualWidth, h = Surface.ActualHeight;
+            if (w <= 0 || h <= 0) return list;
+            if (_friendsListCover) list.Add(new Rect(0, 0.27 * h, 0.38 * h, 0.68 * h));
+            if (_gameMenuCover) list.Add(new Rect(w / 2 - 0.185 * h, 0.25 * h, 0.37 * h, 0.36 * h));
+            return list;
+        }
+
+        private void UpdateMask()
+        {
+            var areas = CoveredAreas();
+            if (areas.Count == 0) { Surface.OpacityMask = null; return; }
+            var full = new Rect(0, 0, Surface.ActualWidth, Surface.ActualHeight);
+            Geometry shown = new RectangleGeometry(full);
+            foreach (var a in areas) shown = Geometry.Combine(shown, new RectangleGeometry(a), GeometryCombineMode.Exclude, null);
+            var brush = new DrawingBrush(new GeometryDrawing(Brushes.Black, null, shown))
+            {
+                Stretch = Stretch.None,
+                ViewboxUnits = BrushMappingMode.Absolute, Viewbox = full,
+                ViewportUnits = BrushMappingMode.Absolute, Viewport = full,
+                AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top
+            };
+            brush.Freeze();
+            Surface.OpacityMask = brush;
+        }
+
         /// <summary>Lets <paramref name="element"/> take real mouse input while the rest of the window stays click-through.</summary>
         public void RegisterClickable(FrameworkElement element)
         {
@@ -126,6 +176,7 @@ namespace Toolkit.Standalone
             if (_clickable.Count == 0 || !GetCursorPos(out c)) return null;
             Point p;
             try { p = Surface.PointFromScreen(new Point(c.X, c.Y)); } catch { return null; }
+            foreach (var a in CoveredAreas()) if (a.Contains(p)) return null;      // the client's panel is there
             FrameworkElement hit = null;
             _clickable.RemoveAll(w =>
             {

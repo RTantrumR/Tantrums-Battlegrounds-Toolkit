@@ -31,6 +31,8 @@ namespace Toolkit.Standalone
         public int TeamsWithTwo;                                 // duos: teams holding two tiles
         public List<KeyValuePair<string, string>> Lobby = new List<KeyValuePair<string, string>>();   // name, hero card id
         public List<int> LobbyTribes = new List<int>();
+        public bool FriendsListOpen;                             // the client's friends list is on screen
+        public bool GameMenuOpen;                                // the Esc game menu is on screen
         public long ReadMs;
         public long Reads;                                       // ReadProcessMemory calls this walk took
 
@@ -136,6 +138,13 @@ namespace Toolkit.Standalone
 
             long presence = m.StaticObj("BnetPresenceMgr", "s_instance");
             s.Region = Region(m.Obj(m.Obj(presence, "m_myGameAccountId"), "<EntityId>k__BackingField"));
+
+            // Client panels our overlay must not draw over. ChatMgr creates its FriendListFrame when the list
+            // opens and destroys it (field back to null) when it closes; GameMenu's m_isShown is a plain bool
+            // on its ButtonListMenu base. Both read 0 until the game first uses the class.
+            s.FriendsListOpen = m.Obj(m.StaticObj("ChatMgr", "s_instance"), "m_friendListFrame") != 0;
+            long menuShown = m.FieldAddr(m.StaticObj("GameMenu", "s_instance"), "m_isShown");
+            s.GameMenuOpen = menuShown != 0 && (m.M.I32(menuShown) & 0xFF) != 0;
 
             long gs = m.StaticObj("GameState", "s_instance");
             s.GameStateAddr = gs;
