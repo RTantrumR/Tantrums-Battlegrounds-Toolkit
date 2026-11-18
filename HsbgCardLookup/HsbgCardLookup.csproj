@@ -36,6 +36,9 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <!-- Microsoft.VisualBasic: FileSystem.DeleteFile, the one framework call that sends a file to the
+         Recycle Bin (Mods\InstalledMods.cs, the Mods page's Delete). -->
+    <Reference Include="Microsoft.VisualBasic" />
     <!-- `dynamic` in Game\LeaderboardRaceScry.cs (walks HearthMirror's ScryDotNet objects without a
          compile-time reference to untapped-scry-dotnet.dll, which only exists inside HDT's app dir). -->
     <Reference Include="Microsoft.CSharp" />
@@ -136,6 +139,7 @@
     <Compile Include="Net\PluginNotice.cs" />
     <Compile Include="Net\SiteApi.cs" />
     <Compile Include="Net\SiteCache.cs" />
+    <Compile Include="Mods\InstalledMods.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="ToolkitApp.cs" />
     <Compile Include="Host\Seams.cs" />

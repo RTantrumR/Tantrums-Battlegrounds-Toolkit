@@ -482,45 +482,46 @@ namespace HsbgCardLookup.Ui
             try { if (!string.IsNullOrEmpty(url)) Process.Start(url); } catch { /* the browser is best-effort */ }
         }
 
-        // ── Other tools: the site's /api/v1/plugins list, downloads through the browser ──────────
+        // ── Mods: the site's catalogue (/api/v1/plugins) and what is installed in Hearthstone's folder ──
+        // Downloads go through the browser; the toolkit never downloads or runs files itself. The
+        // catalogue comes through SiteCache (2 hours on disk); "check for updates" asks the site now.
 
-        private static List<Net.PluginRow> _toolsCache;   // one fetch per session; a failed one is retried on the next visit
-        private static readonly HashSet<string> GameMods = new HashSet<string> { "replay-watcher", "deck-inspector", "friend-search" };
+        private static List<Net.PluginRow> _catalogue;          // last answer this session
+        private bool _modsInstalledTab;                          // which tab the Mods page shows
+        private readonly Dictionary<string, string> _modStatus = new Dictionary<string, string>();   // file → result of its last check
 
         private void BuildTools()
         {
             _currentPage = BuildTools;
             var stack = NewPage(Strings.T("settings.tools.title"), sub: true);
-            stack.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.tools.intro"), Foreground = UiKit.TextSecondary, FontSize = 13,
-                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
-            });
+
+            string hsDir = Mods.InstalledMods.HearthstoneDir();
+            var installed = Mods.InstalledMods.Scan(hsDir);
+
+            var tabs = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 14) };
+            tabs.Children.Add(Tab(Strings.T("settings.tools.tab.catalogue"), !_modsInstalledTab, () => { _modsInstalledTab = false; BuildTools(); }));
+            tabs.Children.Add(Tab(Strings.F("settings.tools.tab.installed", installed.Count), _modsInstalledTab, () => { _modsInstalledTab = true; BuildTools(); }));
+            stack.Children.Add(tabs);
+
             var list = new StackPanel();
             stack.Children.Add(list);
 
-            if (_toolsCache != null) FillTools(list, _toolsCache);
+            if (_catalogue != null) FillModsTab(list, hsDir, installed);
             else
             {
-                list.Children.Add(new TextBlock { Text = Strings.T("settings.tools.loading"), Foreground = UiKit.TextMuted, FontSize = 13 });
+                if (!_modsInstalledTab)
+                    list.Children.Add(new TextBlock { Text = Strings.T("settings.tools.loading"), Foreground = UiKit.TextMuted, FontSize = 13 });
+                else FillModsTab(list, hsDir, installed);
                 Task.Run(async () =>
                 {
                     var rows = await Net.SiteApi.GetPluginsAsync();
-                    if (rows != null) _toolsCache = rows;
                     _ = Dispatcher.BeginInvoke(new Action(() =>
                     {
+                        if (rows != null) _catalogue = rows;
                         if (_currentPage != (Action)BuildTools) return;   // the player moved on
                         list.Children.Clear();
-                        if (rows != null) FillTools(list, rows);
-                        else
-                        {
-                            list.Children.Add(new TextBlock
-                            {
-                                Text = Strings.T("settings.tools.failed"), Foreground = Brushes.IndianRed, FontSize = 13,
-                                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
-                            });
-                            list.Children.Add(SmallButton(Strings.T("settings.website"), () => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "/tools"))));
-                        }
+                        if (rows == null && !_modsInstalledTab) { CatalogueFailed(list); return; }
+                        FillModsTab(list, hsDir, installed);
                     }));
                 });
             }
@@ -528,17 +529,65 @@ namespace HsbgCardLookup.Ui
             ShowPage();
         }
 
-        private void FillTools(StackPanel list, List<Net.PluginRow> rows)
+        private void FillModsTab(StackPanel list, string hsDir, List<Mods.InstalledMod> installed)
         {
-            foreach (var t in rows.Where(r => r != null && r.Id != "toolkit"))
-                list.Children.Add(ToolCard(t));
+            if (_modsInstalledTab) FillInstalled(list, hsDir, installed);
+            else FillCatalogue(list, installed);
         }
+
+        private void CatalogueFailed(StackPanel list)
+        {
+            list.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.tools.failed"), Foreground = Brushes.IndianRed, FontSize = 13,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+            });
+            list.Children.Add(SmallButton(Strings.T("settings.website"), () => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "/tools"))));
+        }
+
+        private static Border Tab(string text, bool active, Action onClick)
+        {
+            var b = new Border
+            {
+                Background = active ? UiKit.Br(UiKit.PanelActive) : Brushes.Transparent,
+                BorderBrush = active ? UiKit.AccentBrush : UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(7), Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(0, 0, 8, 0),
+                Cursor = active ? Cursors.Arrow : Cursors.Hand,
+                Child = new TextBlock { Text = text, FontSize = 13.5, FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal,
+                                        Foreground = active ? UiKit.AccentBrush : UiKit.TextSecondary }
+            };
+            if (!active) b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClick(); };
+            return b;
+        }
+
+        // ── Catalogue tab ──
+
+        private void FillCatalogue(StackPanel list, List<Mods.InstalledMod> installed)
+        {
+            list.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.tools.intro"), Foreground = UiKit.TextSecondary, FontSize = 13,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6)
+            });
+            // The risk every mod shares, said once and plainly; a third party's adds its own line on its card.
+            list.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.tools.risk.mod"), Foreground = UiKit.AccentBrush, FontSize = 12.5,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12)
+            });
+            foreach (var t in _catalogue.Where(r => r != null && r.Id != "toolkit"))
+                list.Children.Add(ToolCard(t, installed.FirstOrDefault(m => SameMod(m, t))));
+        }
+
+        // An installed DLL is a catalogue entry when its product name is the entry's name.
+        private static bool SameMod(Mods.InstalledMod m, Net.PluginRow t) =>
+            m != null && t != null && !string.IsNullOrEmpty(t.Name) && string.Equals(m.Name, t.Name, StringComparison.OrdinalIgnoreCase);
 
         // "replay-watcher" → "replayWatcher": catalog key segments are letters and digits only.
         private static string CamelId(string id) =>
             string.Concat((id ?? "").Split('-').Select((p, i) => i == 0 || p.Length == 0 ? p : char.ToUpperInvariant(p[0]) + p.Substring(1)));
 
-        private UIElement ToolCard(Net.PluginRow t)
+        private UIElement ToolCard(Net.PluginRow t, Mods.InstalledMod mine)
         {
             var col = new StackPanel();
 
@@ -553,18 +602,25 @@ namespace HsbgCardLookup.Ui
             title.Children.Add(new TextBlock { Text = t.Name, Foreground = UiKit.TextPrimary, FontSize = 15, FontWeight = FontWeights.SemiBold });
             col.Children.Add(title);
 
+            if (mine != null)
+            {
+                bool behind = t.Latest != null && Mods.InstalledMods.IsOlder(mine.Version, t.Latest.Version);
+                col.Children.Add(new TextBlock
+                {
+                    Text = behind ? Strings.F("settings.tools.installedOld", mine.Version, t.Latest.Version) : Strings.F("settings.tools.installedVersion", mine.Version),
+                    Foreground = behind ? UiKit.AccentBrush : new SolidColorBrush(Color.FromRgb(0x4E, 0xCB, 0x8D)), FontSize = 12.5, Margin = new Thickness(0, 3, 0, 0)
+                });
+            }
+
             // Our own words for our own tools (in the toolkit's language); the site's text for anything else.
             string descKey = "settings.tools.desc." + CamelId(t.Id), own = Strings.T(descKey);
             string desc = t.Official && own != descKey ? own : t.Description;
             if (!string.IsNullOrEmpty(desc))
                 col.Children.Add(new TextBlock { Text = desc, Foreground = UiKit.TextSecondary, FontSize = 13, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
 
-            // The risk, said plainly: someone else's code, and/or a change to the game client.
-            var risks = new List<string>();
-            if (!t.Official) risks.Add(Strings.F("settings.tools.risk.thirdParty", t.Author ?? "?"));
-            if (GameMods.Contains(t.Id)) risks.Add(Strings.T("settings.tools.risk.mod"));
-            foreach (var r in risks)
-                col.Children.Add(new TextBlock { Text = r, Foreground = UiKit.AccentBrush, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
+            // Someone else's code: said on that mod's own card.
+            if (!t.Official)
+                col.Children.Add(new TextBlock { Text = Strings.F("settings.tools.risk.thirdParty", t.Author ?? "?"), Foreground = UiKit.AccentBrush, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) });
 
             var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
             var download = t.Latest?.Downloads?.FirstOrDefault(d => d != null && d.Platform == "windows" && !string.IsNullOrEmpty(d.Url));
@@ -583,6 +639,146 @@ namespace HsbgCardLookup.Ui
                 Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 12, 14, 12), Margin = new Thickness(0, 0, 0, 10), Child = col
             };
+        }
+
+        // ── Installed tab ──
+
+        private void FillInstalled(StackPanel list, string hsDir, List<Mods.InstalledMod> installed)
+        {
+            if (hsDir == null)
+            {
+                list.Children.Add(Note(Strings.T("settings.tools.noHearthstone")));
+                return;
+            }
+            if (!Mods.InstalledMods.HasBepInEx(hsDir))
+            {
+                list.Children.Add(Note(Strings.T("settings.tools.noBepInEx")));
+                return;
+            }
+
+            var head = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
+            var openFolder = SmallButton(Strings.T("settings.tools.openFolder"), () => OpenUrl(System.IO.Path.Combine(hsDir, "BepInEx", "plugins")));
+            openFolder.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(openFolder, Dock.Right);
+            head.Children.Add(openFolder);
+            head.Children.Add(new TextBlock { Text = System.IO.Path.Combine(hsDir, "BepInEx"), Foreground = UiKit.TextMuted, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            list.Children.Add(head);
+
+            if (installed.Count == 0) { list.Children.Add(Note(Strings.T("settings.tools.noMods"))); return; }
+            foreach (var m in installed) list.Children.Add(InstalledRow(m));
+            list.Children.Add(Note(Strings.T("settings.tools.deleteHint")));
+        }
+
+        private static TextBlock Note(string text) => new TextBlock
+        {
+            Text = text, Foreground = UiKit.TextMuted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 8)
+        };
+
+        private UIElement InstalledRow(Mods.InstalledMod m)
+        {
+            var col = new StackPanel();
+            var title = new TextBlock { FontSize = 14.5, TextWrapping = TextWrapping.Wrap };
+            title.Inlines.Add(new System.Windows.Documents.Run(m.Name) { Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold });
+            if (!string.IsNullOrEmpty(m.Version))
+                title.Inlines.Add(new System.Windows.Documents.Run("   " + m.Version) { Foreground = UiKit.TextMuted, FontSize = 12.5 });
+            col.Children.Add(title);
+
+            string meta = m.FileName + (string.IsNullOrEmpty(m.Author) ? "" : "  ·  " + Strings.F("settings.tools.by", m.Author))
+                        + (m.Loader == "BepInEx" ? "" : "  ·  " + m.Loader);
+            col.Children.Add(new TextBlock { Text = meta, Foreground = UiKit.TextMuted, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+
+            if (_modStatus.TryGetValue(m.FullPath, out var status))
+                col.Children.Add(StatusLine(m, status));
+
+            var icons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            icons.Children.Add(IconButton("\uED25", Strings.T("settings.tools.showInExplorer"), () => Explore(m.FullPath)));   // folder
+            icons.Children.Add(IconButton("\uE72C", Strings.T("settings.tools.checkUpdates"), () => CheckModUpdate(m)));        // refresh
+            icons.Children.Add(IconButton("\uE74D", Strings.T("settings.tools.delete"), () => DeleteMod(m)));                  // bin
+
+            var dock = new DockPanel();
+            DockPanel.SetDock(icons, Dock.Right);
+            dock.Children.Add(icons);
+            dock.Children.Add(col);
+            return new Border
+            {
+                Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 10, 10, 10), Margin = new Thickness(0, 0, 0, 8), Child = dock
+            };
+        }
+
+        // The result of this row's last "check for updates": "checking", "uptodate", "unknown", "failed" or "new:<version>".
+        private UIElement StatusLine(Mods.InstalledMod m, string status)
+        {
+            var green = new SolidColorBrush(Color.FromRgb(0x4E, 0xCB, 0x8D));
+            if (status.StartsWith("new:"))
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
+                row.Children.Add(new TextBlock { Text = Strings.F("settings.tools.status.new", status.Substring(4)), Foreground = UiKit.AccentBrush, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
+                var entry = _catalogue?.FirstOrDefault(t => SameMod(m, t));
+                var download = entry?.Latest?.Downloads?.FirstOrDefault(d => d != null && d.Platform == "windows" && !string.IsNullOrEmpty(d.Url));
+                if (download != null) row.Children.Add(SmallButton(Strings.T("settings.tools.download"), () => OpenUrl(download.Url)));
+                return row;
+            }
+            string key = status == "checking" ? "settings.tools.status.checking" : status == "uptodate" ? "settings.tools.status.upToDate"
+                       : status == "unknown" ? "settings.tools.status.notInCatalogue" : "settings.tools.failed";
+            return new TextBlock { Text = Strings.T(key), Foreground = status == "uptodate" ? (Brush)green : UiKit.TextMuted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        }
+
+        private static Border IconButton(string glyph, string tooltip, Action onClick)
+        {
+            var text = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 15, Foreground = UiKit.TextSecondary, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var b = new Border
+            {
+                Width = 32, Height = 32, CornerRadius = new CornerRadius(7), Background = Brushes.Transparent, BorderBrush = UiKit.StrokeBrush,
+                BorderThickness = new Thickness(1), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, ToolTip = tooltip, Child = text
+            };
+            b.MouseEnter += (s, e) => { b.Background = UiKit.Br(UiKit.RowBgHover); text.Foreground = UiKit.AccentBrush; };
+            b.MouseLeave += (s, e) => { b.Background = Brushes.Transparent; text.Foreground = UiKit.TextSecondary; };
+            b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClick(); };
+            return b;
+        }
+
+        private static void Explore(string path)
+        {
+            try { Process.Start("explorer.exe", "/select,\"" + path + "\""); } catch { }
+        }
+
+        private void CheckModUpdate(Mods.InstalledMod m)
+        {
+            _modStatus[m.FullPath] = "checking";
+            BuildTools();
+            Task.Run(async () =>
+            {
+                var rows = await Net.SiteApi.GetPluginsAsync(fresh: true);
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (rows != null) _catalogue = rows;
+                    var entry = _catalogue?.FirstOrDefault(t => SameMod(m, t));
+                    if (_catalogue == null) _modStatus[m.FullPath] = "failed";
+                    else if (entry == null || entry.Latest == null) _modStatus[m.FullPath] = "unknown";
+                    else if (Mods.InstalledMods.IsOlder(m.Version, entry.Latest.Version)) _modStatus[m.FullPath] = "new:" + entry.Latest.Version;
+                    else _modStatus[m.FullPath] = "uptodate";
+                    if (_currentPage == (Action)BuildTools) BuildTools();
+                }));
+            });
+        }
+
+        private void DeleteMod(Mods.InstalledMod m)
+        {
+            var answer = MessageBox.Show(this, Strings.F("settings.tools.deleteConfirm", m.Name, m.FileName),
+                Strings.T("settings.tools.delete"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes) return;
+            try
+            {
+                Mods.InstalledMods.Recycle(m);
+                _status.Text = Strings.F("settings.tools.deleted", m.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, Strings.F("settings.tools.deleteFailed", m.FileName, ex.Message), Strings.T("settings.tools.delete"),
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            BuildTools();
         }
 
         private void BuildCardSearch()
