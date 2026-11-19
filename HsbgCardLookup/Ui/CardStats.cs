@@ -27,8 +27,8 @@ namespace HsbgCardLookup.Ui
         private static readonly double[] Shrink = { 1.0, 1.0, 0.82, 0.62, 0.5, 0.42 };
 
         /// <summary>The render with these numbers, frozen; the render itself when its digits can't be found.</summary>
-        public static BitmapSource WithNumbers(BitmapSource render, int attack, int health, int oldAttackDigits, int oldHealthDigits,
-            Brush attackFill, Brush healthFill, Typeface face)
+        public static BitmapSource WithNumbers(BitmapSource render, string attack, string health, int oldAttackDigits, int oldHealthDigits,
+            Brush attackFill, Brush healthFill)
         {
             try
             {
@@ -45,8 +45,8 @@ namespace HsbgCardLookup.Ui
                 using (var dc = visual.RenderOpen())
                 {
                     dc.DrawImage(clean, new Rect(0, 0, w, h));
-                    if (!a.IsEmpty) Number(dc, attack.ToString(CultureInfo.InvariantCulture), a, oldAttackDigits, attackFill, face);
-                    if (!b.IsEmpty) Number(dc, health.ToString(CultureInfo.InvariantCulture), b, oldHealthDigits, healthFill, face);
+                    if (!a.IsEmpty) Number(dc, attack, a, oldAttackDigits, attackFill);
+                    if (!b.IsEmpty) Number(dc, health, b, oldHealthDigits, healthFill);
                 }
                 var target = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
                 target.Render(visual);
@@ -58,12 +58,11 @@ namespace HsbgCardLookup.Ui
 
         // The new number where the old one was: same centre, and the old digits' height scaled by how
         // many digits each has.
-        private static void Number(DrawingContext dc, string text, Rect old, int oldDigits, Brush fill, Typeface face)
+        private static void Number(DrawingContext dc, string text, Rect old, int oldDigits, Brush fill)
         {
             double perDigit = old.Height / DigitEm / Shrink[Math.Min(Math.Max(oldDigits, 1), Shrink.Length - 1)];
             double size = perDigit * Shrink[Math.Min(text.Length, Shrink.Length - 1)];
-            var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, face, size, Brushes.White, 1.0);
-            var shape = ft.BuildGeometry(new Point(0, 0));
+            var shape = Assets.GameArt.NumberOutline(text, size).Clone();
             var box = shape.Bounds;
             shape.Transform = new TranslateTransform(old.X + old.Width / 2 - (box.X + box.Width / 2), old.Y + old.Height / 2 - (box.Y + box.Height / 2));
             dc.DrawGeometry(null, new Pen(Brushes.Black, size * 0.13) { LineJoin = PenLineJoin.Round }, shape);

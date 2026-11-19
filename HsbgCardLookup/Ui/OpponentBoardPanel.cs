@@ -82,9 +82,7 @@ namespace HsbgCardLookup.Ui
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xD8, 0x0A, 0x0D, 0x14));
         private static readonly Brush StealthTint = Frozen(Color.FromArgb(0x8C, 0x05, 0x08, 0x10));
         private static readonly Brush RebornGlow = Frozen(Color.FromRgb(0x58, 0xD8, 0xFF));
-        private static readonly Brush VenomFill = Frozen(Color.FromRgb(0x3E, 0xB5, 0x3A));
         private static readonly Brush Buffed = Frozen(Color.FromRgb(0x4C, 0xF0, 0x5A));
-        private static readonly Brush WindFill = Frozen(Color.FromRgb(0xD9, 0xE6, 0xF2));
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
         {
@@ -172,7 +170,7 @@ namespace HsbgCardLookup.Ui
             if (dir == null) return;
             var ids = _store.All.Where(c => !string.IsNullOrEmpty(c.ExternalId)
                 && (c.CardType == "minion" || (c.Categories != null && c.Categories.Contains("darkgift")))).Select(c => c.ExternalId).ToList();
-            Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-font.ttf"));
+            Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-numbers.ttf"));
             Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), canvas.Dispatcher, _log);
         }
         private bool _artTried;
@@ -299,20 +297,17 @@ namespace HsbgCardLookup.Ui
                 if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White), cx + 16, cy - 32, s);
             }
 
-            // What the game hangs under the oval, side by side when there are several.
+            // What the game hangs under the oval, one over the other when there are several.
             var icons = new List<FrameworkElement>();
             if (m.Deathrattle) icons.Add(Sprite("deathrattle", 19, s));
             if (m.Rally) icons.Add(Sprite("rally", 24, s));
             if (m.Venomous) icons.Add(Sprite(m.Poisonous ? "poisonous" : "venomous", m.Poisonous ? 18 : 9, s));
-            if (m.Windfury) icons.Add(Badge("W", WindFill, s));
-            double ix = cx - icons.Sum(e => e.Width / s) / 2;
-            foreach (var icon in icons) { Add(c, icon, ix, cy + 38, s); ix += icon.Width / s; }
+            foreach (var icon in icons) Add(c, icon, cx - icon.Width / s / 2, cy + 38, s);
 
             Add(c, Sprite("gem-attack", 38, s), cx - 56, cy + 18, s);
             Add(c, Sprite("gem-health", 31, s), cx + 25, cy + 10, s);
-            int baseAtk = (m.Golden ? m.Card?.AttackGold : m.Card?.Attack) ?? m.Attack, baseHp = (m.Golden ? m.Card?.HealthGold : m.Card?.Health) ?? m.Health;
-            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, m.Attack > baseAtk ? Buffed : Brushes.White), cx - 33.2, cy + 39.5, s);
-            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, m.Health > baseHp ? Buffed : Brushes.White), cx + 40.5, cy + 39.5, s);
+            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, Brushes.White), cx - 33.2, cy + 39.5, s);
+            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, Brushes.White), cx + 40.5, cy + 39.5, s);
             return c;
         }
 
@@ -335,24 +330,18 @@ namespace HsbgCardLookup.Ui
             return img;
         }
 
-        private static string Short(int n) =>
-            n >= 100000 ? (n / 1000) + "k" : n >= 10000 ? (n / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "k" : n.ToString();
-
-        private static FrameworkElement Badge(string glyph, Brush fill, double s)
+        // The game's own shortening of big stats: at most three digits, "1.7k", "10k", "2.8m".
+        // (English letters; the game localizes them, we don't yet.)
+        internal static string Short(int n)
         {
-            return new Border
-            {
-                Width = 16 * s, Height = 16 * s, CornerRadius = new CornerRadius(8 * s), Background = fill,
-                BorderBrush = Brushes.Black, BorderThickness = new Thickness(1 * s),
-                Child = new TextBlock
-                {
-                    Text = glyph, FontSize = 10 * s, FontWeight = FontWeights.Bold, Foreground = Brushes.Black,
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-                }
-            };
+            if (n < 1000) return n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            double v = n / 1000.0; string unit = "k";
+            if (v >= 1000) { v /= 1000.0; unit = "m"; }
+            if (v >= 10) return ((int)Math.Floor(v)).ToString(System.Globalization.CultureInfo.InvariantCulture) + unit;
+            double tenths = Math.Floor(v * 10) / 10;
+            return tenths.ToString(tenths == Math.Floor(tenths) ? "0" : "0.0", System.Globalization.CultureInfo.InvariantCulture) + unit;
         }
 
-        // A card's own render, cut to its portrait: memory first, else read off the UI thread.
         // The card's own art from the game's files, fitted by its painted region; until that answers
         // (or when the game has none for the card) the portrait cut out of our card render.
         private static void LoadArt(Shape target, BgCard card, bool golden, Rect renderCrop)
@@ -403,7 +392,7 @@ namespace HsbgCardLookup.Ui
                         _opened = over;
                         _cards.Children.Clear();
                         _cards.Children.Add(Card(over.Card, over.Golden, over, _shownScale));
-                        foreach (var gift in over.Gifts.Distinct()) _cards.Children.Add(Card(gift, false, null, _shownScale));
+                        foreach (var gift in over.Gifts) _cards.Children.Add(Card(gift, false, null, _shownScale));
                         _cards.Visibility = Visibility.Visible;
                     }
                     double total = CardW * _shownScale * _cards.Children.Count;
@@ -427,8 +416,8 @@ namespace HsbgCardLookup.Ui
                 if (render == null) return;
                 if (stats == null) { img.Source = render; return; }
                 int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;
-                img.Source = CardStats.WithNumbers(render, stats.Attack, stats.Health, baseAtk.ToString().Length, baseHp.ToString().Length,
-                    stats.Attack > baseAtk ? Buffed : Brushes.White, stats.Health > baseHp ? Buffed : Brushes.White, Assets.GameArt.NumberFace);
+                img.Source = CardStats.WithNumbers(render, Short(stats.Attack), Short(stats.Health), baseAtk.ToString().Length, baseHp.ToString().Length,
+                    stats.Attack > baseAtk ? Buffed : Brushes.White, stats.Health > baseHp ? Buffed : Brushes.White);
             };
             var hit = CardArt.GetSync(card, golden, 0);
             if (hit != null) set(hit);
@@ -456,11 +445,8 @@ namespace HsbgCardLookup.Ui
 
             public OutlinedText(string text, double size, Brush fill)
             {
-                var ft = new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                    Assets.GameArt.NumberFace, size, Brushes.White, 1.0);
-                _shape = ft.BuildGeometry(new Point(0, 0));
+                _shape = Assets.GameArt.NumberOutline(text, size);
                 var box = _shape.Bounds;
-                _shape.Transform = new TranslateTransform(-box.X, -box.Y);
                 _shape.Freeze();
                 _fill = fill;
                 _pen = new Pen(Brushes.Black, Math.Max(1.5, size * 0.14)) { LineJoin = PenLineJoin.Round };

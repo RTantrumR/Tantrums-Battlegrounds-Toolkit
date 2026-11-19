@@ -148,20 +148,19 @@ namespace HsbgCardLookup.Assets
 
         // ── the game's number face ──────────────────────────────────────────────────────────────
         private static string _fontFile;
-        private static Typeface _face;
         private static bool _faceTried;
 
-        // Belwe sits in the client's "essential" content bundle; it is copied out once (and again when
+        // The number face sits in the client's "essential" content bundle; it is copied out once (and again when
         // its size changes) because WPF can only load a font from a file.
         private static void SaveFont(string dataDir, string cacheFile)
         {
             try
             {
-                string target = Path.Combine(Path.GetDirectoryName(cacheFile), "game-font.ttf");
+                string target = Path.Combine(Path.GetDirectoryName(cacheFile), "game-numbers.ttf");
                 foreach (string f in Directory.GetFiles(dataDir, "essential_base_global-content-*.unity3d"))
                 {
                     byte[] data;
-                    using (var b = new UnityBundle(f)) data = GameFont.Read(b, "Belwe");
+                    using (var b = new UnityBundle(f)) data = GameFont.Read(b, "BelweNumbers");   // the face of the stat numbers: digits, ".", k, m
                     if (data == null) continue;
                     if (!File.Exists(target) || new FileInfo(target).Length != data.Length) File.WriteAllBytes(target, data);
                     break;
@@ -173,28 +172,44 @@ namespace HsbgCardLookup.Assets
         /// <summary>Where the font copy is kept; set before the first use of <see cref="NumberFace"/>.</summary>
         public static void UseFontFile(string path) { _fontFile = path; }
 
-        /// <summary>The game's own number face once its file exists (it does from the second run on, or
-        /// seconds into the first), else a plain heavy system face. UI thread.</summary>
-        public static Typeface NumberFace
+        private static GlyphTypeface _glyphs;
+
+        /// <summary>
+        /// The outline of a number in the game's own number face, its top-left at the origin; in a plain
+        /// heavy system face until the font file exists (seconds into the first run). The glyphs are laid
+        /// out by hand from the font file: its style is named "Numbers Outline", which WPF's family and
+        /// style matching does not resolve. UI thread.
+        /// </summary>
+        public static Geometry NumberOutline(string text, double size)
         {
-            get
+            Geometry shape = null;
+            try
             {
-                if (_face != null) return _face;
-                try
+                if (_glyphs == null && _fontFile != null && File.Exists(_fontFile)) _glyphs = new GlyphTypeface(new Uri(_fontFile));
+                if (_glyphs != null)
                 {
-                    if (_fontFile != null && File.Exists(_fontFile))
+                    var group = new GeometryGroup { FillRule = FillRule.Nonzero };
+                    double x = 0;
+                    foreach (char ch in text)
                     {
-                        var glyphs = new GlyphTypeface(new Uri(_fontFile));
-                        string family = glyphs.FamilyNames.Values.First();
-                        _face = new Typeface(new FontFamily(new Uri(Path.GetDirectoryName(_fontFile) + Path.DirectorySeparatorChar), "./#" + family),
-                            glyphs.Style, glyphs.Weight, glyphs.Stretch);
-                        return _face;
+                        ushort glyph;
+                        if (!_glyphs.CharacterToGlyphMap.TryGetValue(ch, out glyph)) { group = null; break; }
+                        var outline = _glyphs.GetGlyphOutline(glyph, size, size).Clone();
+                        outline.Transform = new TranslateTransform(x, 0);
+                        group.Children.Add(outline);
+                        x += _glyphs.AdvanceWidths[glyph] * size;
                     }
+                    shape = group;
                 }
-                catch (Exception ex) { if (!_faceTried) _log("[art] font load: " + ex.GetType().Name + ": " + ex.Message); }
-                _faceTried = true;
-                return Fallback;
             }
+            catch (Exception ex) { if (!_faceTried) _log("[art] font load: " + ex.GetType().Name + ": " + ex.Message); _faceTried = true; }
+            if (shape == null)
+                shape = new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Fallback, size, Brushes.White, 1.0)
+                    .BuildGeometry(new Point(0, 0));
+            var box = shape.Bounds;
+            var moved = shape.Clone();
+            moved.Transform = new TranslateTransform(-box.X, -box.Y);
+            return moved.GetFlattenedPathGeometry();
         }
         private static readonly Typeface Fallback = new Typeface(new FontFamily("Arial Black"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal);
 
