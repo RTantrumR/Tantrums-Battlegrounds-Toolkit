@@ -39,18 +39,23 @@ namespace HsbgCardLookup.Game
     /// What the client holds (measured on a replay, docs/standalone/opponent-boards.md): the fight's enemy
     /// minions sit in the opposing seat, which also holds Bob's next shop. A fight minion is created with
     /// its card's base stats; its real stats, keywords, Dark Gift flag and enchantments land in the read
-    /// where COPIED_FROM_ENTITY_ID appears, 1.0–1.6 s into the fight and spread over a read or two. So each
-    /// minion is taken in the read where that tag first shows, and only for a short window after the
-    /// fight's first one: later copies are summons, not the starting board.
+    /// where COPIED_FROM_ENTITY_ID appears, 1.0–1.6 s into the fight and spread over a read or two.
+    ///
+    /// The fight's window is the game entity's BACON_COMBAT_SETUP tag (the one HDT snapshots on): it
+    /// rises to 1 when the boards start being laid out, and in all twelve fights of the recorded dumps
+    /// the last copies landed no later than the read in which it dropped. So a rise opens a new board,
+    /// each minion is taken in the read where its copy tag first shows, and the board closes a moment
+    /// after the drop: copies that come later are summons made during the fight. The copy tag stays the
+    /// test of membership, because two seconds into a fight the same seat already holds the next shop.
     /// </summary>
     public sealed class OpponentBoards
     {
         private const int CardTypeMinion = 4, ZonePlay = 1;
-        // Copies still count for one more read after the setup ends (a read is not atomic); with no setup
-        // seen (started mid-fight), for that long after the first one.
-        private static readonly TimeSpan Grace = TimeSpan.FromMilliseconds(600);
+        // Copies still count for a read or two after the setup ends (a read is not atomic); with no setup
+        // seen at all (started mid-fight), for that long after the first copy.
+        private static readonly TimeSpan Grace = TimeSpan.FromMilliseconds(300);
         private const int CardTypeGame = 1;
-        private bool _setup;
+        private bool _setup, _sawSetup, _open;
         private DateTime _setupEnded;
         private static readonly Regex EnchantmentSuffix = new Regex(@"e\d*$", RegexOptions.Compiled);
 
@@ -96,7 +101,7 @@ namespace HsbgCardLookup.Game
         {
             try
             {
-                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _current = null; }
+                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _current = null; _setup = _sawSetup = _open = false; }
                 var g = HostServices.Game;
                 if (g == null || !g.IsBattlegroundsMatch) return;
                 int seat = g.OpponentId;
@@ -111,6 +116,7 @@ namespace HsbgCardLookup.Game
                         // out; the read where it drops is the one in which the last copies land.
                         bool setup = e.GetTag(Tags.BACON_COMBAT_SETUP) == 1;
                         if (_setup && !setup) _setupEnded = DateTime.UtcNow;
+                        if (setup && !_setup) { _sawSetup = _open = true; _current = null; }      // a new fight
                         _setup = setup;
                         continue;
                     }
@@ -119,11 +125,13 @@ namespace HsbgCardLookup.Game
                     if (!_seen.Add(e.Id)) continue;
                     (found ?? (found = new List<BoardMinion>())).Add(Read(g, e));
                 }
+                var now = DateTime.UtcNow;
+                if (_open && !_setup && now - _setupEnded > Grace) _open = false;
                 if (found == null) return;
 
                 int turn = g.TurnNumber;
-                var now = DateTime.UtcNow;
-                if (_current == null || _current.Turn != turn)
+                if (_sawSetup && !_open) return;                 // a summon made during the fight
+                if (_current == null || (!_sawSetup && _current.Turn != turn))
                 {
                     int pid = NextOpponent(g);
                     if (pid <= 0) { _current = null; return; }
@@ -131,7 +139,7 @@ namespace HsbgCardLookup.Game
                     _boards[pid] = _current;
                     _log?.Invoke("[boards] turn " + turn + ": fight against player " + pid);
                 }
-                else if (!_setup && now - (_setupEnded > _current.Started ? _setupEnded : _current.Started) > Grace) return;   // a summon made during the fight
+                else if (!_sawSetup && now - _current.Started > Grace) return;
 
                 _current.Minions.AddRange(found);
                 _current.Minions.Sort((a, b) => a.Position.CompareTo(b.Position));
