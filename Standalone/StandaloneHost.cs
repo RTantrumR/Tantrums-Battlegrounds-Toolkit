@@ -136,6 +136,15 @@ namespace Toolkit.Standalone
         public IRaceReader CreateRaceReader(Action<string> log) => new Races(_game);
         public int HoveredLeaderboardHero() => _game.Current?.HoveredHeroEntityId ?? 0;
 
+        public CardTextRecord CardText(string cardId)
+        {
+            if (string.IsNullOrEmpty(cardId)) return null;
+            CardTextRecord r;
+            if (GameReader.CardTexts.TryGetValue(cardId, out r)) return r;
+            GameReader.CardTextsWanted.Enqueue(cardId);
+            return null;
+        }
+
         private sealed class Races : IRaceReader
         {
             private readonly StandaloneGameState _game;

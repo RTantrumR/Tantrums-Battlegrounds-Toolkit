@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 
 namespace MemSpike
@@ -14,6 +14,18 @@ namespace MemSpike
     /// </summary>
     internal static class Program
     {
+        // DbfLocValue: the current locale's string, or (not stripped) the first locale that has one.
+        private static string Loc(Mono mono, long loc)
+        {
+            if (loc == 0) return null;
+            string cur = mono.Str(loc, "m_currentLocaleValue");
+            if (!string.IsNullOrEmpty(cur)) return cur;
+            long arr = mono.Obj(loc, "m_locValues");
+            int n = Math.Min(mono.ArrayLen(arr), 32);
+            for (int i = 0; i < n; i++) { string v = mono.Str(mono.M.Ptr(arr + 0x20 + i * 8)); if (!string.IsNullOrEmpty(v)) return i + ":" + v; }
+            return null;
+        }
+
         private static int Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;   // names can be Cyrillic, CJK, ...
@@ -43,6 +55,24 @@ namespace MemSpike
                             Console.WriteLine(args[1] + " : " + mono.ClassName(mono.Parent(k)));
                             foreach (var f in mono.Fields(k)) Console.WriteLine("  " + (f.Static ? "static " : "       ") + "0x" + f.Offset.ToString("X3") + "  " + f.Name);
                             break;
+                        case "cardtext":      // cardtext <out.tsv> [prefix]: every card record's builder type, name, text
+                        {
+                            long index = mono.StaticObj("GameDbf", "s_index");
+                            long map = mono.Obj(index, "m_cardsByCardId");
+                            int n = 0;
+                            using (var w = new System.IO.StreamWriter(args[1], false, System.Text.Encoding.UTF8))
+                                foreach (var kv in mono.RefMap(map))
+                                {
+                                    string id = mono.Str(kv.Key);
+                                    if (id == null || (args.Length > 2 && !id.StartsWith(args[2]))) continue;
+                                    string text = Loc(mono, mono.Obj(kv.Value, "m_textInHand"));
+                                    string name = Loc(mono, mono.Obj(kv.Value, "m_name"));
+                                    w.WriteLine(id + "	" + mono.Int(kv.Value, "m_cardTextBuilderType") + "	" + name + "	" + (text ?? "").Replace('\n', '|'));
+                                    n++;
+                                }
+                            Console.WriteLine("index 0x" + index.ToString("X") + " map 0x" + map.ToString("X") + " records " + n);
+                            break;
+                        }
                         case "me":
                             if (!statics) { Console.WriteLine("statics not calibrated"); return 3; }
                             Me(mono);

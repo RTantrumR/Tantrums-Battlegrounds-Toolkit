@@ -77,6 +77,16 @@ namespace HsbgCardLookup.Host
         /// <summary>Entity id of the hero whose leaderboard tile the game's own mouse is on; 0 for none,
         /// -1 when the host can't tell.</summary>
         int HoveredLeaderboardHero();
+        /// <summary>The client's own record of a card's text, in the client's language; null when the
+        /// host has none (yet: a first ask may be answered a moment later).</summary>
+        CardTextRecord CardText(string cardId);
+    }
+
+    /// <summary>A card's text template as the client holds it, and which of its text builders fills it.</summary>
+    public sealed class CardTextRecord
+    {
+        public int Builder;      // Assets.Card.CardTextBuilderType
+        public string Text;      // raw: "[x]", <b>, line breaks, {0} / @ placeholders
     }
 
     /// <summary>The surface in-match features draw on, kept over the Hearthstone window.</summary>
@@ -158,6 +168,9 @@ namespace HsbgCardLookup.Host
         public const int PLAYER_TECH_LEVEL = 1377;
         public const int TAG_SCRIPT_DATA_NUM_3 = 2889;
         public const int TAG_SCRIPT_DATA_NUM_4 = 2919;
+        public const int TAG_SCRIPT_DATA_NUM_5 = 2920;
+        public const int TAG_SCRIPT_DATA_NUM_6 = 2921;
+        public const int USE_ALTERNATE_CARD_TEXT = 955;
         public const int BACON_DUO_TEAMMATE_PLAYER_ID = 2939;
         public const int BACON_DUO_PLAYER_FIGHTS_FIRST_NEXT_COMBAT = 2975;
         public const int NEXT_OPPONENT_TEAMMATE_PLAYER_ID = 2988;

@@ -124,6 +124,7 @@ namespace HsbgCardLookup.Host.Hdt
 
         public IRaceReader CreateRaceReader(Action<string> log) => new LeaderboardRaceScry(log);
         public int HoveredLeaderboardHero() => -1;
+        public CardTextRecord CardText(string cardId) => null;
     }
 
     internal sealed class HdtOverlay : IOverlaySurface

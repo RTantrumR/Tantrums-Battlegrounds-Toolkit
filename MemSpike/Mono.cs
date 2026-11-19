@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -361,6 +361,21 @@ namespace MemSpike
             {
                 if ((BitConverter.ToInt32(links, i * 8) & int.MinValue) == 0) continue;
                 yield return new KeyValuePair<int, long>(BitConverter.ToInt32(keys, i * 4), BitConverter.ToInt64(vals, i * 8));
+            }
+        }
+
+        /// <summary>Map&lt;TRef, TRef&gt; (e.g. string keys): both arrays hold pointers.</summary>
+        public IEnumerable<KeyValuePair<long, long>> RefMap(long map, int max = 262144)
+        {
+            int nl, nk, nv;
+            var links = Arr(Obj(map, "linkSlots"), 8, max, out nl);
+            var keys = Arr(Obj(map, "keySlots"), 8, max, out nk);
+            var vals = Arr(Obj(map, "valueSlots"), 8, max, out nv);
+            int n = Math.Min(nl, Math.Min(nk, nv));
+            for (int i = 0; i < n; i++)
+            {
+                if ((BitConverter.ToInt32(links, i * 8) & int.MinValue) == 0) continue;
+                yield return new KeyValuePair<long, long>(BitConverter.ToInt64(keys, i * 8), BitConverter.ToInt64(vals, i * 8));
             }
         }
 

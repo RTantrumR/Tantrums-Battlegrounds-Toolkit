@@ -88,7 +88,62 @@ namespace Toolkit.Standalone
 
         public void Dispose() { Detach(); }
 
-        private void Detach() { _mem?.Dispose(); _mem = null; _mono = null; _pid = 0; _statics = false; _entities.Clear(); _offCardId = -1; }
+        private void Detach()
+        {
+            _mem?.Dispose(); _mem = null; _mono = null; _pid = 0; _statics = false; _entities.Clear(); _offCardId = -1;
+            _cardRecords = null; CardTexts.Clear();
+        }
+
+        // ── Card text records ────────────────────────────────────────────────────────────────────
+        // GameDbf.s_index.m_cardsByCardId: card id → CardDbfRecord, for every card the client knows.
+        // Asked for by card id from the UI thread, answered here on the reader's thread: the first ask
+        // walks the map once (its ids only, about 0.2 s) and keeps each record's address; the client
+        // loads the records once and its collector never moves them.
+        public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, HsbgCardLookup.Host.CardTextRecord> CardTexts
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, HsbgCardLookup.Host.CardTextRecord>();
+        public static readonly System.Collections.Concurrent.ConcurrentQueue<string> CardTextsWanted = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        private Dictionary<string, long> _cardRecords;
+
+        private void AnswerCardTexts()
+        {
+            string id;
+            while (CardTextsWanted.TryDequeue(out id))
+            {
+                if (CardTexts.ContainsKey(id)) continue;
+                var m = _mono;
+                if (_cardRecords == null)
+                {
+                    var sw = Stopwatch.StartNew();
+                    var found = new Dictionary<string, long>();
+                    long map = m.Obj(m.StaticObj("GameDbf", "s_index"), "m_cardsByCardId");
+                    foreach (var kv in m.RefMap(map)) { string key = m.Str(kv.Key); if (key != null) found[key] = kv.Value; }
+                    if (found.Count == 0) return;                 // not loaded yet: asked again later
+                    _cardRecords = found;
+                    _log("card records: " + found.Count + " in " + sw.ElapsedMilliseconds + " ms");
+                }
+                var rec = new HsbgCardLookup.Host.CardTextRecord();
+                long r;
+                if (_cardRecords.TryGetValue(id, out r))
+                {
+                    rec.Builder = m.Int(r, "m_cardTextBuilderType");
+                    rec.Text = LocString(m.Obj(r, "m_textInHand"));
+                }
+                CardTexts[id] = rec;
+            }
+        }
+
+        // DbfLocValue: the current locale's string once the client has dropped the others, else the
+        // first locale that has one.
+        private string LocString(long loc)
+        {
+            if (loc == 0) return null;
+            string cur = _mono.Str(loc, "m_currentLocaleValue");
+            if (!string.IsNullOrEmpty(cur)) return cur;
+            long arr = _mono.Obj(loc, "m_locValues");
+            int n = Math.Min(_mono.ArrayLen(arr), 32);
+            for (int i = 0; i < n; i++) { string v = _mono.Str(_mem.Ptr(arr + 0x20 + i * 8)); if (!string.IsNullOrEmpty(v)) return v; }
+            return null;
+        }
 
         /// <summary>Null when Hearthstone isn't running or can't be read yet.</summary>
         public Snapshot Read()
@@ -116,6 +171,7 @@ namespace Toolkit.Standalone
                 var sw = Stopwatch.StartNew();
                 long reads0 = _mem.Reads;
                 var snap = Walk();
+                if (!CardTextsWanted.IsEmpty) AnswerCardTexts();
                 snap.ReadMs = sw.ElapsedMilliseconds;
                 snap.Reads = _mem.Reads - reads0;
                 _lastError = null;
