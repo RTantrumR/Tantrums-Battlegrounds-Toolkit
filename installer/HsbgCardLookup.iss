@@ -282,7 +282,8 @@ end;
 
 function WantDesktopShortcut: Boolean;
 begin
-  Result := IsStandaloneMode and (AutoNoRadio <> nil) and AutoNoRadio.Checked and DesktopCheck.Checked;
+  // Always, in either start mode (owner, 2026-11-19): a closed toolkit must be easy to find again.
+  Result := IsStandaloneMode;
 end;
 
 function ToolkitStartArgs(Param: String): String;
@@ -1158,6 +1159,7 @@ begin
   DesktopCheck.Width := AutoPage.SurfaceWidth - ScaleX(18);
   DesktopCheck.Caption := CustomMessage('AutoDesktop');
   DesktopCheck.Checked := True;
+  DesktopCheck.Visible := False;   // no longer a choice: the shortcut is always made
   AutoYesRadio.OnClick := @AutoClick;
   AutoNoRadio.OnClick := @AutoClick;
 
