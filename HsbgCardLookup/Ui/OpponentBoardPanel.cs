@@ -30,7 +30,7 @@ namespace HsbgCardLookup.Ui
     public sealed class OpponentBoardPanel
     {
         // Design units = pixels of a 1080-high game.
-        private const double CellW = 98, CellH = 136, Pad = 8, HeaderH = 22;
+        private const double CellW = 104, CellH = 146, Pad = 8, HeaderH = 22;
         // The portrait's oval inside our card renders (512×672), as fractions of the image.
         private static readonly Rect MinionArt = new Rect(154 / 512.0, 71 / 672.0, 216 / 512.0, 264 / 672.0);
         private static readonly Rect SpellArt = new Rect(190 / 512.0, 112 / 672.0, 132 / 512.0, 132 / 672.0);
@@ -61,6 +61,7 @@ namespace HsbgCardLookup.Ui
         private static readonly Brush StealthTint = Frozen(Color.FromArgb(0x8C, 0x05, 0x08, 0x10));
         private static readonly Brush RebornGlow = Frozen(Color.FromRgb(0x58, 0xD8, 0xFF));
         private static readonly Brush VenomFill = Frozen(Color.FromRgb(0x3E, 0xB5, 0x3A));
+        private static readonly Brush Buffed = Frozen(Color.FromRgb(0x4C, 0xF0, 0x5A));
         private static readonly Brush WindFill = Frozen(Color.FromRgb(0xD9, 0xE6, 0xF2));
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
@@ -227,53 +228,60 @@ namespace HsbgCardLookup.Ui
             Canvas.SetTop(_root, canvas.ActualHeight * 0.006);
         }
 
-        // One minion, back to front: taunt shield, art in its oval, stealth tint, reborn glow, ring,
-        // divine shield, gift medallion, keyword badges, gems with the board's numbers.
+        // One minion, back to front: taunt shield, art in its oval, stealth veil, reborn glow, ring,
+        // divine shield, gift medallion, keyword icons, gems with the board's numbers. The numbers below
+        // are cell units, fitted to the sprites' own openings (minion-frame's hole is 167x239 of 256x297).
         private FrameworkElement Minion(BoardMinion m, double s)
         {
             var c = new Canvas { Width = CellW * s, Height = CellH * s };
-            const double cx = 49, cy = 68, rx = 31, ry = 43;          // the oval, in cell units
+            const double cx = 52, cy = 72, rx = 33, ry = 46;          // the art's oval, a little under the ring
 
-            if (m.Taunt) Add(c, Sprite(m.Golden ? "taunt-gold" : "taunt", 106, s), -4, cy - 70, s);
+            if (m.Taunt) Add(c, Sprite(m.Golden ? "taunt-gold" : "taunt", m.Golden ? 110 : 106, s), cx - (m.Golden ? 55 : 53), cy - 68, s);
 
             var art = new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = UiKit.Br(Color.FromRgb(0x1A, 0x21, 0x30)) };
             Add(c, art, cx - rx, cy - ry, s);
             LoadArt(art, m.Card, m.Golden, MinionArt);
 
-            if (m.Stealth) Add(c, new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = StealthTint }, cx - rx, cy - ry, s);
-            if (m.Reborn)
-                Add(c, new Ellipse
-                {
-                    Width = 2 * (rx + 2) * s, Height = 2 * (ry + 2) * s, Stroke = RebornGlow, StrokeThickness = 3 * s,
-                    Effect = new BlurEffect { Radius = 6 * s }
-                }, cx - rx - 2, cy - ry - 2, s);
+            if (m.Stealth)
+            {
+                Add(c, new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = StealthTint }, cx - rx, cy - ry, s);
+                Add(c, Sprite("stealth", 80.5, s), cx - 39.6, cy - 53.6, s);
+            }
+            if (m.Reborn) Add(c, Sprite("reborn", 78, s), cx - 39, cy - 50, s);
 
-            Add(c, Sprite(m.Golden ? "minion-frame-gold" : "minion-frame", 90, s), cx - 43.5, cy - 54, s);
+            if (m.Golden) Add(c, Sprite("minion-frame-gold", 86, s), cx - 42.3, cy - 52.4, s);
+            else Add(c, Sprite("minion-frame", 95, s), cx - 46.2, cy - 59.9, s);
 
             if (m.DivineShield)
             {
-                var shield = Sprite("divine-shield", 108, s);
-                shield.Opacity = 0.8;
-                Add(c, shield, cx - 54, cy - 58, s);
+                var shield = Sprite("divine-shield", 118, s);
+                shield.Opacity = 0.42;
+                Add(c, shield, cx - 59, cy - 64, s);
             }
 
             if (m.Gifts.Count > 0)
             {
-                var gift = new Ellipse { Width = 21 * s, Height = 21 * s, Fill = UiKit.Br(Color.FromRgb(0x2A, 0x10, 0x14)) };
-                Add(c, gift, 66.5, 12.5, s);
+                var gift = new Ellipse { Width = 23 * s, Height = 23 * s, Fill = UiKit.Br(Color.FromRgb(0x2A, 0x10, 0x14)) };
+                Add(c, gift, cx + 19.8, cy - 56.8, s);
                 LoadArt(gift, m.Gifts[0], false, SpellArt);
-                Add(c, Sprite("dark-gift-ring", 32, s), 61, 7, s);
-                if (m.Gifts.Count > 1) Add(c, Number("×" + m.Gifts.Count, 11, s), 80, 30, s);
+                Add(c, Sprite("dark-gift-ring", 34, s), cx + 14, cy - 62, s);
+                if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White, 30 * s), cx + 16, cy - 32, s);
             }
 
-            double badgeX = cx - (m.Venomous && m.Windfury ? 17 : 8);
-            if (m.Venomous) { Add(c, Badge("☠", VenomFill, s), badgeX, 112, s); badgeX += 18; }
-            if (m.Windfury) Add(c, Badge("≋", WindFill, s), badgeX, 112, s);
+            // What the game hangs under the oval, side by side when there are several.
+            var icons = new List<FrameworkElement>();
+            if (m.Deathrattle) icons.Add(Sprite("deathrattle", 19, s));
+            if (m.Rally) icons.Add(Sprite("rally", 24, s));
+            if (m.Venomous) icons.Add(Sprite(m.Poisonous ? "poisonous" : "venomous", m.Poisonous ? 18 : 9, s));
+            if (m.Windfury) icons.Add(Badge("W", WindFill, s));
+            double ix = cx - icons.Sum(e => e.Width / s) / 2;
+            foreach (var icon in icons) { Add(c, icon, ix, cy + 38, s); ix += icon.Width / s; }
 
-            Add(c, Sprite("gem-attack", 34, s), 1, 92, s);
-            Add(c, Sprite("gem-health", 29, s), 67, 86, s);
-            Add(c, Number(Short(m.Attack), 17, s, 44), -4, 99, s);
-            Add(c, Number(Short(m.Health), 17, s, 44), 60, 99, s);
+            Add(c, Sprite("gem-attack", 31, s), cx - 50, cy + 21, s);
+            Add(c, Sprite("gem-health", 25, s), cx + 24, cy + 15, s);
+            int baseAtk = (m.Golden ? m.Card?.AttackGold : m.Card?.Attack) ?? m.Attack, baseHp = (m.Golden ? m.Card?.HealthGold : m.Card?.Health) ?? m.Health;
+            Add(c, new OutlinedText(Short(m.Attack), 17 * s, m.Attack > baseAtk ? Buffed : Brushes.White, 44 * s), cx - 53.5, cy + 25, s);
+            Add(c, new OutlinedText(Short(m.Health), 17 * s, m.Health > baseHp ? Buffed : Brushes.White, 44 * s), cx + 14.5, cy + 25, s);
             return c;
         }
 
@@ -292,18 +300,6 @@ namespace HsbgCardLookup.Ui
 
         private static string Short(int n) =>
             n >= 100000 ? (n / 1000) + "k" : n >= 10000 ? (n / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "k" : n.ToString();
-
-        private static TextBlock Number(string text, double size, double s, double width = 0)
-        {
-            var t = new TextBlock
-            {
-                Text = text, FontSize = size * s, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
-                TextAlignment = TextAlignment.Center,
-                Effect = new DropShadowEffect { BlurRadius = 3 * s, ShadowDepth = 0, Opacity = 1, Color = Colors.Black }
-            };
-            if (width > 0) t.Width = width * s;
-            return t;
-        }
 
         private static FrameworkElement Badge(string glyph, Brush fill, double s)
         {
@@ -407,15 +403,43 @@ namespace HsbgCardLookup.Ui
             {
                 // Design units of the 512-wide render, scaled to the drawn card.
                 double k = w / 512.0;
-                var atk = Sprite("gem-attack", 118, k); var hp = Sprite("gem-health", 100, k);
-                Add(c, atk, 40, 528, k); Add(c, hp, 372, 512, k);
-                Add(c, Number(Short(stats.Attack), 62, k, 160), 22, 552, k);
-                Add(c, Number(Short(stats.Health), 62, k, 160), 342, 552, k);
+                // Our gems go exactly over the render's own (512-wide render units), then the board's numbers.
+                Add(c, Sprite("gem-attack", 122, k), 36, 524, k); Add(c, Sprite("gem-health", 92, k), 376, 512, k);
+                int baseAtk = (golden ? card?.AttackGold : card?.Attack) ?? stats.Attack, baseHp = (golden ? card?.HealthGold : card?.Health) ?? stats.Health;
+                Add(c, new OutlinedText(Short(stats.Attack), 66 * k, stats.Attack > baseAtk ? Buffed : Brushes.White, 170 * k), 16, 540, k);
+                Add(c, new OutlinedText(Short(stats.Health), 66 * k, stats.Health > baseHp ? Buffed : Brushes.White, 170 * k), 337, 540, k);
             }
             return c;
         }
 
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
+
+        /// <summary>Bold text with a black outline, centred in a fixed width: the game's number look.</summary>
+        private sealed class OutlinedText : FrameworkElement
+        {
+            private readonly Geometry _shape;
+            private readonly Brush _fill;
+            private readonly Pen _pen;
+
+            public OutlinedText(string text, double size, Brush fill, double width)
+            {
+                var ft = new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal), size, Brushes.White, 1.0);
+                _shape = ft.BuildGeometry(new Point((width - ft.Width) / 2, 0));
+                _shape.Freeze();
+                _fill = fill;
+                _pen = new Pen(Brushes.Black, Math.Max(1.5, size * 0.2)) { LineJoin = PenLineJoin.Round };
+                _pen.Freeze();
+                Width = width; Height = ft.Height;
+                IsHitTestVisible = false;
+            }
+
+            protected override void OnRender(DrawingContext dc)
+            {
+                dc.DrawGeometry(null, _pen, _shape);
+                dc.DrawGeometry(_fill, null, _shape);
+            }
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT { public int X, Y; }

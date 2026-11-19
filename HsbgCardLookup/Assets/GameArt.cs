@@ -96,10 +96,23 @@ namespace HsbgCardLookup.Assets
                 var need = new HashSet<string>(cardToArt.Values, StringComparer.OrdinalIgnoreCase);
                 var where = new Dictionary<string, Located>(StringComparer.OrdinalIgnoreCase);
                 int failed = Locate(dataDir, "cardtexture_base_global-*.unity3d", need, where);
-                foreach (string group in FallbackGroups)              // a handful of cards keep their art elsewhere
+                // A handful of cards keep their art in other bundle groups (thousands of files). Art that
+                // wasn't there last time isn't looked for again until the game's file count changes.
+                var absent = new HashSet<string>(need.Where(n => !where.ContainsKey(n)), StringComparer.OrdinalIgnoreCase);
+                string missFile = cacheFile + ".missing";
+                string stamp = Directory.GetFiles(dataDir, "*.unity3d").Length + "\t" + string.Join("\t", absent.OrderBy(x => x, StringComparer.Ordinal));
+                bool known = false;
+                try { known = File.Exists(missFile) && File.ReadAllText(missFile) == stamp; } catch { }
+                if (absent.Count > 0 && !known)
                 {
-                    if (where.Count >= need.Count) break;
-                    failed += Locate(dataDir, group, need, where);
+                    foreach (string group in FallbackGroups)
+                    {
+                        if (where.Count >= need.Count) break;
+                        failed += Locate(dataDir, group, need, where);
+                    }
+                    absent.RemoveWhere(n => where.ContainsKey(n));
+                    stamp = Directory.GetFiles(dataDir, "*.unity3d").Length + "\t" + string.Join("\t", absent.OrderBy(x => x, StringComparer.Ordinal));
+                    try { File.WriteAllText(missFile, stamp); } catch { }
                 }
                 var art = new Dictionary<string, Located>(StringComparer.OrdinalIgnoreCase);
                 foreach (var kv in cardToArt) { Located l; if (where.TryGetValue(kv.Value, out l)) art[kv.Key] = l; }

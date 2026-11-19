@@ -137,7 +137,9 @@ namespace HsbgCardLookup.Host
         public const int STEALTH = 191;
         public const int DIVINE_SHIELD = 194;
         public const int CARDTYPE = 202;
+        public const int DEATHRATTLE = 217;
         public const int ZONE_POSITION = 263;
+        public const int RALLY = 4204;
         public const int POISONOUS = 363;
         public const int REBORN = 1085;
         public const int BACON_TRIPLED_BASE_MINION_ID = 1471;

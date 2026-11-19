@@ -14,7 +14,7 @@ namespace HsbgCardLookup.Game
         public string CardId;            // the game's own id (a golden one for a golden minion)
         public BgCard Card;              // our record of it (the base card for a golden); null when unknown
         public int Attack, Health, Position;
-        public bool Golden, Taunt, DivineShield, Reborn, Windfury, Stealth, Venomous;
+        public bool Golden, Taunt, DivineShield, Reborn, Windfury, Stealth, Venomous, Poisonous, Deathrattle, Rally;
         public int Script1, Script2;     // TAG_SCRIPT_DATA_NUM_1/2: the numbers a card's text shows
         public List<BgCard> Gifts = new List<BgCard>();          // Dark Gifts on it, repeats included
         public List<string> Enchantments = new List<string>();   // card ids, as the game holds them
@@ -152,6 +152,9 @@ namespace HsbgCardLookup.Game
                 Windfury = e.GetTag(Tags.WINDFURY) > 0,
                 Stealth = e.GetTag(Tags.STEALTH) > 0,
                 Venomous = e.GetTag(Tags.VENOMOUS) > 0 || e.GetTag(Tags.POISONOUS) > 0,
+                Poisonous = e.GetTag(Tags.POISONOUS) > 0,
+                Deathrattle = e.GetTag(Tags.DEATHRATTLE) > 0,
+                Rally = e.GetTag(Tags.RALLY) > 0,
                 Script1 = e.GetTag(Tags.TAG_SCRIPT_DATA_NUM_1),
                 Script2 = e.GetTag(Tags.TAG_SCRIPT_DATA_NUM_2),
             };
