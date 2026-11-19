@@ -455,6 +455,58 @@ namespace HsbgCardLookup.Assets
         }
     }
 
+    /// <summary>
+    /// The client's per-language stand-in for a font: each language's "essential" content bundle holds
+    /// FontDefinition objects named after the English font ("FranklinGothic") that point at the font
+    /// that language uses, in the same bundle or (file id above 0) in the global one.
+    /// </summary>
+    internal static class FontDefinitions
+    {
+        /// <summary>False when the bundle has no definition of that name: the language uses the font itself.</summary>
+        public static bool Find(UnityBundle bundle, string name, out int fileId, out long pathId, out float lineSpace)
+        {
+            fileId = 0; pathId = 0; lineSpace = 1;
+            var want = new HashSet<string> { "m_Name", "m_Font.m_FileID", "m_Font.m_PathID", "m_LineSpaceModifier" };
+            foreach (var entry in bundle.Entries)
+            {
+                if (entry.Path.EndsWith(".resS", StringComparison.OrdinalIgnoreCase) || entry.Path.EndsWith(".resource", StringComparison.OrdinalIgnoreCase)) continue;
+                var file = new SerializedAssets(bundle, entry);
+                foreach (var o in file.Objects)
+                {
+                    if (file.ClassIds[o.Type] != SerializedAssets.ClassMonoBehaviour) continue;
+                    Dictionary<string, object> f;
+                    try { f = SerializedAssets.Fields(file.Trees[o.Type], file.Data(o), want); } catch { continue; }
+                    object n, fid, pid;
+                    if (!f.ContainsKey("m_LineSpaceModifier") || !f.TryGetValue("m_Name", out n) || Encoding.UTF8.GetString((byte[])n) != name) continue;
+                    if (!f.TryGetValue("m_Font.m_FileID", out fid) || !f.TryGetValue("m_Font.m_PathID", out pid)) continue;
+                    fileId = Convert.ToInt32(fid); pathId = Convert.ToInt64(pid);
+                    lineSpace = BitConverter.ToSingle(BitConverter.GetBytes(Convert.ToInt32(f["m_LineSpaceModifier"])), 0);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>The font object with this id in the bundle: its file bytes, or null.</summary>
+        public static byte[] FontById(UnityBundle bundle, long pathId)
+        {
+            var want = new HashSet<string> { "m_FontData" };
+            foreach (var entry in bundle.Entries)
+            {
+                if (entry.Path.EndsWith(".resS", StringComparison.OrdinalIgnoreCase) || entry.Path.EndsWith(".resource", StringComparison.OrdinalIgnoreCase)) continue;
+                var file = new SerializedAssets(bundle, entry);
+                foreach (var o in file.Objects)
+                {
+                    if (o.PathId != pathId || file.ClassIds[o.Type] != 128) continue;
+                    var f = SerializedAssets.Fields(file.Trees[o.Type], file.Data(o), want);
+                    object data;
+                    return f.TryGetValue("m_FontData", out data) && ((byte[])data).Length > 1000 ? (byte[])data : null;
+                }
+            }
+            return null;
+        }
+    }
+
     /// <summary>Card id → the art its definition names, from the client's CardDef prefabs.</summary>
     internal static class CardDefs
     {

@@ -85,6 +85,7 @@ namespace HsbgCardLookup.Assets
 
         private static void Run(string dataDir, HashSet<string> wanted, string cacheFile)
         {
+            _dataDir = dataDir;
             try
             {
                 var sw = Stopwatch.StartNew();
@@ -137,6 +138,8 @@ namespace HsbgCardLookup.Assets
 
             while (true)
             {
+                string language;
+                while (FontJobs.TryDequeue(out language)) SaveTextFont(language);
                 KeyValuePair<string, Action<ArtPicture>> r;
                 if (!Requests.TryDequeue(out r)) { Wake.WaitOne(); continue; }
                 ArtPicture pic = null;
@@ -163,10 +166,6 @@ namespace HsbgCardLookup.Assets
                     using (var b = new UnityBundle(f)) data = GameFont.Read(b, "BelweNumbers");   // the face of the stat numbers: digits, ".", k, m
                     if (data == null) continue;
                     if (!File.Exists(target) || new FileInfo(target).Length != data.Length) File.WriteAllBytes(target, data);
-                    // The face of card text, beside it.
-                    string text = Path.Combine(Path.GetDirectoryName(cacheFile), "game-text.ttf");
-                    using (var b = new UnityBundle(f)) data = GameFont.Read(b, "FranklinGothic");
-                    if (data != null && (!File.Exists(text) || new FileInfo(text).Length != data.Length)) File.WriteAllBytes(text, data);
                     break;
                 }
             }
@@ -176,22 +175,99 @@ namespace HsbgCardLookup.Assets
         /// <summary>Where the font copy is kept; set before the first use of <see cref="NumberFace"/>.</summary>
         public static void UseFontFile(string path) { _fontFile = path; }
 
-        private static GlyphTypeface _glyphs, _textFace;
+        private static GlyphTypeface _glyphs;
 
-        /// <summary>The game's card-text face, or null until its file exists. UI thread.</summary>
-        public static GlyphTypeface TextFace
+        // ── the game's card-text face, per language ──────────────────────────────────────────────
+        private static readonly Dictionary<string, GlyphTypeface> TextFaces = new Dictionary<string, GlyphTypeface>();
+        private static readonly HashSet<string> TextFaceAsked = new HashSet<string>();
+        private static readonly Dictionary<string, int> TextFaceFailures = new Dictionary<string, int>();
+        private static readonly ConcurrentQueue<string> FontJobs = new ConcurrentQueue<string>();
+        private static string _dataDir;
+
+        /// <summary>
+        /// The face the game sets card text in for a language ("enUS", "jaJP"): FranklinGothic, or what
+        /// that language's font definition puts in its place. Null until its file is copied out of the
+        /// game's bundles (asked for here, done on the reader's thread) or when the language's files
+        /// aren't installed. UI thread.
+        /// </summary>
+        public static GlyphTypeface TextFaceFor(string language)
         {
-            get
+            if (string.IsNullOrEmpty(language) || _fontFile == null) return null;
+            GlyphTypeface face;
+            if (TextFaces.TryGetValue(language, out face)) return face;
+            try
             {
-                if (_textFace != null || _fontFile == null) return _textFace;
-                try
-                {
-                    string file = Path.Combine(Path.GetDirectoryName(_fontFile), "game-text.ttf");
-                    if (File.Exists(file)) _textFace = new GlyphTypeface(new Uri(file));
-                }
-                catch { }
-                return _textFace;
+                string file = TextFontFile(language);
+                if (File.Exists(file)) return TextFaces[language] = new GlyphTypeface(new Uri(file));
             }
+            catch (Exception ex)
+            {
+                // Seen once right after the file was first written; a later try reads it.
+                int tries; TextFaceFailures.TryGetValue(language, out tries);
+                TextFaceFailures[language] = ++tries;
+                _log("[art] text face " + language + " (try " + tries + "): " + ex);
+                if (tries >= 5) TextFaces[language] = null;
+                return null;
+            }
+            if (TextFaceAsked.Add(language)) { FontJobs.Enqueue(language); Wake.Set(); }
+            return null;
+        }
+
+        // Each in a folder of its own: WPF lists a folder's fonts once per process, at the first font it
+        // loads from there, and a file that appears in that folder later fails to load (a null
+        // reference inside GlyphTypeface) until the next start.
+        /// <summary>The language's line spacing against the English face's (its font definition's
+        /// m_LineSpaceModifier): 1 for the Latin languages, 1.25 to 1.45 for Chinese, Korean, Japanese.</summary>
+        public static double TextLineSpace(string language)
+        {
+            double v;
+            if (LineSpaces.TryGetValue(language ?? "", out v)) return v;
+            try
+            {
+                string file = Path.Combine(Path.GetDirectoryName(TextFontFile(language)), "line-space.txt");
+                if (!File.Exists(file)) return 1;
+                v = double.Parse(File.ReadAllText(file).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+                if (v < 0.8 || v > 2) v = 1;
+            }
+            catch { v = 1; }
+            return LineSpaces[language] = v;
+        }
+        private static readonly Dictionary<string, double> LineSpaces = new Dictionary<string, double>();
+
+        private static string TextFontFile(string language) => Path.Combine(Path.GetDirectoryName(_fontFile), "game-fonts", language, "text.ttf");
+
+        // Reader's thread. The language's own bundle says which font stands in for FranklinGothic.
+        private static void SaveTextFont(string language)
+        {
+            try
+            {
+                var sw = Stopwatch.StartNew();
+                byte[] data = null; int fileId = 0; long pathId = 0; bool defined = false; float lineSpace = 1;
+                foreach (string f in Directory.GetFiles(_dataDir, "essential_base_" + language.ToLowerInvariant() + "-content-*.unity3d"))
+                    using (var b = new UnityBundle(f))
+                    {
+                        if (!FontDefinitions.Find(b, "FranklinGothic", out fileId, out pathId, out lineSpace)) continue;
+                        defined = true;
+                        if (fileId == 0) data = FontDefinitions.FontById(b, pathId);
+                        break;
+                    }
+                if (data == null)
+                    foreach (string f in Directory.GetFiles(_dataDir, "essential_base_global-content-*.unity3d"))
+                        using (var b = new UnityBundle(f))
+                        {
+                            data = defined ? FontDefinitions.FontById(b, pathId) : GameFont.Read(b, "FranklinGothic");
+                            if (data != null) break;
+                        }
+                if (data == null) { _log("[art] text face " + language + ": not in the game's files"); return; }
+                string target = TextFontFile(language), tmp = Path.Combine(Path.GetDirectoryName(_fontFile), "game-text-" + language + ".tmp");
+                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                File.WriteAllBytes(tmp, data);
+                if (File.Exists(target)) File.Delete(target);
+                File.Move(tmp, target);
+                File.WriteAllText(Path.Combine(Path.GetDirectoryName(target), "line-space.txt"), lineSpace.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                _log("[art] text face " + language + ": " + (data.Length >> 10) + " KB in " + sw.ElapsedMilliseconds + " ms");
+            }
+            catch (Exception ex) { _log("[art] text face " + language + ": " + ex); }
         }
 
         /// <summary>

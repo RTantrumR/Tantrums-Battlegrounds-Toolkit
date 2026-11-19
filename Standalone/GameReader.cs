@@ -126,7 +126,15 @@ namespace Toolkit.Standalone
                 if (_cardRecords.TryGetValue(id, out r))
                 {
                     rec.Builder = m.Int(r, "m_cardTextBuilderType");
-                    rec.Text = LocString(m.Obj(r, "m_textInHand"));
+                    long loc = m.Obj(r, "m_textInHand");
+                    rec.Text = LocString(loc);
+                    long arr = loc == 0 ? 0 : m.Obj(loc, "m_locValues");
+                    int n = Math.Min(m.ArrayLen(arr), HsbgCardLookup.Host.CardTextRecord.Languages.Length);
+                    if (n > 0)
+                    {
+                        rec.Texts = new string[n];
+                        for (int i = 0; i < n; i++) rec.Texts[i] = m.Str(_mem.Ptr(arr + 0x20 + i * 8));
+                    }
                 }
                 CardTexts[id] = rec;
             }

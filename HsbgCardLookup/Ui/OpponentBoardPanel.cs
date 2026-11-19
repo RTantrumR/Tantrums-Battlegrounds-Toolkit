@@ -55,6 +55,9 @@ namespace HsbgCardLookup.Ui
         private Point _startCursor;
         private double _startLeft, _startTop, _startScale;
 
+        /// <summary>The game's code of the language the card renders are in ("enUS", "jaJP").</summary>
+        public static Func<string> TextLanguage;
+
         /// <summary>Test aid: a cursor position (canvas units) and button state used instead of the real ones.</summary>
         public static Point? TestCursor;
         public static bool TestDown;
@@ -68,7 +71,7 @@ namespace HsbgCardLookup.Ui
             if (_sample != null) return _sample;
             var b = new OpponentBoard { PlayerId = -1, Turn = 12 };
             Func<string, int, int, BoardMinion> m = (id, atk, hp) => new BoardMinion { CardId = id, Card = _store.Lookup(id), Attack = atk, Health = hp };
-            var a = m("BG36_364", 12, 9); a.DivineShield = true; a.Windfury = true; a.Tier = 5; a.Script[0] = 356; a.Script[1] = 267;
+            var a = m("BG36_364", 12, 9); a.DivineShield = true; a.Windfury = true; a.Tier = 5; a.Script[0] = 3560; a.Script[1] = 2670;
             var r = m("BG25_001", 2, 1); r.Taunt = true; r.Reborn = true; r.Tier = 1;
             var g = m("BG29_813", 1700, 1400); g.Golden = true; g.DivineShield = true; g.Tier = 6;
             var k = m("BG27_005", 20, 24); k.Golden = true; k.Taunt = true; k.Deathrattle = true; k.Legendary = true; k.Tier = 3;
@@ -153,7 +156,7 @@ namespace HsbgCardLookup.Ui
                 var canvas = HostServices.Overlay?.Canvas;
                 if (TestBoard && canvas != null && canvas.ActualHeight > 0)
                 {
-                    EnsureArt(canvas);
+                    EnsureArt(canvas); EnsureTextFace();
                     Show(canvas, Sample(), "Sample board");
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
                     return;
@@ -167,7 +170,7 @@ namespace HsbgCardLookup.Ui
                 }
                 if (arranging)
                 {
-                    EnsureArt(canvas);
+                    EnsureArt(canvas); EnsureTextFace();
                     Show(canvas, Sample(), "Sample board");
                     return;
                 }
@@ -175,7 +178,7 @@ namespace HsbgCardLookup.Ui
                     || canvas.ActualHeight <= 0)
                 { Hide(); _pinned = 0; return; }
 
-                EnsureArt(canvas);
+                EnsureArt(canvas); EnsureTextFace();
                 Point cursor; bool haveCursor = Cursor(canvas, out cursor);
                 bool down = (GetAsyncKeyState(0x01) & 0x8000) != 0;      // VK_LBUTTON
                 if (TestCursor.HasValue) { cursor = TestCursor.Value; haveCursor = true; down = TestDown; }
@@ -234,6 +237,17 @@ namespace HsbgCardLookup.Ui
             Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), canvas.Dispatcher, _log);
         }
         private bool _artTried;
+        private string _faceAsked;
+
+        // The text face of the cards' language is copied out of the game's files ahead of the first card.
+        private void EnsureTextFace()
+        {
+            string language = null;
+            try { language = TextLanguage?.Invoke(); } catch { }
+            if (language == null || language == _faceAsked || !Assets.GameArt.Started) return;
+            _faceAsked = language;
+            Assets.GameArt.TextFaceFor(language);
+        }
 
         // PLAYER_IDs in the order the leaderboard draws them (by place; a ghost copy can repeat a place).
         private static List<int> Slots(IGameState g)
@@ -593,9 +607,13 @@ namespace HsbgCardLookup.Ui
                 // The text as it stood on this board, when it differs from what the render shows.
                 try
                 {
-                    string shown = golden ? (card.TextGold ?? card.Text) : card.Text;
-                    string text = SnapshotText.Build(HostServices.Memory?.CardText(stats.TextId ?? card.ExternalId), stats);
-                    if (text != null && SnapshotText.Plain(text) != SnapshotText.Plain(shown)) render = CardTextPaint.WithText(render, shown, text);
+                    // In the language of the render: the client holds every language's text.
+                    string language = "enUS";
+                    try { language = TextLanguage?.Invoke() ?? "enUS"; } catch { }
+                    string shown = golden ? (card.DisplayTextGold ?? card.DisplayText) : card.DisplayText;
+                    string text = SnapshotText.Build(HostServices.Memory?.CardText(stats.TextId ?? card.ExternalId), stats, language);
+                    if (text != null && SnapshotText.Plain(text) != SnapshotText.Plain(shown))
+                        render = CardTextPaint.WithText(render, shown, text, Assets.GameArt.TextFaceFor(language), Assets.GameArt.TextLineSpace(language));
                 }
                 catch { }
                 int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;

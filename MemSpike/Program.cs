@@ -73,6 +73,19 @@ namespace MemSpike
                             Console.WriteLine("index 0x" + index.ToString("X") + " map 0x" + map.ToString("X") + " records " + n);
                             break;
                         }
+                        case "locale":        // which language slots a card's text record has filled
+                        {
+                            long map = mono.Obj(mono.StaticObj("GameDbf", "s_index"), "m_cardsByCardId");
+                            foreach (var kv in mono.RefMap(map))
+                            {
+                                if (mono.Str(kv.Key) != "BG36_364") continue;
+                                long loc = mono.Obj(kv.Value, "m_textInHand");
+                                long arr = mono.Obj(loc, "m_locValues");
+                                Console.WriteLine("stripped " + mono.Int(loc, "m_stripped") + " current \"" + mono.Str(loc, "m_currentLocaleValue") + "\" slots " + mono.ArrayLen(arr));
+                                for (int n = 0; n < mono.ArrayLen(arr); n++) { string v = mono.Str(mono.M.Ptr(arr + 0x20 + n * 8)); Console.WriteLine("  " + n + ": " + (v == null ? "null" : v.Length + " chars")); }
+                            }
+                            break;
+                        }
                         case "me":
                             if (!statics) { Console.WriteLine("statics not calibrated"); return 3; }
                             Me(mono);

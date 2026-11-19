@@ -21,10 +21,11 @@ namespace HsbgCardLookup.Game
 
         /// <summary>The text with its &lt;b&gt;/&lt;i&gt; tags and line breaks, or null when this card's text
         /// carries nothing of the snapshot (or its builder is one we don't follow).</summary>
-        public static string Build(CardTextRecord record, BoardMinion m)
+        public static string Build(CardTextRecord record, BoardMinion m, string language)
         {
-            if (record == null || string.IsNullOrEmpty(record.Text) || m == null) return null;
-            string t = record.Text;
+            if (record == null || m == null) return null;
+            string t = record.In(language);
+            if (string.IsNullOrEmpty(t)) return null;
             int tilde = t.IndexOf('~');                       // the "assembled" variant follows a '~'
             if (tilde >= 0) t = t.Substring(0, tilde);
             try
@@ -55,14 +56,23 @@ namespace HsbgCardLookup.Game
 
             if (t.StartsWith("[x]", StringComparison.Ordinal)) t = t.Substring(3);
             t = Plural.Replace(t, p => p.Groups[1].Value + p.Groups[2].Value + (p.Groups[1].Value == "1" ? p.Groups[3].Value : p.Groups[4].Value).Trim());
+            t = Particle.Replace(t, p => p.Groups[1].Value + (EndsClosed(p.Groups[1].Value[0]) ? p.Groups[2].Value : p.Groups[3].Value).Trim());
             t = Bonus.Replace(t, "$1");                       // "$3" / "#3": spell damage and healing markers
             return t.Replace('_', ' ');
         }
 
         // "{0} |4(turn, turns)": the word by the number before it.
         private static readonly Regex Plural = new Regex(@"(\d+)([^|\d]*)\|4\(([^,)]*),([^)]*)\)", RegexOptions.Compiled);
+        // Korean "|1(을,를)" and its kin: the first form after a syllable that ends in a consonant, the
+        // second after an open one. A digit counts as its Korean reading does (영 일 삼 육 칠 팔 end closed).
+        private static readonly Regex Particle = new Regex(@"(\S)\|[0-35-9]\(([^,)]*),([^)]*)\)", RegexOptions.Compiled);
+        private static bool EndsClosed(char c)
+        {
+            if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28 != 0;
+            return "013678".IndexOf(c) >= 0;
+        }
         private static readonly Regex Bonus = new Regex(@"[$#](\d)", RegexOptions.Compiled);
-        private static readonly Regex Tag = new Regex(@"</?[bi]>|\[x\]", RegexOptions.Compiled);
+        private static readonly Regex Tag = new Regex(@"</?[bi]>|\[[xbd]\]", RegexOptions.Compiled);
 
         /// <summary>Letters, digits and signs only: two texts that read the same compare equal.</summary>
         public static string Plain(string text)

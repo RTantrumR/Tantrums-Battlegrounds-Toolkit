@@ -77,8 +77,8 @@ namespace HsbgCardLookup.Host
         /// <summary>Entity id of the hero whose leaderboard tile the game's own mouse is on; 0 for none,
         /// -1 when the host can't tell.</summary>
         int HoveredLeaderboardHero();
-        /// <summary>The client's own record of a card's text, in the client's language; null when the
-        /// host has none (yet: a first ask may be answered a moment later).</summary>
+        /// <summary>The client's own record of a card's text; null when the host has none (yet: a first
+        /// ask may be answered a moment later).</summary>
         CardTextRecord CardText(string cardId);
     }
 
@@ -86,7 +86,21 @@ namespace HsbgCardLookup.Host
     public sealed class CardTextRecord
     {
         public int Builder;      // Assets.Card.CardTextBuilderType
-        public string Text;      // raw: "[x]", <b>, line breaks, {0} / @ placeholders
+        public string Text;      // raw: "[x]", <b>, line breaks, {0} / @ placeholders; the client's own language
+        /// <summary>The same text per language, in the order of <see cref="Languages"/>; null when the
+        /// client keeps only its own (<see cref="Text"/>). The client was seen holding all of them.</summary>
+        public string[] Texts;
+
+        /// <summary>The client's Localization.SupportedLocales, which orders a record's strings.</summary>
+        public static readonly string[] Languages = { "enUS", "deDE", "esES", "esMX", "frFR", "itIT", "jaJP", "koKR", "plPL", "ptBR", "ruRU", "thTH", "zhCN", "zhTW" };
+
+        /// <summary>The text in one language ("jaJP"); null when the record doesn't have that language.</summary>
+        public string In(string language)
+        {
+            int i = Array.IndexOf(Languages, language);
+            if (Texts != null) return i >= 0 && i < Texts.Length && !string.IsNullOrEmpty(Texts[i]) ? Texts[i] : null;
+            return language == "enUS" || language == null ? Text : null;     // one language only: trusted to be English when asked for English
+        }
     }
 
     /// <summary>The surface in-match features draw on, kept over the Hearthstone window.</summary>
