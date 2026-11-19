@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
@@ -24,8 +25,10 @@ namespace HsbgCardLookup.Ui
     /// Dark Gift as a small medallion; resting the cursor on a minion of a shown board opens its card
     /// with the board's stats, and its gifts' cards beside it.
     ///
-    /// Nothing here takes mouse input: the cursor and the left button are read on the poll, so the
-    /// overlay stays click-through and the game keeps every click.
+    /// In a match nothing here takes mouse input: the cursor and the left button are read on the poll,
+    /// so the overlay stays click-through and the game keeps every click. Only while it is being
+    /// arranged from Settings does it take the mouse: drag to move, the corner grabber to scale
+    /// (config <c>OpponentBoardsHud</c>; unset = hugging the top edge, centred).
     /// </summary>
     public sealed class OpponentBoardPanel
     {
@@ -44,7 +47,13 @@ namespace HsbgCardLookup.Ui
         private readonly TextBlock _header;
         private readonly Canvas _row;
         private readonly StackPanel _cards;       // the opened card(s), a canvas child of their own
+        private readonly Grid _grip;              // takes the mouse while arranging, collapsed otherwise
         private bool _attached;
+        private const double MinScale = 0.5, MaxScale = 2.0;
+        private double _xf = 0.5, _yf = 0, _userScale = 1;
+        private bool _arranging, _dragging, _resizing, _moved;
+        private Point _startCursor;
+        private double _startLeft, _startTop, _startScale;
 
         /// <summary>Test aid: a cursor position (canvas units) and button state used instead of the real ones.</summary>
         public static Point? TestCursor;
@@ -89,17 +98,41 @@ namespace HsbgCardLookup.Ui
             var stack = new StackPanel();
             stack.Children.Add(_header);
             stack.Children.Add(_row);
+            var arrow = new Path
+            {
+                Data = Geometry.Parse("M3 9 L9 3 M9 3 L9 6 M9 3 L6 3"),
+                Stroke = Brushes.White, StrokeThickness = 1.6, Stretch = Stretch.Uniform, Margin = new Thickness(4)
+            };
+            var handle = new Border
+            {
+                Width = 22, Height = 22, CornerRadius = new CornerRadius(5),
+                Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
+                BorderBrush = UiKit.AccentBrush, BorderThickness = new Thickness(1),
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 2, 2, 0), Cursor = Cursors.SizeNESW, Child = arrow
+            };
+            _grip = new Grid { Background = Brushes.Transparent, Visibility = Visibility.Collapsed, Cursor = Cursors.SizeAll };
+            _grip.Children.Add(handle);
+            handle.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(true, e); };
+            _grip.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(false, e); };
+            stack.IsHitTestVisible = false;
+            var grid = new Grid();
+            grid.Children.Add(stack);
+            grid.Children.Add(_grip);
             _root = new Border
             {
                 Background = PanelBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8), Visibility = Visibility.Collapsed, IsHitTestVisible = false, Child = stack
+                CornerRadius = new CornerRadius(8), Visibility = Visibility.Collapsed, Child = grid
             };
+            try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { }
+            var p = _config.OpponentBoardsHud;
+            if (p != null && p.Set && p.WF > 0) { _xf = p.XF; _yf = p.YF; _userScale = Math.Max(MinScale, Math.Min(p.WF, MaxScale)); }
             _cards = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
         }
 
         public void OnSettingsChanged() { _shown = null; }
         public void OnLanguageChanged() { _shown = null; }
-        public void CloseAll() { Hide(); }
+        public void CloseAll() { EndGesture(false); RemoveHook(); Hide(); }
 
         private void Hide()
         {
@@ -121,6 +154,19 @@ namespace HsbgCardLookup.Ui
                     EnsureArt(canvas);
                     Show(canvas, Sample(), "Sample board");
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
+                    return;
+                }
+                bool arranging = ArrangeSession.Active == ArrangeTarget.Boards && canvas != null && canvas.ActualHeight > 0;
+                if (arranging != _arranging)
+                {
+                    _arranging = arranging;
+                    _grip.Visibility = arranging ? Visibility.Visible : Visibility.Collapsed;
+                    if (!arranging) { EndGesture(false); Hide(); }
+                }
+                if (arranging)
+                {
+                    EnsureArt(canvas);
+                    Show(canvas, Sample(), "Sample board");
                     return;
                 }
                 if (!_config.ShowOpponentBoards || ArrangeSession.IsActive || g == null || canvas == null || !g.IsBattlegroundsMatch
@@ -146,7 +192,9 @@ namespace HsbgCardLookup.Ui
                     for (int i = 0; i < slots.Count; i++)
                         if (LeaderboardOverlay.PortraitRect(canvas, i, slots[i] == next).Contains(cursor)) { hovered = slots[i]; break; }
                 }
-                if (click && hovered != 0) _pinned = _pinned == hovered ? 0 : hovered;
+                if (!_config.BoardPinOnClick) _pinned = 0;
+                else if (click && hovered != 0) _pinned = _pinned == hovered ? 0 : hovered;
+                else if (click && _pinned != 0 && haveCursor && OnBoard(canvas, cursor)) _pinned = 0;   // a click on the board lets it go
 
                 int pid = hovered != 0 ? hovered : _pinned;
                 var board = pid == 0 ? null : _boards.For(pid);
@@ -155,7 +203,20 @@ namespace HsbgCardLookup.Ui
                 Show(canvas, board, HeroOf(g, pid));
                 OpenCardUnder(canvas, haveCursor ? cursor : new Point(-1, -1));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                if (_failed) return;
+                _failed = true;          // once: a fault here would otherwise repeat ten times a second
+                try { _log("[boards] panel: " + ex); } catch { }
+            }
+        }
+        private bool _failed;
+
+        private bool OnBoard(Canvas canvas, Point cursor)
+        {
+            if (_root.Visibility != Visibility.Visible || _root.ActualWidth <= 0) return false;
+            try { return _root.TransformToAncestor(canvas).TransformBounds(new Rect(0, 0, _root.ActualWidth, _root.ActualHeight)).Contains(cursor); }
+            catch { return false; }
         }
 
         // A match is on: have the game's own art read in the background, well before a board is shown.
@@ -224,7 +285,7 @@ namespace HsbgCardLookup.Ui
                 _root.SizeChanged += (s, e) => Place(canvas);
                 _attached = true;
             }
-            double scale = Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0));
+            double scale = _userScale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0));
             // A fight's minions arrive over a read or two: redraw when the count grows.
             if (!ReferenceEquals(board, _shown) || board.Minions.Count != _shownCount || scale != _shownScale)
             {
@@ -250,8 +311,117 @@ namespace HsbgCardLookup.Ui
 
         private void Place(Canvas canvas)
         {
-            Canvas.SetLeft(_root, Math.Max(0, (canvas.ActualWidth - _root.ActualWidth) / 2));
-            Canvas.SetTop(_root, canvas.ActualHeight * 0.006);
+            if (_dragging) return;
+            double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
+            double top = Clamp(_yf * ch, 0, Math.Max(0, ch - _root.ActualHeight));
+            Canvas.SetLeft(_root, Clamp(_xf * cw - _root.ActualWidth / 2, 0, Math.Max(0, cw - _root.ActualWidth)));
+            Canvas.SetTop(_root, top);
+            Edge(top);
+        }
+
+        // Against the top edge the box has no top border or top corners: it hangs from the screen's edge.
+        private void Edge(double top)
+        {
+            bool hug = top < 0.5;
+            if (hug == _hug) return;
+            _hug = hug;
+            _root.CornerRadius = hug ? new CornerRadius(0, 0, 8, 8) : new CornerRadius(8);
+            _root.BorderThickness = hug ? new Thickness(1, 0, 1, 1) : new Thickness(1);
+        }
+        private bool _hug;
+
+        private static double Clamp(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);
+
+        // ── Arranging: move / scale (LL mouse hook for the gesture only, as LobbyTribesPanel) ────
+
+        private void BeginGesture(bool resize, MouseButtonEventArgs e)
+        {
+            var canvas = HostServices.Overlay?.Canvas;
+            if (!_attached || _dragging || _resizing || canvas == null) return;
+            try { _startCursor = e.GetPosition(canvas); } catch { return; }
+            _startLeft = Canvas.GetLeft(_root); _startTop = Canvas.GetTop(_root); _startScale = _userScale;
+            if (double.IsNaN(_startLeft) || double.IsNaN(_startTop)) return;
+            _moved = false; _dragging = !resize; _resizing = resize;
+            InstallHook();
+        }
+
+        private void OnGestureMove()
+        {
+            var canvas = HostServices.Overlay?.Canvas;
+            if (canvas == null) { EndGesture(false); return; }
+            double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
+            if (cw <= 0 || ch <= 0) return;
+            Point cur;
+            try { POINT p; GetCursorPos(out p); cur = canvas.PointFromScreen(new Point(p.X, p.Y)); }
+            catch { return; }
+            double dx = cur.X - _startCursor.X, dy = cur.Y - _startCursor.Y;
+            if (Math.Abs(dx) + Math.Abs(dy) > 1) _moved = true;
+            if (_dragging)
+            {
+                double top = Clamp(_startTop + dy, 0, Math.Max(0, ch - _root.ActualHeight));
+                if (top < 6) top = 0;                                   // snaps to the top edge
+                Canvas.SetLeft(_root, Clamp(_startLeft + dx, 0, Math.Max(0, cw - _root.ActualWidth)));
+                Canvas.SetTop(_root, top);
+                Edge(top);
+            }
+            else if (_resizing)
+            {
+                // Drag right to scale up, by the width the box had when the drag began (it grows both
+                // ways from its middle, hence twice the cursor's travel).
+                double w0 = Math.Max(80, _root.ActualWidth / (_userScale / _startScale));
+                double next = Clamp(Math.Round(_startScale * (w0 + 2 * dx) / w0, 2), MinScale, MaxScale);
+                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), "Sample board"); }
+            }
+        }
+
+        private void EndGesture(bool persist = true)
+        {
+            if (!_dragging && !_resizing) return;
+            bool dragged = _dragging;
+            _dragging = _resizing = false;
+            RemoveHook();
+            var canvas = HostServices.Overlay?.Canvas;
+            if (!persist || !_moved || canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            if (dragged)
+            {
+                _xf = (Canvas.GetLeft(_root) + _root.ActualWidth / 2) / canvas.ActualWidth;
+                _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
+                if (Math.Abs(_xf - 0.5) < 0.01) _xf = 0.5;              // near the middle is the middle
+            }
+            try
+            {
+                var p = _config.OpponentBoardsHud ?? (_config.OpponentBoardsHud = new HudPlacement());
+                p.Set = true; p.XF = _xf; p.YF = _yf; p.WF = _userScale;
+                _config.Save();
+            }
+            catch { }
+        }
+
+        private IntPtr _hook = IntPtr.Zero;
+        private LowLevelMouseProc _proc;
+
+        private void InstallHook()
+        {
+            if (_hook != IntPtr.Zero) return;
+            try { _proc = HookProc; _hook = SetWindowsHookEx(14, _proc, GetModuleHandle(null), 0); }       // WH_MOUSE_LL
+            catch { _hook = IntPtr.Zero; _proc = null; _dragging = _resizing = false; }
+        }
+
+        private void RemoveHook()
+        {
+            if (_hook == IntPtr.Zero) return;
+            try { UnhookWindowsHookEx(_hook); } catch { }
+            _hook = IntPtr.Zero; _proc = null;
+        }
+
+        private IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                if (wParam == (IntPtr)0x0200) { try { OnGestureMove(); } catch { } }       // WM_MOUSEMOVE
+                else if (wParam == (IntPtr)0x0202) { try { EndGesture(); } catch { } }     // WM_LBUTTONUP
+            }
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
         // One minion, drawn from the game's own parts.
@@ -283,7 +453,13 @@ namespace HsbgCardLookup.Ui
             if (m.Legendary) layer(m.Golden ? "dragon-gold" : "dragon");
             if (m.Reborn) layer("reborn");
             if (m.DivineShield) layer("divine-shield");
-            if (m.Tier >= 1 && m.Tier <= 7) layer("badge-" + m.Tier);
+            // The tier badge is our own bundled tier icon, set where the game's badge sits.
+            if (m.Tier >= 1 && m.Tier <= 7)
+            {
+                var badge = new Image { Stretch = Stretch.Uniform, Width = 38.5 * s };
+                try { badge.Source = ImageCache.Load(CardStore.TierIconPath(m.Tier), 0); } catch { }
+                Add(c, badge, left + 64, LayerTop + 30.5, s);
+            }
             layer("gem-attack"); layer("gem-health");
             // One spot under the oval; the game shows a single icon there, so the first that applies.
             if (m.Venomous) layer(m.Poisonous ? "poisonous" : "venomous");
@@ -394,7 +570,8 @@ namespace HsbgCardLookup.Ui
                     double total = CardW * _shownScale * _cards.Children.Count;
                     double left = origin.X + (index + 0.5) * w - CardW * _shownScale / 2;
                     Canvas.SetLeft(_cards, Math.Max(0, Math.Min(left, canvas.ActualWidth - total)));
-                    Canvas.SetTop(_cards, origin.Y + CellH * _shownScale + 6 * _shownScale);
+                    double below = origin.Y + CellH * _shownScale + 6 * _shownScale, cardH = CardW * _shownScale * 672.0 / 512.0;
+                    Canvas.SetTop(_cards, below + cardH <= canvas.ActualHeight ? below : Math.Max(0, origin.Y - HeaderH * _shownScale - 6 * _shownScale - cardH));
                 }
                 catch { }
             }
@@ -473,5 +650,14 @@ namespace HsbgCardLookup.Ui
         private static extern bool GetCursorPos(out POINT p);
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
+        private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+        [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+        [DllImport("user32.dll")]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
     }
 }

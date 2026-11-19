@@ -6,7 +6,8 @@
         None,
         Trinkets,
         Anomaly,
-        MmrPanel
+        MmrPanel,
+        Boards
     }
 
     /// <summary>

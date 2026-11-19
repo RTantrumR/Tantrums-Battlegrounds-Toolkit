@@ -117,6 +117,9 @@ namespace HsbgCardLookup.Config
 
         // Opponents' last boards: hover a leaderboard portrait to see one, click to pin it.
         public bool ShowOpponentBoards { get; set; } = true;
+        public bool BoardPinOnClick { get; set; } = true;
+        // XF = the board's middle, YF = its top (canvas fractions), WF = its scale; unset = top-middle.
+        public HudPlacement OpponentBoardsHud { get; set; } = new HudPlacement();
 
         // Location axes ("Off"/"Portraits"/"Panel"/"Both"; unknown/empty = Both) → per-surface bools.
         internal static bool OnPortraits(string mode) =>

@@ -400,12 +400,15 @@ namespace HsbgCardLookup.Ui
                     UpdateArrangeRow();
                 }, BuildAnomaly));
 
-            stack.Children.Add(ToggleRow(Strings.T("settings.boards.label"), _config.ShowOpponentBoards, v =>
-            {
-                _config.ShowOpponentBoards = v;
-                _status.Text = v ? Strings.T("settings.boards.on") : Strings.T("settings.boards.off");
-                Changed();
-            }));
+            stack.Children.Add(CategoryRow(Strings.T("settings.boards.label"),
+                Strings.T("settings.boards.hint"),
+                () => _config.ShowOpponentBoards, v =>
+                {
+                    _config.ShowOpponentBoards = v;
+                    _status.Text = v ? Strings.T("settings.boards.on") : Strings.T("settings.boards.off");
+                    Changed();
+                    UpdateArrangeRow();
+                }, BuildBoards));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
             {
@@ -891,6 +894,35 @@ namespace HsbgCardLookup.Ui
                 TextWrapping = TextWrapping.Wrap
             });
 
+            ShowPage();
+        }
+
+        private void BuildBoards()
+        {
+            _currentPage = BuildBoards;
+            var stack = NewPage(Strings.T("settings.boards.label"), sub: true, () => _config.ShowOpponentBoards, v =>
+            {
+                _config.ShowOpponentBoards = v;
+                _status.Text = v ? Strings.T("settings.boards.on") : Strings.T("settings.boards.off");
+                Changed();
+                UpdateArrangeRow();
+            });
+
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.boards.intro"),
+                Foreground = UiKit.TextMuted, FontSize = 13, Margin = new Thickness(0, 0, 0, 10),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            stack.Children.Add(ToggleRow(Strings.T("settings.boards.pin"), _config.BoardPinOnClick, v =>
+            {
+                _config.BoardPinOnClick = v;
+                _status.Text = v ? Strings.T("settings.boards.pinOn") : Strings.T("settings.boards.pinOff");
+                Changed();
+            }));
+
+            stack.Children.Add(ArrangeHudRow(ArrangeTarget.Boards, Strings.T("settings.boards.arrangeTitle")));
             ShowPage();
         }
 
@@ -1868,6 +1900,7 @@ namespace HsbgCardLookup.Ui
                 case ArrangeTarget.Trinkets: return _config.ShowTrinkets;
                 case ArrangeTarget.Anomaly: return _config.ShowAnomaly;
                 case ArrangeTarget.MmrPanel: return _config.ShowOpponentMmr && _config.PanelInUse;
+                case ArrangeTarget.Boards: return _config.ShowOpponentBoards;
                 default: return false;
             }
         }

@@ -72,7 +72,7 @@ namespace HsbgCardLookup.Ui
             var shape = Assets.GameArt.NumberOutline(text, size).Clone();
             var box = shape.Bounds;
             shape.Transform = new TranslateTransform(old.X + old.Width / 2 - (box.X + box.Width / 2), old.Y + old.Height / 2 - (box.Y + box.Height / 2));
-            dc.DrawGeometry(null, new Pen(Brushes.Black, size * 0.13) { LineJoin = PenLineJoin.Round }, shape);
+            dc.DrawGeometry(null, new Pen(Brushes.Black, size * 0.085) { LineJoin = PenLineJoin.Round }, shape);
             dc.DrawGeometry(fill, null, shape);
         }
 
