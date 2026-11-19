@@ -145,5 +145,6 @@ namespace HsbgCardLookup.Host.Hdt
         public void BringHearthstoneToForeground() => User32.BringHsToForeground();
         public string HostLanguage() => HdtLanguage.Detect();
         public bool? StartWithWindows { get { return null; } set { } }
+        public string HearthstoneDataDirectory() => null;
     }
 }

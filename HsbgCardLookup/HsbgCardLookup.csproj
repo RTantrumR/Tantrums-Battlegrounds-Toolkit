@@ -123,6 +123,8 @@
     <Compile Include="Ui\DarkGiftMarker.cs" />
     <Compile Include="Game\BgMmr.cs" />
     <Compile Include="Ui\LeaderboardOverlay.cs" />
+    <Compile Include="Assets\GameArt.cs" />
+    <Compile Include="Assets\UnityBundle.cs" />
     <Compile Include="Game\OpponentBoards.cs" />
     <Compile Include="Ui\OpponentBoardPanel.cs" />
     <Compile Include="Ui\LobbyTribesPanel.cs" />

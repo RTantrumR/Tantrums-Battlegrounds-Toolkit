@@ -39,6 +39,7 @@ namespace HsbgCardLookup.Ui
         private readonly PluginConfig _config;
         private readonly CardStore _store;
         private readonly OpponentBoards _boards;
+        private readonly Action<string> _log;
         private readonly Border _root;
         private readonly TextBlock _header;
         private readonly Canvas _row;
@@ -62,9 +63,9 @@ namespace HsbgCardLookup.Ui
         private static readonly Brush VenomFill = Frozen(Color.FromRgb(0x3E, 0xB5, 0x3A));
         private static readonly Brush WindFill = Frozen(Color.FromRgb(0xD9, 0xE6, 0xF2));
 
-        public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards)
+        public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
         {
-            _config = config; _store = store; _boards = boards;
+            _config = config; _store = store; _boards = boards; _log = log;
             _header = new TextBlock { Foreground = UiKit.TextSecondary, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
             _row = new Canvas();
             var stack = new StackPanel();
@@ -100,6 +101,7 @@ namespace HsbgCardLookup.Ui
                     || canvas.ActualHeight <= 0)
                 { Hide(); _pinned = 0; return; }
 
+                EnsureArt(canvas);
                 Point cursor; bool haveCursor = Cursor(canvas, out cursor);
                 bool down = (GetAsyncKeyState(0x01) & 0x8000) != 0;      // VK_LBUTTON
                 if (TestCursor.HasValue) { cursor = TestCursor.Value; haveCursor = true; down = TestDown; }
@@ -129,6 +131,19 @@ namespace HsbgCardLookup.Ui
             }
             catch { }
         }
+
+        // A match is on: have the game's own art read in the background, well before a board is shown.
+        private void EnsureArt(Canvas canvas)
+        {
+            if (Assets.GameArt.Started || _artTried) return;
+            _artTried = true;
+            string dir = HostServices.Shell?.HearthstoneDataDirectory();
+            if (dir == null) return;
+            var ids = _store.All.Where(c => !string.IsNullOrEmpty(c.ExternalId)
+                && (c.CardType == "minion" || (c.Categories != null && c.Categories.Contains("darkgift")))).Select(c => c.ExternalId).ToList();
+            Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), canvas.Dispatcher, _log);
+        }
+        private bool _artTried;
 
         // PLAYER_IDs in the order the leaderboard draws them (by place; a ghost copy can repeat a place).
         private static List<int> Slots(IGameState g)
@@ -305,21 +320,30 @@ namespace HsbgCardLookup.Ui
         }
 
         // A card's own render, cut to its portrait: memory first, else read off the UI thread.
-        private static void LoadArt(Shape target, BgCard card, bool golden, Rect crop)
+        // The card's own art from the game's files, fitted by its painted region; until that answers
+        // (or when the game has none for the card) the portrait cut out of our card render.
+        private static void LoadArt(Shape target, BgCard card, bool golden, Rect renderCrop)
         {
             if (card == null) return;
-            Action<BitmapSource> set = bmp =>
+            Assets.GameArt.Request(card.ExternalId, pic =>
             {
-                if (bmp == null) return;
-                target.Fill = new ImageBrush(bmp) { Viewbox = crop, ViewboxUnits = BrushMappingMode.RelativeToBoundingBox, Stretch = Stretch.UniformToFill };
-            };
-            var hit = CardArt.GetSync(card, golden, 0);
-            if (hit != null) { set(hit); return; }
-            var ui = target.Dispatcher;
-            CardArt.LoadAsync(card, golden, 0).ContinueWith(t =>
-            {
-                if (t.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || t.Result == null) return;
-                ui.BeginInvoke(new Action(() => set(t.Result)));
+                if (pic != null)
+                {
+                    target.Fill = new ImageBrush(pic.Image) { Viewbox = pic.Painted, ViewboxUnits = BrushMappingMode.RelativeToBoundingBox, Stretch = Stretch.UniformToFill };
+                    return;
+                }
+                Action<BitmapSource> set = bmp =>
+                {
+                    if (bmp != null) target.Fill = new ImageBrush(bmp) { Viewbox = renderCrop, ViewboxUnits = BrushMappingMode.RelativeToBoundingBox, Stretch = Stretch.UniformToFill };
+                };
+                var hit = CardArt.GetSync(card, golden, 0);
+                if (hit != null) { set(hit); return; }
+                var ui = target.Dispatcher;
+                CardArt.LoadAsync(card, golden, 0).ContinueWith(t =>
+                {
+                    if (t.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || t.Result == null) return;
+                    ui.BeginInvoke(new Action(() => set(t.Result)));
+                });
             });
         }
 

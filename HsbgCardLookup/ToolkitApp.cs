@@ -100,7 +100,7 @@ namespace HsbgCardLookup
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
             _opponentBoards = new Game.OpponentBoards(_store, Log);
-            _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards);
+            _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards, Log);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
             _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
             // Pre-realize the HWND so the first F3 summons in one press (no handle-creation race).

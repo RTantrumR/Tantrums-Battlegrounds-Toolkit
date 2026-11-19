@@ -196,6 +196,17 @@ namespace Toolkit.Standalone
             try { SetForegroundWindow(h); }
             finally { if (joined) AttachThreadInput(me, fgThread, false); }
         }
+        public string HearthstoneDataDirectory()
+        {
+            int pid;
+            if (HsWindow.Find(out pid) == IntPtr.Zero || pid == 0) return null;
+            try
+            {
+                using (var p = System.Diagnostics.Process.GetProcessById(pid))
+                    return System.IO.Path.Combine(System.IO.Path.GetDirectoryName(p.MainModule.FileName), "Data", "Win");
+            }
+            catch { return null; }
+        }
         public string HostLanguage() => null;   // no host language: Language = "" falls back to the default
         public bool? StartWithWindows
         {
