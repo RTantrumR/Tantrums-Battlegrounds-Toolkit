@@ -123,6 +123,7 @@
     <Compile Include="Ui\DarkGiftMarker.cs" />
     <Compile Include="Game\BgMmr.cs" />
     <Compile Include="Ui\LeaderboardOverlay.cs" />
+    <Compile Include="Ui\LobbyTribesPanel.cs" />
     <Compile Include="Ui\MmrSidePanel.cs" />
     <Compile Include="Ui\HudContextMenu.cs" />
     <Compile Include="Ui\HudCanvasCard.cs" />

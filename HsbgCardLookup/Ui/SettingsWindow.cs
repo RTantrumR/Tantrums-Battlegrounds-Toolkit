@@ -400,6 +400,13 @@ namespace HsbgCardLookup.Ui
                     UpdateArrangeRow();
                 }, BuildAnomaly));
 
+            stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
+            {
+                _config.ShowLobbyTribes = v;
+                _status.Text = v ? Strings.T("settings.lobbyTribes.on") : Strings.T("settings.lobbyTribes.off");
+                Changed();
+            }));
+
             stack.Children.Add(CategoryRow(Strings.T("settings.updates.title"), UpdatesHint(), null, null, BuildUpdates));
 
             stack.Children.Add(CategoryRow(Strings.T("settings.tools.title"), Strings.T("settings.main.toolsHint"), null, null, BuildTools));

@@ -111,6 +111,10 @@ namespace HsbgCardLookup.Config
         // The standings panel's placement (canvas fractions, like the trinket boxes).
         public HudPlacement MmrPanelHud { get; set; } = new HudPlacement();
 
+        // The lobby's minion types as a small box for the whole match; WF holds its scale.
+        public bool ShowLobbyTribes { get; set; } = true;
+        public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
+
         // Location axes ("Off"/"Portraits"/"Panel"/"Both"; unknown/empty = Both) → per-surface bools.
         internal static bool OnPortraits(string mode) =>
             string.IsNullOrEmpty(mode)

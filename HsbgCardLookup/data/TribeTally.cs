@@ -25,6 +25,9 @@ namespace HsbgCardLookup.Data
             { 126, "Aberration" },
         };
 
+        /// <summary>Our tribe string for a TAG_RACE id; null for one we have no icon for.</summary>
+        public static string RaceName(int race) => RaceNames.TryGetValue(race, out var name) ? name : null;
+
         /// <summary>The tribe to show and its count. <paramref name="raceCounts"/> is race id → count
         /// as the client holds it. Returns <see cref="None"/> (count 0) for no typed minions,
         /// <see cref="Mixed"/> (count 0) for the client's no-count case, else the tribe name with the
