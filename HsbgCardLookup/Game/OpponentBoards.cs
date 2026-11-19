@@ -42,7 +42,12 @@ namespace HsbgCardLookup.Game
     public sealed class OpponentBoards
     {
         private const int CardTypeMinion = 4, ZonePlay = 1;
-        private static readonly TimeSpan Window = TimeSpan.FromSeconds(3);
+        // Copies still count for one more read after the setup ends (a read is not atomic); with no setup
+        // seen (started mid-fight), for that long after the first one.
+        private static readonly TimeSpan Grace = TimeSpan.FromMilliseconds(600);
+        private const int CardTypeGame = 1;
+        private bool _setup;
+        private DateTime _setupEnded;
         private static readonly Regex EnchantmentSuffix = new Regex(@"e\d*$", RegexOptions.Compiled);
 
         private readonly CardStore _store;
@@ -96,6 +101,15 @@ namespace HsbgCardLookup.Game
                 List<BoardMinion> found = null;
                 foreach (var e in g.Entities())
                 {
+                    if (e.GetTag(Tags.CARDTYPE) == CardTypeGame)
+                    {
+                        // The game entity holds BACON_COMBAT_SETUP at 1 while the fight's boards are laid
+                        // out; the read where it drops is the one in which the last copies land.
+                        bool setup = e.GetTag(Tags.BACON_COMBAT_SETUP) == 1;
+                        if (_setup && !setup) _setupEnded = DateTime.UtcNow;
+                        _setup = setup;
+                        continue;
+                    }
                     if (e.GetTag(Tags.COPIED_FROM_ENTITY_ID) == 0 || e.GetTag(Tags.CARDTYPE) != CardTypeMinion) continue;
                     if (e.GetTag(Tags.CONTROLLER) != seat || e.GetTag(Tags.ZONE) != ZonePlay) continue;
                     if (!_seen.Add(e.Id)) continue;
@@ -113,7 +127,7 @@ namespace HsbgCardLookup.Game
                     _boards[pid] = _current;
                     _log?.Invoke("[boards] turn " + turn + ": fight against player " + pid);
                 }
-                else if (now - _current.Started > Window) return;   // a summon made during the fight
+                else if (!_setup && now - (_setupEnded > _current.Started ? _setupEnded : _current.Started) > Grace) return;   // a summon made during the fight
 
                 _current.Minions.AddRange(found);
                 _current.Minions.Sort((a, b) => a.Position.CompareTo(b.Position));

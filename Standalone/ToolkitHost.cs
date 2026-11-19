@@ -195,7 +195,7 @@ namespace Toolkit.Standalone
             if (s == null) return "no read";
             if (s.GameStateAddr == 0) return "region=" + s.Region + " no game";
             return "region=" + s.Region + " game 0x" + s.GameStateAddr.ToString("X") + " tiles=" + s.Tiles.Count
-                + " duoTeams=" + s.TeamsWithTwo + " me=" + s.LocalPlayerEntityId + " opp=" + s.OpponentPlayerEntityId + " lobby=" + s.Lobby.Count + " tribes=[" + string.Join(",", s.LobbyTribes) + "]"
+                + " duoTeams=" + s.TeamsWithTwo + " over=" + s.HoveredHeroEntityId + " me=" + s.LocalPlayerEntityId + " opp=" + s.OpponentPlayerEntityId + " lobby=" + s.Lobby.Count + " tribes=[" + string.Join(",", s.LobbyTribes) + "]"
                 + " entities~" + (s.Entities.Count / 25 * 25) + " turn=" + Turn(s) + " readMs~" + (s.ReadMs / 10 * 10);
         }
     }

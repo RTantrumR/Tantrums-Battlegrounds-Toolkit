@@ -31,6 +31,7 @@ namespace Toolkit.Standalone
         public int TeamsWithTwo;                                 // duos: teams holding two tiles
         public List<KeyValuePair<string, string>> Lobby = new List<KeyValuePair<string, string>>();   // name, hero card id
         public List<int> LobbyTribes = new List<int>();
+        public int HoveredHeroEntityId;                          // the leaderboard tile under the game's mouse; 0 = none
         /// <summary>Minion entity id → card ids of the enchantments attached to it (the opposing seat's minions only).</summary>
         public Dictionary<int, List<string>> Enchantments = new Dictionary<int, List<string>>();
         public bool FriendsListOpen;                             // the client's friends list is on screen
@@ -167,6 +168,13 @@ namespace Toolkit.Standalone
                 if (race > 0) s.LobbyTribes.Add(race);
 
             long mgr = m.StaticObj("PlayerLeaderboardManager", "s_instance");
+            if (mgr != 0)
+            {
+                // The tile the game itself says the mouse is on.
+                long over = m.Obj(mgr, "m_currentlyMousedOverTile");
+                int overId;
+                if (over != 0 && TagsOf(m.Obj(over, "m_playerHeroEntity")).TryGetValue(53, out overId)) s.HoveredHeroEntityId = overId;
+            }
             if (mgr != 0)
                 foreach (long team in m.List(m.Obj(mgr, "m_teams")))
                 {

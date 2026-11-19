@@ -106,9 +106,12 @@ namespace HsbgCardLookup.Ui
                 bool click = down && !_wasDown;
                 _wasDown = down;
 
-                // Which portrait the cursor is on. Solo only: a duos lobby draws its tiles in pairs.
+                // Which portrait the mouse is on: the game's own answer when the host can read it,
+                // else the solo tile geometry.
                 int hovered = 0;
-                if (haveCursor && !g.IsBattlegroundsDuosMatch)
+                int overHero = TestCursor.HasValue ? -1 : (HostServices.Memory?.HoveredLeaderboardHero() ?? -1);
+                if (overHero > 0) hovered = g.Entity(overHero)?.GetTag(Tags.PLAYER_ID) ?? 0;
+                else if (overHero < 0 && haveCursor && !g.IsBattlegroundsDuosMatch)
                 {
                     int next = OpponentBoards.NextOpponent(g);
                     var slots = Slots(g);

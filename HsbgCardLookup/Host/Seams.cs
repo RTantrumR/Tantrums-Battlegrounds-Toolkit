@@ -74,6 +74,9 @@ namespace HsbgCardLookup.Host
         /// <summary>This lobby's TAG_RACE ids; null when unavailable.</summary>
         IList<int> LobbyTribes();
         IRaceReader CreateRaceReader(Action<string> log);
+        /// <summary>Entity id of the hero whose leaderboard tile the game's own mouse is on; 0 for none,
+        /// -1 when the host can't tell.</summary>
+        int HoveredLeaderboardHero();
     }
 
     /// <summary>The surface in-match features draw on, kept over the Hearthstone window.</summary>
@@ -137,6 +140,7 @@ namespace HsbgCardLookup.Host
         public const int REBORN = 1085;
         public const int BACON_TRIPLED_BASE_MINION_ID = 1471;
         public const int COPIED_FROM_ENTITY_ID = 1565;
+        public const int BACON_COMBAT_SETUP = 3533;   // unnamed in HearthDb: 1 on the game entity while a fight's boards are set up
         public const int VENOMOUS = 2853;
         public const int HAS_DARK_GIFT = 3880;
         public const int PLAYER_ID = 30;

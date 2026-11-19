@@ -123,6 +123,7 @@ namespace HsbgCardLookup.Host.Hdt
         public IList<int> LobbyTribes() => HearthMirror.Reflection.Client?.GetAvailableBattlegroundsRaces();
 
         public IRaceReader CreateRaceReader(Action<string> log) => new LeaderboardRaceScry(log);
+        public int HoveredLeaderboardHero() => -1;
     }
 
     internal sealed class HdtOverlay : IOverlaySurface

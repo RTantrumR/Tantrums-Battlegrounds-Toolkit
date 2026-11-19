@@ -134,6 +134,7 @@ namespace Toolkit.Standalone
         }
 
         public IRaceReader CreateRaceReader(Action<string> log) => new Races(_game);
+        public int HoveredLeaderboardHero() => _game.Current?.HoveredHeroEntityId ?? 0;
 
         private sealed class Races : IRaceReader
         {
