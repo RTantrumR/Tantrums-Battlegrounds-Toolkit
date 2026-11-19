@@ -400,6 +400,13 @@ namespace HsbgCardLookup.Ui
                     UpdateArrangeRow();
                 }, BuildAnomaly));
 
+            stack.Children.Add(ToggleRow(Strings.T("settings.boards.label"), _config.ShowOpponentBoards, v =>
+            {
+                _config.ShowOpponentBoards = v;
+                _status.Text = v ? Strings.T("settings.boards.on") : Strings.T("settings.boards.off");
+                Changed();
+            }));
+
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
             {
                 _config.ShowLobbyTribes = v;

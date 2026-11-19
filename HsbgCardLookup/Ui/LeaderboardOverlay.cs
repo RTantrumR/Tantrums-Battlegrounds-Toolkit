@@ -387,6 +387,19 @@ namespace HsbgCardLookup.Ui
             }
         }
 
+        /// <summary>Where the game draws the portrait of leaderboard slot <paramref name="slot"/> (solo), in
+        /// canvas units; the next opponent's tile sits further right.</summary>
+        public static Rect PortraitRect(Canvas canvas, int slot, bool nextOpponent)
+        {
+            if (canvas == null || slot < 0 || slot >= MaxSlots) return Rect.Empty;
+            double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
+            double contentW = Math.Min(cw, ch * (16.0 / 9.0));
+            double contentH = Math.Min(ch, contentW * (9.0 / 16.0));
+            double left = (cw - contentW) / 2.0 + ((RefSlotLeft[slot] + (nextOpponent ? RefOpponentShift : 0.0)) / RefW) * contentW;
+            double top = (ch - contentH) / 2.0 + ((RefSlotTop[slot] + RefPortraitMid - 42.0) / RefH) * contentH;
+            return new Rect(left, top, RefLabelW / RefW * contentW, 84.0 / RefH * contentH);
+        }
+
         private static ImageSource TierIcon(int tier)
         {
             try { return ImageCache.Load(CardStore.TierIconPath(tier), 64); }

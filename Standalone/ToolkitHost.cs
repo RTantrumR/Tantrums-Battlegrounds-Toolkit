@@ -143,6 +143,25 @@ namespace Toolkit.Standalone
                         tray.ShowBalloonTip(15000, ToolkitApp.DisplayName, Strings.T("standalone.bothRunning"), Forms.ToolTipIcon.Warning);
                     }
 
+                    // Test aid: cursor.txt next to the exe ("x y" or "x y down", canvas units; "off" ends it)
+                    // stands in for the mouse over the opponents' boards.
+                    string cursorFile = Path.Combine(Shared.ExeDir, "cursor.txt");
+                    if (File.Exists(cursorFile))
+                    {
+                        try
+                        {
+                            var parts = File.ReadAllText(cursorFile).Trim().Split(' ');
+                            File.Delete(cursorFile);
+                            if (parts.Length >= 2)
+                            {
+                                HsbgCardLookup.Ui.OpponentBoardPanel.TestCursor = new Point(double.Parse(parts[0]), double.Parse(parts[1]));
+                                HsbgCardLookup.Ui.OpponentBoardPanel.TestDown = parts.Length > 2;
+                            }
+                            else HsbgCardLookup.Ui.OpponentBoardPanel.TestCursor = null;
+                        }
+                        catch { }
+                    }
+
                     // Test aid: drop a file named snap.trigger next to the exe to get snap.png.
                     string trigger = Path.Combine(Shared.ExeDir, "snap.trigger");
                     if (File.Exists(trigger))

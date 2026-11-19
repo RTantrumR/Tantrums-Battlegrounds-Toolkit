@@ -123,6 +123,8 @@
     <Compile Include="Ui\DarkGiftMarker.cs" />
     <Compile Include="Game\BgMmr.cs" />
     <Compile Include="Ui\LeaderboardOverlay.cs" />
+    <Compile Include="Game\OpponentBoards.cs" />
+    <Compile Include="Ui\OpponentBoardPanel.cs" />
     <Compile Include="Ui\LobbyTribesPanel.cs" />
     <Compile Include="Ui\MmrSidePanel.cs" />
     <Compile Include="Ui\HudContextMenu.cs" />
@@ -186,6 +188,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <!-- Bundled tier/tribe icons (small, shipped so distributed users have them offline). -->
+    <None Include="data\board\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="data\tiers\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -115,6 +115,9 @@ namespace HsbgCardLookup.Config
         public bool ShowLobbyTribes { get; set; } = true;
         public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
 
+        // Opponents' last boards: hover a leaderboard portrait to see one, click to pin it.
+        public bool ShowOpponentBoards { get; set; } = true;
+
         // Location axes ("Off"/"Portraits"/"Panel"/"Both"; unknown/empty = Both) → per-surface bools.
         internal static bool OnPortraits(string mode) =>
             string.IsNullOrEmpty(mode)

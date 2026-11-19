@@ -329,6 +329,9 @@ namespace HsbgCardLookup.Data
         public static string TribeIconPath(string tribe) =>
             string.IsNullOrEmpty(tribe) ? null : FindBundledAsset("tribes", tribe + ".jpg");
 
+        /// <summary>A sprite of the in-play minion look (ring, taunt, gems…), bundled under data/board.</summary>
+        public static string BoardAssetPath(string name) => FindBundledAsset("board", name + ".png");
+
         private static string FindBundledAsset(string subfolder, string file)
         {
             var bundled = BundledDataPath(Path.Combine(subfolder, file));

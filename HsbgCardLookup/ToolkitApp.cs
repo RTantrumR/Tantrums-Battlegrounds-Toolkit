@@ -42,6 +42,8 @@ namespace HsbgCardLookup
         private FloatingCardManager _floating;
         private Game.BgHud _bgHud;                               // always-on trinkets/anomaly HUD
         private Game.BgMmr _bgMmr;                                // opt-in in-match opponent-MMR reader
+        private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
+        private Ui.OpponentBoardPanel _boardPanel;                // …shown from the leaderboard portraits
         private Ui.LobbyTribesPanel _lobbyTribes;                 // the lobby's minion types, whole match
         private Game.DarkGiftWatcher _darkGifts;                  // opt-in Dark Gift list (“?” marker by the button)
         private Ui.ArrangeBanner _arrangeBanner;                  // in-game strip shown while positioning
@@ -97,6 +99,8 @@ namespace HsbgCardLookup
             _bgMmr = new Game.BgMmr(_config, _ui, Log, HeroDisplayName);
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
+            _opponentBoards = new Game.OpponentBoards(_store, Log);
+            _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
             _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
             // Pre-realize the HWND so the first F3 summons in one press (no handle-creation race).
@@ -126,6 +130,8 @@ namespace HsbgCardLookup
         {
             _bgHud?.Poll();      // throttled read of trinkets/anomaly → always-on HUD
             _bgMmr?.Poll();      // opt-in in-match opponent-MMR reader
+            _opponentBoards?.Poll(); // remembers each opponent's board as a fight begins
+            _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
             _darkGifts?.Poll();  // opt-in Dark Gift list (“?” marker above the Dark Discovery button)
             _searchButton?.Poll(); // in-game 🔍 button by the card-list book (shows during a BG match)
@@ -149,6 +155,7 @@ namespace HsbgCardLookup
                 _bgMmr?.CloseAll();
                 _darkGifts?.CloseAll();
                 _lobbyTribes?.CloseAll();
+                _boardPanel?.CloseAll();
                 _searchButton?.CloseAll();
                 _bell?.CloseAll();
                 _overlayLarge?.Close();
@@ -446,6 +453,7 @@ namespace HsbgCardLookup
             _overlayLarge?.OnLanguageChanged();
             _darkGifts?.OnLanguageChanged();
             _lobbyTribes?.OnLanguageChanged();
+            _boardPanel?.OnLanguageChanged();
             _bgHud?.OnLanguageChanged();
             _bgMmr?.OnLanguageChanged();
             _searchButton?.Relabel();
@@ -500,6 +508,7 @@ namespace HsbgCardLookup
             _bgMmr?.OnSettingsChanged();    // opponent-MMR reader on/off
             _darkGifts?.OnSettingsChanged(); // Dark Gift panel on/off
             _lobbyTribes?.OnSettingsChanged();
+            _boardPanel?.OnSettingsChanged();
             _searchButton?.OnSettingsChanged(); // in-game search button on/off
             _bell?.OnSettingsChanged();         // stands down during an arrange session
         }
