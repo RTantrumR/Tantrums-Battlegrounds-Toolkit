@@ -24,7 +24,9 @@ namespace HsbgCardLookup.Ui
         // Belwe's digits are 0.62 em tall; a longer number is set smaller, as the game does.
         private const double DigitEm = 0.62;
         public static Action<string> Log;
-        private static readonly double[] Shrink = { 1.0, 1.0, 0.82, 0.62, 0.5, 0.42 };
+        private static readonly double[] Shrink = { 1.0, 1.0, 0.88, 0.72, 0.6, 0.5 };
+        // The owner wants the new numbers clearly larger than the render's own.
+        private const double Larger = 1.3;
 
         /// <summary>The render with these numbers, frozen; the render itself when its digits can't be found.</summary>
         public static BitmapSource WithNumbers(BitmapSource render, string attack, string health, int oldAttackDigits, int oldHealthDigits,
@@ -45,8 +47,8 @@ namespace HsbgCardLookup.Ui
                 using (var dc = visual.RenderOpen())
                 {
                     dc.DrawImage(clean, new Rect(0, 0, w, h));
-                    if (!a.IsEmpty) Number(dc, attack, a, oldAttackDigits, attackFill);
-                    if (!b.IsEmpty) Number(dc, health, b, oldHealthDigits, healthFill);
+                    if (!a.IsEmpty) Number(dc, attack, a, oldAttackDigits, attackFill, w);
+                    if (!b.IsEmpty) Number(dc, health, b, oldHealthDigits, healthFill, w);
                 }
                 var target = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
                 target.Render(visual);
@@ -58,13 +60,17 @@ namespace HsbgCardLookup.Ui
 
         // The new number where the old one was: same centre, and the old digits' height scaled by how
         // many digits each has.
-        private static void Number(DrawingContext dc, string text, Rect old, int oldDigits, Brush fill)
+        private static void Number(DrawingContext dc, string text, Rect old, int oldDigits, Brush fill, int width)
         {
             double perDigit = old.Height / DigitEm / Shrink[Math.Min(Math.Max(oldDigits, 1), Shrink.Length - 1)];
-            double size = perDigit * Shrink[Math.Min(text.Length, Shrink.Length - 1)];
+            double size = perDigit * Larger * Shrink[Math.Min(text.Length, Shrink.Length - 1)];
             var shape = Assets.GameArt.NumberOutline(text, size).Clone();
             var box = shape.Bounds;
-            shape.Transform = new TranslateTransform(old.X + old.Width / 2 - (box.X + box.Width / 2), old.Y + old.Height / 2 - (box.Y + box.Height / 2));
+            // Centred on the old digits, but kept whole inside the picture: a wide number moves inward.
+            double edge = size * 0.08 + 1;
+            double x = old.X + old.Width / 2 - box.Width / 2;
+            x = Math.Max(edge, Math.Min(x, width - box.Width - edge));
+            shape.Transform = new TranslateTransform(x - box.X, old.Y + old.Height / 2 - (box.Y + box.Height / 2));
             dc.DrawGeometry(null, new Pen(Brushes.Black, size * 0.13) { LineJoin = PenLineJoin.Round }, shape);
             dc.DrawGeometry(fill, null, shape);
         }

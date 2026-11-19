@@ -301,9 +301,9 @@ namespace HsbgCardLookup.Ui
                 if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White), left + 122, LayerTop + 72, s);
             }
 
-            // The digits' centres in the game's own render; drawn a fifth larger than the game does.
-            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, Brushes.White), left + 56.1, LayerTop + 141.2, s);
-            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, Brushes.White), left + 111.1, LayerTop + 141.0, s);
+            // The digits' centres in the game's own render; drawn a third larger than the game does (owner).
+            AddCentred(c, new OutlinedText(Short(m.Attack), 27 * s, Brushes.White), left + 56.1, LayerTop + 141.2, s);
+            AddCentred(c, new OutlinedText(Short(m.Health), 27 * s, Brushes.White), left + 111.1, LayerTop + 141.0, s);
             return c;
         }
 
