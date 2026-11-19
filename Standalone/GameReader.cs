@@ -66,6 +66,7 @@ namespace Toolkit.Standalone
         // classified once and remembered for the life of the game object: enchantments and move
         // helpers are never read again, placeholders only until their card id shows. Field offsets
         // are resolved once per attach, so a needed entity costs a handful of reads instead of ~20.
+        private const int SideFriendly = 1;      // Player.Side.FRIENDLY
         private const int TagCardType = 202, CardTypeGame = 1, CardTypePlayer = 2, CardTypeEnchantment = 6, CardTypeHoverTarget = 22;
         private sealed class EntityCache
         {
@@ -193,6 +194,7 @@ namespace Toolkit.Standalone
             }
             if (_entities.Count > live.Count + 256)                 // the client drops removed entities: so do we
                 foreach (var id in new List<int>(_entities.Keys)) if (!live.Contains(id)) _entities.Remove(id);
+            if (DumpPath != null) Dump(m, gs);
             long gameEntity = m.Obj(gs, "m_gameEntity");
             if (gameEntity != 0)
             {
@@ -204,10 +206,59 @@ namespace Toolkit.Standalone
             foreach (var kv in m.IntMap(m.Obj(gs, "m_playerMap")))
             {
                 long local = m.FieldAddr(kv.Value, "m_local");
-                bool isLocal = local != 0 && (m.M.I32(local) & 0xFF) != 0;
-                if (isLocal) s.LocalPlayerEntityId = kv.Key; else s.OpponentPlayerEntityId = kv.Key;
+                // "Ours" is the local user, or the watched side when spectating (a replay has no local user).
+                long side = m.FieldAddr(kv.Value, "m_side");
+                bool isLocal = (local != 0 && (m.M.I32(local) & 0xFF) != 0) || (side != 0 && m.M.I32(side) == SideFriendly);
+                // The map is keyed by PLAYER_ID; the features want the Player's own entity id.
+                int entityId;
+                if (!TagsOf(kv.Value).TryGetValue(53, out entityId)) continue;
+                if (isLocal) s.LocalPlayerEntityId = entityId; else s.OpponentPlayerEntityId = entityId;
             }
             return s;
+        }
+
+        // Test aid (--dump-entities): every entity of the client's map, unfiltered, as JSON lines of what
+        // changed since the last read. Read back offline to learn what the client holds and when.
+        public string DumpPath;
+        private readonly Dictionary<int, KeyValuePair<string, Dictionary<int, int>>> _dumped = new Dictionary<int, KeyValuePair<string, Dictionary<int, int>>>();
+        private long _dumpGame;
+        private readonly Stopwatch _dumpClock = Stopwatch.StartNew();
+
+        private void Dump(Mono m, long gs)
+        {
+            var sb = new System.Text.StringBuilder();
+            long t = _dumpClock.ElapsedMilliseconds;
+            if (_dumpGame != gs)
+            {
+                _dumpGame = gs; _dumped.Clear();
+                sb.Append("{\"t\":").Append(t).Append(",\"game\":\"0x").Append(gs.ToString("X")).Append("\"}\n");
+            }
+            var live = new HashSet<int>();
+            foreach (var kv in m.IntMap(m.Obj(gs, "m_entityMap")))
+            {
+                if (kv.Value == 0) continue;
+                if (_offCardId < 0 && !ResolveEntityOffsets(kv.Value)) return;
+                live.Add(kv.Key);
+                string card = m.Str(m.M.Ptr(kv.Value + _offCardId)) ?? "";
+                var tags = FastTags(kv.Value);
+                KeyValuePair<string, Dictionary<int, int>> old;
+                bool known = _dumped.TryGetValue(kv.Key, out old);
+                var diff = new List<KeyValuePair<int, int>>();
+                foreach (var tg in tags) { int ov; if (!known || !old.Value.TryGetValue(tg.Key, out ov) || ov != tg.Value) diff.Add(tg); }
+                if (known) foreach (var tg in old.Value) if (!tags.ContainsKey(tg.Key)) diff.Add(new KeyValuePair<int, int>(tg.Key, int.MinValue));
+                if (known && old.Key == card && diff.Count == 0) continue;
+                sb.Append("{\"t\":").Append(t).Append(",\"id\":").Append(kv.Key);
+                if (!known) sb.Append(",\"new\":true");
+                if (!known || old.Key != card) sb.Append(",\"card\":\"").Append(card.Replace("\\", "").Replace("\"", "")).Append('"');
+                sb.Append(",\"tags\":{");
+                for (int i = 0; i < diff.Count; i++)
+                    sb.Append(i > 0 ? "," : "").Append('"').Append(diff[i].Key).Append("\":").Append(diff[i].Value == int.MinValue ? "null" : diff[i].Value.ToString());
+                sb.Append("}}\n");
+                _dumped[kv.Key] = new KeyValuePair<string, Dictionary<int, int>>(card, tags);
+            }
+            foreach (var id in new List<int>(_dumped.Keys))
+                if (!live.Contains(id)) { _dumped.Remove(id); sb.Append("{\"t\":").Append(t).Append(",\"id\":").Append(id).Append(",\"gone\":true}\n"); }
+            if (sb.Length > 0) System.IO.File.AppendAllText(DumpPath, sb.ToString());
         }
 
         /// <summary>One entity for the snapshot, or null when it is one the features never read.</summary>

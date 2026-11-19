@@ -43,6 +43,11 @@ namespace Toolkit.Standalone
                 var toolkit = new ToolkitApp(new Version(v.Major, v.Minor, v.Build), log);
 
                 var reader = new GameReader(log);
+                if (Array.IndexOf(args, "--dump-entities") >= 0)
+                {
+                    reader.DumpPath = Path.Combine(Shared.ExeDir, "entities-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".jsonl");
+                    Shared.Log("TEST MODE: dumping entities to " + reader.DumpPath);
+                }
                 var tray = new Forms.NotifyIcon
                 {
                     Icon = Shared.TrayIcon(),
@@ -171,7 +176,7 @@ namespace Toolkit.Standalone
             if (s == null) return "no read";
             if (s.GameStateAddr == 0) return "region=" + s.Region + " no game";
             return "region=" + s.Region + " game 0x" + s.GameStateAddr.ToString("X") + " tiles=" + s.Tiles.Count
-                + " duoTeams=" + s.TeamsWithTwo + " lobby=" + s.Lobby.Count + " tribes=[" + string.Join(",", s.LobbyTribes) + "]"
+                + " duoTeams=" + s.TeamsWithTwo + " me=" + s.LocalPlayerEntityId + " opp=" + s.OpponentPlayerEntityId + " lobby=" + s.Lobby.Count + " tribes=[" + string.Join(",", s.LobbyTribes) + "]"
                 + " entities~" + (s.Entities.Count / 25 * 25) + " turn=" + Turn(s) + " readMs~" + (s.ReadMs / 10 * 10);
         }
     }
