@@ -52,8 +52,10 @@ namespace Toolkit.Standalone
                     tray.Visible = !toolkitUp;
                     int hs;
                     HsWindow.Find(out hs);
-                    // Once per Hearthstone run: a toolkit the player closed stays closed until the next.
-                    if (hs != 0 && !toolkitUp && hs != launchedFor) { launchedFor = hs; launch(); trimmed = false; }
+                    // Once per Hearthstone run: a toolkit the player closed stays closed until the next —
+                    // also one that was already running when Hearthstone started (begun from a shortcut).
+                    if (hs != 0 && toolkitUp) launchedFor = hs;
+                    else if (hs != 0 && hs != launchedFor) { launchedFor = hs; launch(); trimmed = false; }
                     // Once everything idle-time has run (start-up, the tray, a launch): give the memory back.
                     if (!trimmed) { trimmed = true; Shared.TrimMemory(); }
                 };
