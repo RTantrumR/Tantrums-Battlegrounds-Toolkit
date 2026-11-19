@@ -412,8 +412,17 @@ namespace HsbgCardLookup.Ui
                 if (render == null) return;
                 if (stats == null) { img.Source = render; return; }
                 int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;
-                img.Source = CardStats.WithNumbers(render, Short(stats.Attack), Short(stats.Health), baseAtk.ToString().Length, baseHp.ToString().Length,
+                var numbered = CardStats.WithNumbers(render, Short(stats.Attack), Short(stats.Health), baseAtk.ToString().Length, baseHp.ToString().Length,
                     Brushes.White, Brushes.White);
+                img.Source = numbered;
+                if (!ReferenceEquals(numbered, render))
+                {
+                    // The numbered picture has a clear margin each side for overhanging numbers: draw it
+                    // wider by that margin and pull it back, so the card itself keeps its place and size.
+                    double fit = Math.Min(w / render.PixelWidth, h / render.PixelHeight), pad = fit * CardStats.Margin;
+                    img.Width = w + 2 * pad; img.Height = h;
+                    img.Margin = new Thickness(-pad, 0, -pad, 0);
+                }
             };
             var hit = CardArt.GetSync(card, golden, 0);
             if (hit != null) set(hit);
