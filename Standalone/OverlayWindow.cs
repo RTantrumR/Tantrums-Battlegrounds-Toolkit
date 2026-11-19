@@ -302,6 +302,34 @@ namespace Toolkit.Standalone
                 if (seen == null || !seen.Contains(gone)) { _mirrorLayer.Children.Remove(_mirrors[gone]); _mirrors.Remove(gone); }
         }
 
+        [DllImport("gdi32")] private static extern bool DeleteObject(IntPtr o);
+
+        /// <summary>Hearthstone's own frame (PrintWindow: what the game drew, nothing of ours or of any
+        /// window in front of it), frozen; null when it can't be taken.</summary>
+        public BitmapSource CaptureGame()
+        {
+            int x, y, w, h; bool fg;
+            if (!HsWindow.ClientArea(out x, out y, out w, out h, out fg) || w <= 0 || h <= 0) return null;
+            using (var bmp = new System.Drawing.Bitmap(w, h))
+            {
+                using (var g = System.Drawing.Graphics.FromImage(bmp))
+                {
+                    IntPtr dc = g.GetHdc();
+                    bool ok = PrintWindow(HsWindow.Find(), dc, 0x1 | 0x2);   // PW_CLIENTONLY | PW_RENDERFULLCONTENT
+                    g.ReleaseHdc(dc);
+                    if (!ok) return null;
+                }
+                IntPtr hb = bmp.GetHbitmap();
+                try
+                {
+                    var src = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(hb, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                    src.Freeze();
+                    return src;
+                }
+                finally { DeleteObject(hb); }
+            }
+        }
+
         /// <summary>Test aid: Hearthstone's own frame (PrintWindow) with this overlay drawn on top, as a PNG.</summary>
         public string SaveComposite(string path)
         {

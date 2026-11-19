@@ -44,6 +44,9 @@ namespace HsbgCardLookup.Host
         int OpponentId { get; }
         IList<IGameEntity> PlayerMinions();
         IList<IGameEntity> PlayerTrinkets();
+        /// <summary>Card ids of the enchantments attached to a minion of the fight's opposing side;
+        /// empty (never null) when there are none or the host doesn't track them.</summary>
+        IList<string> EnchantmentsOf(int entityId);
         /// <summary>Raised for a new match and for a mid-match reconnect alike.</summary>
         event Action GameStarted;
         event Action GameEnded;
@@ -81,6 +84,9 @@ namespace HsbgCardLookup.Host
         Dispatcher Dispatcher { get; }
         /// <summary>Lets <paramref name="element"/> take real mouse input while the rest stays click-through.</summary>
         void SetHitTestVisible(UIElement element);
+        /// <summary>The game's own picture right now (its client area, our overlay not in it), frozen;
+        /// null when the host can't take one.</summary>
+        System.Windows.Media.Imaging.BitmapSource CaptureGame();
         /// <summary>The Hearthstone window in device-independent pixels; null when there is none.</summary>
         Rect? HearthstoneRect();
     }
@@ -114,7 +120,25 @@ namespace HsbgCardLookup.Host
     /// <summary>GAME_TAG ids the features read — the game protocol's own numbers.</summary>
     public static class Tags
     {
+        public const int TAG_SCRIPT_DATA_NUM_1 = 2;
         public const int TAG_SCRIPT_DATA_NUM_2 = 3;
+        public const int PREMIUM = 12;
+        public const int DAMAGE = 44;
+        public const int ATK = 47;
+        public const int ZONE = 49;
+        public const int CONTROLLER = 50;
+        public const int WINDFURY = 189;
+        public const int TAUNT = 190;
+        public const int STEALTH = 191;
+        public const int DIVINE_SHIELD = 194;
+        public const int CARDTYPE = 202;
+        public const int ZONE_POSITION = 263;
+        public const int POISONOUS = 363;
+        public const int REBORN = 1085;
+        public const int BACON_TRIPLED_BASE_MINION_ID = 1471;
+        public const int COPIED_FROM_ENTITY_ID = 1565;
+        public const int VENOMOUS = 2853;
+        public const int HAS_DARK_GIFT = 3880;
         public const int PLAYER_ID = 30;
         public const int EXHAUSTED = 43;
         public const int HEALTH = 45;

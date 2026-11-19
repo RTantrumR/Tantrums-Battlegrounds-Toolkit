@@ -105,6 +105,7 @@ namespace HsbgCardLookup.Host.Hdt
         public int OpponentId => G?.Opponent?.Id ?? 0;
         public IList<IGameEntity> PlayerMinions() => Wrap(G?.Player?.Minions);
         public IList<IGameEntity> PlayerTrinkets() => Wrap(G?.Player?.Trinkets);
+        public IList<string> EnchantmentsOf(int entityId) => new string[0];   // not tracked under HDT
     }
 
     internal sealed class HdtClientMemory : IClientMemory
@@ -126,6 +127,7 @@ namespace HsbgCardLookup.Host.Hdt
 
     internal sealed class HdtOverlay : IOverlaySurface
     {
+        public System.Windows.Media.Imaging.BitmapSource CaptureGame() => null;
         public Canvas Canvas => Hearthstone_Deck_Tracker.API.Core.OverlayCanvas;
         public Dispatcher Dispatcher => Hearthstone_Deck_Tracker.API.Core.OverlayCanvas?.Dispatcher;
         public void SetHitTestVisible(UIElement element) => OverlayExtensions.SetIsOverlayHitTestVisible(element, true);

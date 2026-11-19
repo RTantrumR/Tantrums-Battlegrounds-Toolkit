@@ -106,6 +106,12 @@ namespace Toolkit.Standalone
         public IList<IGameEntity> PlayerMinions() => Board(e => e.GetTag(TagCardType) == CardTypeMinion);
         public IList<IGameEntity> PlayerTrinkets() => Board(e => e.HasTag(TagTrinket));
 
+        public IList<string> EnchantmentsOf(int entityId)
+        {
+            var s = S; List<string> l;
+            return s != null && s.Enchantments.TryGetValue(entityId, out l) ? (IList<string>)l : new string[0];
+        }
+
         public Snapshot Current => S;
     }
 
@@ -152,6 +158,7 @@ namespace Toolkit.Standalone
         public Canvas Canvas => _window.Surface;
         public Dispatcher Dispatcher => _window.Dispatcher;
         public void SetHitTestVisible(UIElement element) => _window.RegisterClickable(element as FrameworkElement);
+        public System.Windows.Media.Imaging.BitmapSource CaptureGame() => _window.CaptureGame();
         public Rect? HearthstoneRect()
         {
             int x, y, w, h; bool fg;

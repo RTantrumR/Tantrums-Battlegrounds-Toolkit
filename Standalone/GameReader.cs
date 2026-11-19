@@ -31,6 +31,8 @@ namespace Toolkit.Standalone
         public int TeamsWithTwo;                                 // duos: teams holding two tiles
         public List<KeyValuePair<string, string>> Lobby = new List<KeyValuePair<string, string>>();   // name, hero card id
         public List<int> LobbyTribes = new List<int>();
+        /// <summary>Minion entity id → card ids of the enchantments attached to it (the opposing seat's minions only).</summary>
+        public Dictionary<int, List<string>> Enchantments = new Dictionary<int, List<string>>();
         public bool FriendsListOpen;                             // the client's friends list is on screen
         public bool GameMenuOpen;                                // the Esc game menu is on screen
         public long ReadMs;
@@ -66,6 +68,7 @@ namespace Toolkit.Standalone
         // classified once and remembered for the life of the game object: enchantments and move
         // helpers are never read again, placeholders only until their card id shows. Field offsets
         // are resolved once per attach, so a needed entity costs a handful of reads instead of ~20.
+        private const int TagAttached = 40, TagController = 50, TagPlayerId = 30;
         private const int SideFriendly = 1;      // Player.Side.FRIENDLY
         private const int TagCardType = 202, CardTypeGame = 1, CardTypePlayer = 2, CardTypeEnchantment = 6, CardTypeHoverTarget = 22;
         private sealed class EntityCache
@@ -74,6 +77,7 @@ namespace Toolkit.Standalone
             public long CardStr = -1;     // its m_cardIdInternal string pointer at the last read
             public string CardId;
             public bool Skip;             // an enchantment or move helper: never read again
+            public int Attached;          // an enchantment's ATTACHED, from the one read that classified it
             public bool Hidden;           // a face-down placeholder: only its card id is watched
         }
         private readonly Dictionary<int, EntityCache> _entities = new Dictionary<int, EntityCache>();
@@ -214,6 +218,24 @@ namespace Toolkit.Standalone
                 if (!TagsOf(kv.Value).TryGetValue(53, out entityId)) continue;
                 if (isLocal) s.LocalPlayerEntityId = entityId; else s.OpponentPlayerEntityId = entityId;
             }
+
+            // Enchantments on the opposing seat's minions (the fight's enemy board; Bob's shop has few).
+            // An enchantment is created blank and gets its card id and target when the fight's copy is
+            // revealed, which is when it was classified, so the remembered target is the real one.
+            EntitySnap opp;
+            int seat;
+            if (s.Entities.TryGetValue(s.OpponentPlayerEntityId, out opp) && opp.Tags.TryGetValue(TagPlayerId, out seat))
+                foreach (var kv in _entities)
+                {
+                    var c = kv.Value;
+                    EntitySnap target; int ctrl, type;
+                    if (c.Attached == 0 || string.IsNullOrEmpty(c.CardId) || !live.Contains(kv.Key)) continue;
+                    if (!s.Entities.TryGetValue(c.Attached, out target) || !target.Tags.TryGetValue(TagController, out ctrl) || ctrl != seat) continue;
+                    if (!target.Tags.TryGetValue(TagCardType, out type) || type != 4) continue;
+                    List<string> l;
+                    if (!s.Enchantments.TryGetValue(c.Attached, out l)) s.Enchantments[c.Attached] = l = new List<string>();
+                    l.Add(c.CardId);
+                }
             return s;
         }
 
@@ -276,7 +298,12 @@ namespace Toolkit.Standalone
             var tags = FastTags(obj);
             int type;
             tags.TryGetValue(TagCardType, out type);
-            if (type == CardTypeEnchantment || type == CardTypeHoverTarget) { c.Skip = true; return null; }
+            if (type == CardTypeEnchantment || type == CardTypeHoverTarget)
+            {
+                c.Skip = true;
+                if (type == CardTypeEnchantment) tags.TryGetValue(TagAttached, out c.Attached);
+                return null;
+            }
             // No card id and not the game or a player: a face-down placeholder (other players' things).
             if (string.IsNullOrEmpty(c.CardId) && type != CardTypeGame && type != CardTypePlayer) { c.Hidden = true; return null; }
             return new EntitySnap { Id = id, CardId = c.CardId, Tags = tags };
