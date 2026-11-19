@@ -163,6 +163,10 @@ namespace HsbgCardLookup.Assets
                     using (var b = new UnityBundle(f)) data = GameFont.Read(b, "BelweNumbers");   // the face of the stat numbers: digits, ".", k, m
                     if (data == null) continue;
                     if (!File.Exists(target) || new FileInfo(target).Length != data.Length) File.WriteAllBytes(target, data);
+                    // The face of card text, beside it.
+                    string text = Path.Combine(Path.GetDirectoryName(cacheFile), "game-text.ttf");
+                    using (var b = new UnityBundle(f)) data = GameFont.Read(b, "FranklinGothic");
+                    if (data != null && (!File.Exists(text) || new FileInfo(text).Length != data.Length)) File.WriteAllBytes(text, data);
                     break;
                 }
             }
@@ -172,7 +176,23 @@ namespace HsbgCardLookup.Assets
         /// <summary>Where the font copy is kept; set before the first use of <see cref="NumberFace"/>.</summary>
         public static void UseFontFile(string path) { _fontFile = path; }
 
-        private static GlyphTypeface _glyphs;
+        private static GlyphTypeface _glyphs, _textFace;
+
+        /// <summary>The game's card-text face, or null until its file exists. UI thread.</summary>
+        public static GlyphTypeface TextFace
+        {
+            get
+            {
+                if (_textFace != null || _fontFile == null) return _textFace;
+                try
+                {
+                    string file = Path.Combine(Path.GetDirectoryName(_fontFile), "game-text.ttf");
+                    if (File.Exists(file)) _textFace = new GlyphTypeface(new Uri(file));
+                }
+                catch { }
+                return _textFace;
+            }
+        }
 
         /// <summary>
         /// The outline of a number in the game's own number face, its top-left at the origin; in a plain

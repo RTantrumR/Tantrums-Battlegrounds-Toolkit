@@ -68,7 +68,7 @@ namespace HsbgCardLookup.Ui
             if (_sample != null) return _sample;
             var b = new OpponentBoard { PlayerId = -1, Turn = 12 };
             Func<string, int, int, BoardMinion> m = (id, atk, hp) => new BoardMinion { CardId = id, Card = _store.Lookup(id), Attack = atk, Health = hp };
-            var a = m("BGS_119", 2, 1); a.DivineShield = true; a.Windfury = true; a.Tier = 1;
+            var a = m("BG36_364", 12, 9); a.DivineShield = true; a.Windfury = true; a.Tier = 5; a.Script[0] = 356; a.Script[1] = 267;
             var r = m("BG25_001", 2, 1); r.Taunt = true; r.Reborn = true; r.Tier = 1;
             var g = m("BG29_813", 1700, 1400); g.Golden = true; g.DivineShield = true; g.Tier = 6;
             var k = m("BG27_005", 20, 24); k.Golden = true; k.Taunt = true; k.Deathrattle = true; k.Legendary = true; k.Tier = 3;
@@ -76,8 +76,10 @@ namespace HsbgCardLookup.Ui
             var d = m("BG36_369", 7, 7); d.Rally = true; d.Legendary = true; d.Tier = 4;
             var gift = _store.All.FirstOrDefault(c => c.Categories != null && c.Categories.Contains("darkgift"));
             if (gift != null) { d.Gifts.Add(gift); e.Gifts.Add(gift); e.Gifts.Add(gift); }
-            var x = m("BG31_816", 4, 3); x.Trigger = true; x.Tier = 2;
-            b.Minions.AddRange(new[] { a, r, g, k, e, d, x });
+            var x = m("BG31_816", 4, 3); x.Trigger = true; x.Tier = 2; x.AltText = 1; x.Script[0] = 14; x.Script[1] = 9;
+            var h = m("BG36_364", 24, 18); h.Golden = true; h.Tier = 5; h.TextId = "BG36_364_G"; h.Script[0] = 1200; h.Script[1] = 1050;
+            try { foreach (string id in new[] { "BG36_364", "BG36_364_G", "BG31_816" }) HostServices.Memory?.CardText(id); } catch { }
+            b.Minions.AddRange(new[] { a, r, h, k, e, d, x });
             return _sample = b;
         }
 
@@ -92,7 +94,7 @@ namespace HsbgCardLookup.Ui
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
         {
-            _config = config; _store = store; _boards = boards; _log = log; CardStats.Log = log;
+            _config = config; _store = store; _boards = boards; _log = log; CardStats.Log = log; CardTextPaint.Log = log;
             _header = new TextBlock { Foreground = UiKit.TextSecondary, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
             _row = new Canvas();
             var stack = new StackPanel();
@@ -573,7 +575,7 @@ namespace HsbgCardLookup.Ui
                     double below = origin.Y + CellH * _shownScale + 6 * _shownScale, cardH = CardW * _shownScale * 672.0 / 512.0;
                     Canvas.SetTop(_cards, below + cardH <= canvas.ActualHeight ? below : Math.Max(0, origin.Y - HeaderH * _shownScale - 6 * _shownScale - cardH));
                 }
-                catch { }
+                catch (Exception ex) { if (!_failed) { _failed = true; try { _log("[boards] card: " + ex); } catch { } } }
             }
         }
 
@@ -588,6 +590,14 @@ namespace HsbgCardLookup.Ui
             {
                 if (render == null) return;
                 if (stats == null) { img.Source = render; return; }
+                // The text as it stood on this board, when it differs from what the render shows.
+                try
+                {
+                    string shown = golden ? (card.TextGold ?? card.Text) : card.Text;
+                    string text = SnapshotText.Build(HostServices.Memory?.CardText(stats.TextId ?? card.ExternalId), stats);
+                    if (text != null && SnapshotText.Plain(text) != SnapshotText.Plain(shown)) render = CardTextPaint.WithText(render, shown, text);
+                }
+                catch { }
                 int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;
                 var numbered = CardStats.WithNumbers(render, Short(stats.Attack), Short(stats.Health), baseAtk.ToString().Length, baseHp.ToString().Length,
                     Brushes.White, Brushes.White);

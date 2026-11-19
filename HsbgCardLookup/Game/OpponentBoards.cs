@@ -17,7 +17,9 @@ namespace HsbgCardLookup.Game
         public bool Golden, Taunt, DivineShield, Reborn, Windfury, Stealth, Venomous, Poisonous, Deathrattle, Rally, Trigger;
         public bool Legendary;           // ELITE: the frame carries the dragon
         public int Tier;                 // tavern tier, 0 when unknown
-        public int Script1, Script2;     // TAG_SCRIPT_DATA_NUM_1/2: the numbers a card's text shows
+        public int[] Script = new int[6]; // TAG_SCRIPT_DATA_NUM_1..6: the numbers a card's text shows
+        public int AltText;              // USE_ALTERNATE_CARD_TEXT: which variant of the text
+        public string TextId;            // the entity's own card id (golden ones have their own text record)
         public List<BgCard> Gifts = new List<BgCard>();          // Dark Gifts on it, repeats included
         public List<string> Enchantments = new List<string>();   // card ids, as the game holds them
     }
@@ -160,9 +162,12 @@ namespace HsbgCardLookup.Game
                 Trigger = e.GetTag(Tags.TRIGGER_VISUAL) > 0,
                 Legendary = e.GetTag(Tags.ELITE) > 0,
                 Tier = e.GetTag(Tags.TECH_LEVEL),
-                Script1 = e.GetTag(Tags.TAG_SCRIPT_DATA_NUM_1),
-                Script2 = e.GetTag(Tags.TAG_SCRIPT_DATA_NUM_2),
+                AltText = e.GetTag(Tags.USE_ALTERNATE_CARD_TEXT),
+                TextId = e.CardId,
             };
+            int[] scriptTags = { Tags.TAG_SCRIPT_DATA_NUM_1, Tags.TAG_SCRIPT_DATA_NUM_2, Tags.TAG_SCRIPT_DATA_NUM_3, Tags.TAG_SCRIPT_DATA_NUM_4, Tags.TAG_SCRIPT_DATA_NUM_5, Tags.TAG_SCRIPT_DATA_NUM_6 };
+            for (int i = 0; i < scriptTags.Length; i++) m.Script[i] = e.GetTag(scriptTags[i]);
+            try { HostServices.Memory?.CardText(e.CardId); } catch { }      // asked now, so it is there when the card is opened
             m.Card = Resolve(e);
             foreach (string id in g.EnchantmentsOf(e.Id)) m.Enchantments.Add(id);
             if (e.GetTag(Tags.HAS_DARK_GIFT) > 0) m.Gifts = GiftsOf(m.Enchantments);

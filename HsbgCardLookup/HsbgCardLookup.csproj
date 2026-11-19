@@ -128,6 +128,8 @@
     <Compile Include="Game\OpponentBoards.cs" />
     <Compile Include="Ui\OpponentBoardPanel.cs" />
     <Compile Include="Ui\CardStats.cs" />
+    <Compile Include="Ui\CardTextPaint.cs" />
+    <Compile Include="Game\SnapshotText.cs" />
     <Compile Include="Ui\LobbyTribesPanel.cs" />
     <Compile Include="Ui\MmrSidePanel.cs" />
     <Compile Include="Ui\HudContextMenu.cs" />
