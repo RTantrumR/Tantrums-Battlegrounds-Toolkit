@@ -77,6 +77,7 @@ namespace HsbgCardLookup.Ui
         private const double RefNoNameLift = 10.0;
         private const double RefOpponentShift = 30.0;
         private const double RefTierH = 35.0;
+        private const double RefPortraitMid = 38.0;   // slot top → the portrait's vertical centre
         // Minion-type icon: a round art directly UNDER the tier icon, with the game's count ("4" of
         // "4 Beasts") as a bold number to its right. Sized to LOOK the same as the tier icon: the
         // shield PNG fills a 35px box but its body measures ~29×32 on screen, and a disc fills its box
@@ -345,7 +346,11 @@ namespace HsbgCardLookup.Ui
                 var t = _tiers[i];
                 t.Height = RefTierH * scale;
                 double tierLeft = left + RefLabelW * scale;
-                double tierTop = top + (refH - RefTierH) * 0.5 * scale;
+                // With a plate the tier sits beside it. With none (tiers/types only) the pair is centred
+                // on the portrait instead: measured 2026-11-19 at 1080p, portrait centres are slot top + 38.
+                double tierTop = BoxVisible
+                    ? top + (refH - RefTierH) * 0.5 * scale
+                    : contentTop + ((refSlotTop + RefPortraitMid - (RefTierH + RefTribeH) * 0.5) / RefH) * contentH;
                 Canvas.SetLeft(t, tierLeft);
                 Canvas.SetTop(t, tierTop);
 
