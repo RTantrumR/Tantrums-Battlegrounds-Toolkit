@@ -1,0 +1,39 @@
+[
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "art",
+  "outputPath": "toolkit-board/pieces/art.png",
+  "showOnly": [
+   "Mesh"
+  ],
+  "clearFrame": true
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "art-gold",
+  "outputPath": "toolkit-board/pieces/art-gold.png",
+  "normalCardId": "BGS_119",
+  "showOnly": [
+   "Mesh"
+  ],
+  "clearFrame": true
+ }
+]

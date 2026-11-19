@@ -30,7 +30,7 @@ namespace HsbgCardLookup.Ui
     public sealed class OpponentBoardPanel
     {
         // Design units = pixels of a 1080-high game.
-        private const double CellW = 124, CellH = 146, Pad = 8, HeaderH = 22;
+        private const double CellW = 124, CellH = 156, Pad = 8, HeaderH = 22;
         // The portrait's oval inside our card renders (512×672), as fractions of the image.
         private static readonly Rect MinionArt = new Rect(154 / 512.0, 71 / 672.0, 216 / 512.0, 264 / 672.0);
         private static readonly Rect SpellArt = new Rect(190 / 512.0, 112 / 672.0, 132 / 512.0, 132 / 672.0);
@@ -59,15 +59,15 @@ namespace HsbgCardLookup.Ui
             if (_sample != null) return _sample;
             var b = new OpponentBoard { PlayerId = -1, Turn = 12 };
             Func<string, int, int, BoardMinion> m = (id, atk, hp) => new BoardMinion { CardId = id, Card = _store.Lookup(id), Attack = atk, Health = hp };
-            var a = m("BGS_119", 2, 1); a.DivineShield = true; a.Windfury = true;
-            var r = m("BG25_001", 2, 1); r.Taunt = true; r.Reborn = true;
-            var g = m("BG29_813", 1700, 1400); g.Golden = true; g.DivineShield = true;
-            var k = m("BG27_005", 20, 24); k.Golden = true; k.Taunt = true; k.Deathrattle = true;
-            var e = m("BG33_822", 156, 156); e.Stealth = true; e.Venomous = true;
-            var d = m("BG36_369", 7, 7); d.Deathrattle = true; d.Rally = true;
+            var a = m("BGS_119", 2, 1); a.DivineShield = true; a.Windfury = true; a.Tier = 1;
+            var r = m("BG25_001", 2, 1); r.Taunt = true; r.Reborn = true; r.Tier = 1;
+            var g = m("BG29_813", 1700, 1400); g.Golden = true; g.DivineShield = true; g.Tier = 6;
+            var k = m("BG27_005", 20, 24); k.Golden = true; k.Taunt = true; k.Deathrattle = true; k.Legendary = true; k.Tier = 3;
+            var e = m("BG33_822", 156, 156); e.Stealth = true; e.Venomous = true; e.Tier = 5;
+            var d = m("BG36_369", 7, 7); d.Rally = true; d.Legendary = true; d.Tier = 4;
             var gift = _store.All.FirstOrDefault(c => c.Categories != null && c.Categories.Contains("darkgift"));
             if (gift != null) { d.Gifts.Add(gift); e.Gifts.Add(gift); e.Gifts.Add(gift); }
-            var x = m("BG31_816", 4, 3);
+            var x = m("BG31_816", 4, 3); x.Trigger = true; x.Tier = 2;
             b.Minions.AddRange(new[] { a, r, g, k, e, d, x });
             return _sample = b;
         }
@@ -80,9 +80,6 @@ namespace HsbgCardLookup.Ui
         private BoardMinion _opened;
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xD8, 0x0A, 0x0D, 0x14));
-        private static readonly Brush StealthTint = Frozen(Color.FromArgb(0x8C, 0x05, 0x08, 0x10));
-        private static readonly Brush RebornGlow = Frozen(Color.FromRgb(0x58, 0xD8, 0xFF));
-        private static readonly Brush Buffed = Frozen(Color.FromRgb(0x4C, 0xF0, 0x5A));
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
         {
@@ -257,57 +254,56 @@ namespace HsbgCardLookup.Ui
             Canvas.SetTop(_root, canvas.ActualHeight * 0.006);
         }
 
-        // One minion, back to front: taunt shield, art in its oval, stealth veil, reborn glow, ring,
-        // divine shield, gift medallion, keyword icons, gems with the board's numbers. The numbers below
-        // are cell units, fitted to the sprites' own openings (minion-frame's hole is 167x239 of 256x297).
+        // One minion, drawn from the game's own parts.
+        //
+        // data/board/*.png are HS_CardExtractor captures of a board minion with everything but one part
+        // switched off (tools/BoardCaptures/pieces.json): the ring, the golden ring, the legendary dragon,
+        // taunt shields, tier badges, gems, effects. Every capture is the same 1024×1345 frame scaled to
+        // 307×404, so each layer is drawn at the same place and size and the parts meet as they do in the
+        // game. Only the art (the game's own portrait texture, clipped to the oval the game clips it to)
+        // and the numbers are ours. Units below are capture pixels × 0.15.
+        private const double LayerW = 153.6, RingMidX = 81.7, LayerTop = -27;
+
         private FrameworkElement Minion(BoardMinion m, double s)
         {
             var c = new Canvas { Width = CellW * s, Height = CellH * s };
-            const double cx = CellW / 2, cy = 72, rx = 33, ry = 46;          // the art's oval, a little under the ring
+            double left = CellW / 2 - RingMidX;                      // the ring's middle on the cell's middle
+            Action<string> layer = name => Add(c, Sprite(name, LayerW, s), left, LayerTop, s);
 
-            if (m.Taunt) Add(c, Sprite(m.Golden ? "taunt-gold" : "taunt", m.Golden ? 100 : 96, s), cx - (m.Golden ? 50 : 48), cy - 58, s);
+            if (m.Taunt) layer(m.Golden ? "taunt-gold" : "taunt");
 
+            // The portrait's oval, measured from a capture of the art alone (normal / golden frame).
+            double ax = m.Golden ? 83.25 : 83.1, ay = m.Golden ? 106.1 : 104.1, rx = m.Golden ? 36.9 : 38.0, ry = m.Golden ? 50.5 : 51.2;
             var art = new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = UiKit.Br(Color.FromRgb(0x1A, 0x21, 0x30)) };
-            Add(c, art, cx - rx, cy - ry, s);
+            Add(c, art, left + ax - rx, LayerTop + ay - ry, s);
             LoadArt(art, m.Card, m.Golden, MinionArt);
 
-            if (m.Stealth)
-            {
-                Add(c, new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = StealthTint }, cx - rx, cy - ry, s);
-                Add(c, Sprite("stealth", 80.5, s), cx - 39.6, cy - 53.6, s);
-            }
-            if (m.Reborn) Add(c, Sprite("reborn", 78, s), cx - 39, cy - 50, s);
-
-            if (m.Golden) Add(c, Sprite("minion-frame-gold", 86, s), cx - 42.3, cy - 52.4, s);
-            else Add(c, Sprite("minion-frame", 95, s), cx - 46.2, cy - 59.9, s);
-
-            if (m.DivineShield)
-            {
-                var shield = Sprite("divine-shield", 117, s);
-                shield.Opacity = 0.42;
-                Add(c, shield, cx - 63.4, cy - 63.1, s);
-            }
+            if (m.Stealth) layer("stealth");
+            layer(m.Golden ? "frame-gold" : "frame");
+            if (m.Legendary) layer(m.Golden ? "dragon-gold" : "dragon");
+            if (m.Reborn) layer("reborn");
+            if (m.DivineShield) layer("divine-shield");
+            if (m.Tier >= 1 && m.Tier <= 7) layer("badge-" + m.Tier);
+            layer("gem-attack"); layer("gem-health");
+            // One spot under the oval; the game shows a single icon there, so the first that applies.
+            if (m.Venomous) layer(m.Poisonous ? "poisonous" : "venomous");
+            else if (m.Deathrattle) layer("deathrattle");
+            else if (m.Rally) layer("rally");
+            else if (m.Trigger) layer("trigger");
+            if (m.Windfury) layer("windfury");
 
             if (m.Gifts.Count > 0)
             {
                 var gift = new Ellipse { Width = 23 * s, Height = 23 * s, Fill = UiKit.Br(Color.FromRgb(0x2A, 0x10, 0x14)) };
-                Add(c, gift, cx + 19.8, cy - 56.8, s);
+                Add(c, gift, left + 104.8, LayerTop + 48.2, s);
                 LoadArt(gift, m.Gifts[0], false, SpellArt);
-                Add(c, Sprite("dark-gift-ring", 34, s), cx + 14, cy - 62, s);
-                if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White), cx + 16, cy - 32, s);
+                Add(c, Sprite("dark-gift-ring", 34, s), left + 99, LayerTop + 43, s);
+                if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White), left + 122, LayerTop + 72, s);
             }
 
-            // What the game hangs under the oval, one over the other when there are several.
-            var icons = new List<FrameworkElement>();
-            if (m.Deathrattle) icons.Add(Sprite("deathrattle", 19, s));
-            if (m.Rally) icons.Add(Sprite("rally", 24, s));
-            if (m.Venomous) icons.Add(Sprite(m.Poisonous ? "poisonous" : "venomous", m.Poisonous ? 18 : 9, s));
-            foreach (var icon in icons) Add(c, icon, cx - icon.Width / s / 2, cy + 38, s);
-
-            Add(c, Sprite("gem-attack", 38, s), cx - 56, cy + 18, s);
-            Add(c, Sprite("gem-health", 31, s), cx + 25, cy + 10, s);
-            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, Brushes.White), cx - 33.2, cy + 39.5, s);
-            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, Brushes.White), cx + 40.5, cy + 39.5, s);
+            // The digits' centres in the game's own render; drawn a fifth larger than the game does.
+            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, Brushes.White), left + 56.1, LayerTop + 141.2, s);
+            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, Brushes.White), left + 111.1, LayerTop + 141.0, s);
             return c;
         }
 
@@ -417,7 +413,7 @@ namespace HsbgCardLookup.Ui
                 if (stats == null) { img.Source = render; return; }
                 int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;
                 img.Source = CardStats.WithNumbers(render, Short(stats.Attack), Short(stats.Health), baseAtk.ToString().Length, baseHp.ToString().Length,
-                    stats.Attack > baseAtk ? Buffed : Brushes.White, stats.Health > baseHp ? Buffed : Brushes.White);
+                    Brushes.White, Brushes.White);
             };
             var hit = CardArt.GetSync(card, golden, 0);
             if (hit != null) set(hit);

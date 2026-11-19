@@ -1,0 +1,575 @@
+[
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "ref-normal",
+  "outputPath": "toolkit-board/pieces/ref-normal.png"
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "ref-gold",
+  "outputPath": "toolkit-board/pieces/ref-gold.png",
+  "normalCardId": "BGS_119"
+ },
+ {
+  "kind": "minion",
+  "cardId": "BG27_005",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "ref-legendary",
+  "outputPath": "toolkit-board/pieces/ref-legendary.png"
+ },
+ {
+  "kind": "minion",
+  "cardId": "BG27_005_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "ref-legendary-gold",
+  "outputPath": "toolkit-board/pieces/ref-legendary-gold.png",
+  "normalCardId": "BG27_005"
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "frame",
+  "outputPath": "toolkit-board/pieces/frame.png",
+  "showOnly": [
+   "Mesh"
+  ],
+  "clearPortrait": true
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "frame-gold",
+  "outputPath": "toolkit-board/pieces/frame-gold.png",
+  "normalCardId": "BGS_119",
+  "showOnly": [
+   "Mesh"
+  ],
+  "clearPortrait": true
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "frame-gold-glints",
+  "outputPath": "toolkit-board/pieces/frame-gold-glints.png",
+  "normalCardId": "BGS_119",
+  "showOnly": [
+   "Mesh",
+   "FX_Glint*"
+  ],
+  "clearPortrait": true
+ },
+ {
+  "kind": "minion",
+  "cardId": "BG27_005",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "dragon",
+  "outputPath": "toolkit-board/pieces/dragon.png",
+  "showOnly": [
+   "Unique_Ally_Dragon"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BG27_005_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "dragon-gold",
+  "outputPath": "toolkit-board/pieces/dragon-gold.png",
+  "normalCardId": "BG27_005",
+  "showOnly": [
+   "Unique_Ally_Dragon"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "gem-attack",
+  "outputPath": "toolkit-board/pieces/gem-attack.png",
+  "showOnly": [
+   "Gem_Attack"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "gem-health",
+  "outputPath": "toolkit-board/pieces/gem-health.png",
+  "showOnly": [
+   "Gem_Health"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "taunt",
+  "outputPath": "toolkit-board/pieces/taunt.png",
+  "boardSpells": [
+   "TAUNT_INSTANT"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "Taunt_Shield_mesh"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119_G",
+  "premium": "GOLDEN",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "taunt-gold",
+  "outputPath": "toolkit-board/pieces/taunt-gold.png",
+  "normalCardId": "BGS_119",
+  "boardSpells": [
+   "TAUNT_INSTANT_PREMIUM"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "Taunt_Shield_mesh"
+  ],
+  "tauntTint": 0.6
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "divine-shield",
+  "outputPath": "toolkit-board/pieces/divine-shield.png",
+  "boardSpells": [
+   "DIVINE_SHIELD"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "DivineShield_card1_mesh"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "divine-shield-full",
+  "outputPath": "toolkit-board/pieces/divine-shield-full.png",
+  "boardSpells": [
+   "DIVINE_SHIELD"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "DivineShield_card*"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "reborn",
+  "outputPath": "toolkit-board/pieces/reborn.png",
+  "boardSpells": [
+   "REBORN"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "mesh_EdgeGlow",
+   "mesh_EdgeGlow_Underlay"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "stealth",
+  "outputPath": "toolkit-board/pieces/stealth.png",
+  "boardSpells": [
+   "STEALTH"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "Stealth",
+   "Stealth_InnerShadow"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "windfury",
+  "outputPath": "toolkit-board/pieces/windfury.png",
+  "boardSpells": [
+   "WINDFURY_IDLE"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "WindCurl*"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "venomous",
+  "outputPath": "toolkit-board/pieces/venomous.png",
+  "boardSpells": [
+   "VENOMOUS"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "VenomousModel"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "poisonous",
+  "outputPath": "toolkit-board/pieces/poisonous.png",
+  "boardSpells": [
+   "POISONOUS"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "PoisonousModel"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "deathrattle",
+  "outputPath": "toolkit-board/pieces/deathrattle.png",
+  "boardSpells": [
+   "DEATHRATTLE_IDLE"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "DeathRattleSkull"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "rally",
+  "outputPath": "toolkit-board/pieces/rally.png",
+  "boardSpells": [
+   "BACON_RALLY"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "RallyModel"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "trigger",
+  "outputPath": "toolkit-board/pieces/trigger.png",
+  "boardSpells": [
+   "TRIGGER"
+  ],
+  "boardLight": 0.5,
+  "showOnly": [
+   "TriggerModel"
+  ]
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-1",
+  "outputPath": "toolkit-board/pieces/badge-1.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 1
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-2",
+  "outputPath": "toolkit-board/pieces/badge-2.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 2
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-3",
+  "outputPath": "toolkit-board/pieces/badge-3.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 3
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-4",
+  "outputPath": "toolkit-board/pieces/badge-4.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 4
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-5",
+  "outputPath": "toolkit-board/pieces/badge-5.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 5
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-6",
+  "outputPath": "toolkit-board/pieces/badge-6.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 6
+ },
+ {
+  "kind": "minion",
+  "cardId": "BGS_119",
+  "premium": "NORMAL",
+  "isBg": true,
+  "isBoardMinion": true,
+  "customAttack": 2,
+  "customHealth": 3,
+  "bigNumbers": true,
+  "boardTier": true,
+  "dbfId": 0,
+  "name": "badge-7",
+  "outputPath": "toolkit-board/pieces/badge-7.png",
+  "showOnly": [
+   "Bacon_TechLevel_Shield",
+   "Bacon_TechLevel_Star*"
+  ],
+  "customTier": 7
+ }
+]

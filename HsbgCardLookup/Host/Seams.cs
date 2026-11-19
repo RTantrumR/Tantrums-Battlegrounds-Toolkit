@@ -137,7 +137,10 @@ namespace HsbgCardLookup.Host
         public const int STEALTH = 191;
         public const int DIVINE_SHIELD = 194;
         public const int CARDTYPE = 202;
+        public const int TRIGGER_VISUAL = 32;
+        public const int ELITE = 114;
         public const int DEATHRATTLE = 217;
+        public const int TECH_LEVEL = 1440;
         public const int ZONE_POSITION = 263;
         public const int RALLY = 4204;
         public const int POISONOUS = 363;
