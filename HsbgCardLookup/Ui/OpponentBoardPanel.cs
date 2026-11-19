@@ -30,7 +30,7 @@ namespace HsbgCardLookup.Ui
     public sealed class OpponentBoardPanel
     {
         // Design units = pixels of a 1080-high game.
-        private const double CellW = 104, CellH = 146, Pad = 8, HeaderH = 22;
+        private const double CellW = 124, CellH = 146, Pad = 8, HeaderH = 22;
         // The portrait's oval inside our card renders (512×672), as fractions of the image.
         private static readonly Rect MinionArt = new Rect(154 / 512.0, 71 / 672.0, 216 / 512.0, 264 / 672.0);
         private static readonly Rect SpellArt = new Rect(190 / 512.0, 112 / 672.0, 132 / 512.0, 132 / 672.0);
@@ -50,6 +50,28 @@ namespace HsbgCardLookup.Ui
         public static Point? TestCursor;
         public static bool TestDown;
 
+        /// <summary>Test aid: draw a fixed sample board (every keyword, long numbers) whatever the game is doing.</summary>
+        public static bool TestBoard;
+        private OpponentBoard _sample;
+
+        private OpponentBoard Sample()
+        {
+            if (_sample != null) return _sample;
+            var b = new OpponentBoard { PlayerId = -1, Turn = 12 };
+            Func<string, int, int, BoardMinion> m = (id, atk, hp) => new BoardMinion { CardId = id, Card = _store.Lookup(id), Attack = atk, Health = hp };
+            var a = m("BGS_119", 2, 1); a.DivineShield = true; a.Windfury = true;
+            var r = m("BG25_001", 2, 1); r.Taunt = true; r.Reborn = true;
+            var g = m("BG29_813", 1700, 1400); g.Golden = true; g.DivineShield = true;
+            var k = m("BG27_005", 20, 24); k.Golden = true; k.Taunt = true; k.Deathrattle = true;
+            var e = m("BG33_822", 156, 156); e.Stealth = true; e.Venomous = true;
+            var d = m("BG36_369", 7, 7); d.Deathrattle = true; d.Rally = true;
+            var gift = _store.All.FirstOrDefault(c => c.Categories != null && c.Categories.Contains("darkgift"));
+            if (gift != null) { d.Gifts.Add(gift); e.Gifts.Add(gift); e.Gifts.Add(gift); }
+            var x = m("BG31_816", 4, 3);
+            b.Minions.AddRange(new[] { a, r, g, k, e, d, x });
+            return _sample = b;
+        }
+
         private int _pinned;              // PLAYER_ID, 0 = none
         private bool _wasDown;
         private OpponentBoard _shown;     // what the row currently draws
@@ -66,7 +88,7 @@ namespace HsbgCardLookup.Ui
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
         {
-            _config = config; _store = store; _boards = boards; _log = log;
+            _config = config; _store = store; _boards = boards; _log = log; CardStats.Log = log;
             _header = new TextBlock { Foreground = UiKit.TextSecondary, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
             _row = new Canvas();
             var stack = new StackPanel();
@@ -89,6 +111,7 @@ namespace HsbgCardLookup.Ui
             if (_root.Visibility != Visibility.Collapsed) _root.Visibility = Visibility.Collapsed;
             if (_cards.Visibility != Visibility.Collapsed) _cards.Visibility = Visibility.Collapsed;
             _opened = null;
+            _shown = null;            // shown again later: drawn afresh
         }
 
         /// <summary>About every 100 ms, on the UI thread.</summary>
@@ -98,6 +121,13 @@ namespace HsbgCardLookup.Ui
             {
                 var g = HostServices.Game;
                 var canvas = HostServices.Overlay?.Canvas;
+                if (TestBoard && canvas != null && canvas.ActualHeight > 0)
+                {
+                    EnsureArt(canvas);
+                    Show(canvas, Sample(), "Sample board");
+                    OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
+                    return;
+                }
                 if (!_config.ShowOpponentBoards || ArrangeSession.IsActive || g == null || canvas == null || !g.IsBattlegroundsMatch
                     || canvas.ActualHeight <= 0)
                 { Hide(); _pinned = 0; return; }
@@ -142,6 +172,7 @@ namespace HsbgCardLookup.Ui
             if (dir == null) return;
             var ids = _store.All.Where(c => !string.IsNullOrEmpty(c.ExternalId)
                 && (c.CardType == "minion" || (c.Categories != null && c.Categories.Contains("darkgift")))).Select(c => c.ExternalId).ToList();
+            Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-font.ttf"));
             Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), canvas.Dispatcher, _log);
         }
         private bool _artTried;
@@ -234,9 +265,9 @@ namespace HsbgCardLookup.Ui
         private FrameworkElement Minion(BoardMinion m, double s)
         {
             var c = new Canvas { Width = CellW * s, Height = CellH * s };
-            const double cx = 52, cy = 72, rx = 33, ry = 46;          // the art's oval, a little under the ring
+            const double cx = CellW / 2, cy = 72, rx = 33, ry = 46;          // the art's oval, a little under the ring
 
-            if (m.Taunt) Add(c, Sprite(m.Golden ? "taunt-gold" : "taunt", m.Golden ? 110 : 106, s), cx - (m.Golden ? 55 : 53), cy - 68, s);
+            if (m.Taunt) Add(c, Sprite(m.Golden ? "taunt-gold" : "taunt", m.Golden ? 100 : 96, s), cx - (m.Golden ? 50 : 48), cy - 58, s);
 
             var art = new Ellipse { Width = 2 * rx * s, Height = 2 * ry * s, Fill = UiKit.Br(Color.FromRgb(0x1A, 0x21, 0x30)) };
             Add(c, art, cx - rx, cy - ry, s);
@@ -254,9 +285,9 @@ namespace HsbgCardLookup.Ui
 
             if (m.DivineShield)
             {
-                var shield = Sprite("divine-shield", 118, s);
+                var shield = Sprite("divine-shield", 117, s);
                 shield.Opacity = 0.42;
-                Add(c, shield, cx - 59, cy - 64, s);
+                Add(c, shield, cx - 63.4, cy - 63.1, s);
             }
 
             if (m.Gifts.Count > 0)
@@ -265,7 +296,7 @@ namespace HsbgCardLookup.Ui
                 Add(c, gift, cx + 19.8, cy - 56.8, s);
                 LoadArt(gift, m.Gifts[0], false, SpellArt);
                 Add(c, Sprite("dark-gift-ring", 34, s), cx + 14, cy - 62, s);
-                if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White, 30 * s), cx + 16, cy - 32, s);
+                if (m.Gifts.Count > 1) Add(c, new OutlinedText("x" + m.Gifts.Count, 12 * s, Brushes.White), cx + 16, cy - 32, s);
             }
 
             // What the game hangs under the oval, side by side when there are several.
@@ -277,12 +308,18 @@ namespace HsbgCardLookup.Ui
             double ix = cx - icons.Sum(e => e.Width / s) / 2;
             foreach (var icon in icons) { Add(c, icon, ix, cy + 38, s); ix += icon.Width / s; }
 
-            Add(c, Sprite("gem-attack", 31, s), cx - 50, cy + 21, s);
-            Add(c, Sprite("gem-health", 25, s), cx + 24, cy + 15, s);
+            Add(c, Sprite("gem-attack", 38, s), cx - 56, cy + 18, s);
+            Add(c, Sprite("gem-health", 31, s), cx + 25, cy + 10, s);
             int baseAtk = (m.Golden ? m.Card?.AttackGold : m.Card?.Attack) ?? m.Attack, baseHp = (m.Golden ? m.Card?.HealthGold : m.Card?.Health) ?? m.Health;
-            Add(c, new OutlinedText(Short(m.Attack), 17 * s, m.Attack > baseAtk ? Buffed : Brushes.White, 44 * s), cx - 53.5, cy + 25, s);
-            Add(c, new OutlinedText(Short(m.Health), 17 * s, m.Health > baseHp ? Buffed : Brushes.White, 44 * s), cx + 14.5, cy + 25, s);
+            AddCentred(c, new OutlinedText(Short(m.Attack), 24 * s, m.Attack > baseAtk ? Buffed : Brushes.White), cx - 33.2, cy + 39.5, s);
+            AddCentred(c, new OutlinedText(Short(m.Health), 24 * s, m.Health > baseHp ? Buffed : Brushes.White), cx + 40.5, cy + 39.5, s);
             return c;
+        }
+
+        private static void AddCentred(Canvas c, FrameworkElement el, double x, double y, double s)
+        {
+            Canvas.SetLeft(el, x * s - el.Width / 2); Canvas.SetTop(el, y * s - el.Height / 2);
+            c.Children.Add(el);
         }
 
         private static void Add(Canvas c, UIElement el, double x, double y, double s)
@@ -378,59 +415,57 @@ namespace HsbgCardLookup.Ui
             }
         }
 
-        // A card render; for a board minion its own numbers go over the render's gems.
+        // A card render; for a board minion the render's own digits are replaced by the board's numbers
+        // (CardStats), so the gems, the frame and everything else are the render's pixels.
         private static FrameworkElement Card(BgCard card, bool golden, BoardMinion stats, double s)
         {
             double w = CardW * s, h = w * 672.0 / 512.0;
-            var c = new Canvas { Width = w, Height = h };
-            var img = new Image { Width = w, Height = h, Stretch = Stretch.Uniform };
-            c.Children.Add(img);
-            if (card != null)
+            var img = new Image { Width = w, Height = h, Stretch = Stretch.Uniform, IsHitTestVisible = false };
+            if (card == null) return img;
+            Action<BitmapSource> set = render =>
             {
-                var hit = CardArt.GetSync(card, golden, 0);
-                if (hit != null) img.Source = hit;
-                else
+                if (render == null) return;
+                if (stats == null) { img.Source = render; return; }
+                int baseAtk = (golden ? card.AttackGold : card.Attack) ?? stats.Attack, baseHp = (golden ? card.HealthGold : card.Health) ?? stats.Health;
+                img.Source = CardStats.WithNumbers(render, stats.Attack, stats.Health, baseAtk.ToString().Length, baseHp.ToString().Length,
+                    stats.Attack > baseAtk ? Buffed : Brushes.White, stats.Health > baseHp ? Buffed : Brushes.White, Assets.GameArt.NumberFace);
+            };
+            var hit = CardArt.GetSync(card, golden, 0);
+            if (hit != null) set(hit);
+            else
+            {
+                var ui = img.Dispatcher;
+                CardArt.LoadAsync(card, golden, 0).ContinueWith(t =>
                 {
-                    var ui = img.Dispatcher;
-                    CardArt.LoadAsync(card, golden, 0).ContinueWith(t =>
-                    {
-                        if (t.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || t.Result == null) return;
-                        ui.BeginInvoke(new Action(() => img.Source = t.Result));
-                    });
-                }
+                    if (t.Status != System.Threading.Tasks.TaskStatus.RanToCompletion || t.Result == null) return;
+                    ui.BeginInvoke(new Action(() => set(t.Result)));
+                });
             }
-            if (stats != null)
-            {
-                // Design units of the 512-wide render, scaled to the drawn card.
-                double k = w / 512.0;
-                // Our gems go exactly over the render's own (512-wide render units), then the board's numbers.
-                Add(c, Sprite("gem-attack", 122, k), 36, 524, k); Add(c, Sprite("gem-health", 92, k), 376, 512, k);
-                int baseAtk = (golden ? card?.AttackGold : card?.Attack) ?? stats.Attack, baseHp = (golden ? card?.HealthGold : card?.Health) ?? stats.Health;
-                Add(c, new OutlinedText(Short(stats.Attack), 66 * k, stats.Attack > baseAtk ? Buffed : Brushes.White, 170 * k), 16, 540, k);
-                Add(c, new OutlinedText(Short(stats.Health), 66 * k, stats.Health > baseHp ? Buffed : Brushes.White, 170 * k), 337, 540, k);
-            }
-            return c;
+            return img;
         }
 
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
 
-        /// <summary>Bold text with a black outline, centred in a fixed width: the game's number look.</summary>
+        /// <summary>A number in the game's face with a black outline. The element is exactly the glyphs'
+        /// box, so centring the element centres the digits themselves.</summary>
         private sealed class OutlinedText : FrameworkElement
         {
             private readonly Geometry _shape;
             private readonly Brush _fill;
             private readonly Pen _pen;
 
-            public OutlinedText(string text, double size, Brush fill, double width)
+            public OutlinedText(string text, double size, Brush fill)
             {
                 var ft = new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                    new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal), size, Brushes.White, 1.0);
-                _shape = ft.BuildGeometry(new Point((width - ft.Width) / 2, 0));
+                    Assets.GameArt.NumberFace, size, Brushes.White, 1.0);
+                _shape = ft.BuildGeometry(new Point(0, 0));
+                var box = _shape.Bounds;
+                _shape.Transform = new TranslateTransform(-box.X, -box.Y);
                 _shape.Freeze();
                 _fill = fill;
-                _pen = new Pen(Brushes.Black, Math.Max(1.5, size * 0.2)) { LineJoin = PenLineJoin.Round };
+                _pen = new Pen(Brushes.Black, Math.Max(1.5, size * 0.14)) { LineJoin = PenLineJoin.Round };
                 _pen.Freeze();
-                Width = width; Height = ft.Height;
+                Width = box.Width; Height = box.Height;
                 IsHitTestVisible = false;
             }
 

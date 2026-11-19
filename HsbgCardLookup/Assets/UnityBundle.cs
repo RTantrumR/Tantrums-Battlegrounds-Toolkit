@@ -429,6 +429,32 @@ namespace HsbgCardLookup.Assets
         private static uint Bgra(int r, int g, int b, int a) => (uint)(b | g << 8 | r << 16 | a << 24);
     }
 
+    /// <summary>A font file the game carries (its number face is "Belwe").</summary>
+    internal static class GameFont
+    {
+        private const int ClassFont = 128;
+
+        /// <summary>The font's file bytes (TTF/OTF), or null when this bundle has no font of that name.</summary>
+        public static byte[] Read(UnityBundle bundle, string name)
+        {
+            var want = new HashSet<string> { "m_Name", "m_FontData" };
+            foreach (var entry in bundle.Entries)
+            {
+                if (entry.Path.EndsWith(".resS", StringComparison.OrdinalIgnoreCase) || entry.Path.EndsWith(".resource", StringComparison.OrdinalIgnoreCase)) continue;
+                var file = new SerializedAssets(bundle, entry);
+                foreach (var o in file.Objects)
+                {
+                    if (file.ClassIds[o.Type] != ClassFont) continue;
+                    var f = SerializedAssets.Fields(file.Trees[o.Type], file.Data(o), want);
+                    object n, data;
+                    if (f.TryGetValue("m_Name", out n) && Encoding.UTF8.GetString((byte[])n) == name
+                        && f.TryGetValue("m_FontData", out data) && ((byte[])data).Length > 1000) return (byte[])data;
+                }
+            }
+            return null;
+        }
+    }
+
     /// <summary>Card id → the art its definition names, from the client's CardDef prefabs.</summary>
     internal static class CardDefs
     {

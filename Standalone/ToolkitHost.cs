@@ -162,6 +162,14 @@ namespace Toolkit.Standalone
                         catch { }
                     }
 
+                    // Test aid: testboard.trigger next to the exe switches a fixed sample board on or off.
+                    string sampleFile = Path.Combine(Shared.ExeDir, "testboard.trigger");
+                    if (File.Exists(sampleFile))
+                    {
+                        try { File.Delete(sampleFile); } catch { }
+                        HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard = !HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard;
+                    }
+
                     // Test aid: drop a file named snap.trigger next to the exe to get snap.png.
                     string trigger = Path.Combine(Shared.ExeDir, "snap.trigger");
                     if (File.Exists(trigger))

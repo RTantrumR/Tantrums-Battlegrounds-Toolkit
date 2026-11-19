@@ -96,27 +96,36 @@ namespace HsbgCardLookup.Assets
                 var need = new HashSet<string>(cardToArt.Values, StringComparer.OrdinalIgnoreCase);
                 var where = new Dictionary<string, Located>(StringComparer.OrdinalIgnoreCase);
                 int failed = Locate(dataDir, "cardtexture_base_global-*.unity3d", need, where);
-                // A handful of cards keep their art in other bundle groups (thousands of files). Art that
-                // wasn't there last time isn't looked for again until the game's file count changes.
-                var absent = new HashSet<string>(need.Where(n => !where.ContainsKey(n)), StringComparer.OrdinalIgnoreCase);
+                // A handful of cards keep their art in other bundle groups (thousands of files). What that
+                // wide search found, and what it did not, is remembered against the folder's file count:
+                //   line 1: <file count> TAB <art names wanted beyond the card-texture bundles, sorted>
+                //   then:   <art name> TAB <bundle file name> for each one found
+                var absent = need.Where(n => !where.ContainsKey(n)).OrderBy(x => x, StringComparer.Ordinal).ToList();
                 string missFile = cacheFile + ".missing";
-                string stamp = Directory.GetFiles(dataDir, "*.unity3d").Length + "\t" + string.Join("\t", absent.OrderBy(x => x, StringComparer.Ordinal));
-                bool known = false;
-                try { known = File.Exists(missFile) && File.ReadAllText(missFile) == stamp; } catch { }
-                if (absent.Count > 0 && !known)
+                string stamp = Directory.GetFiles(dataDir, "*.unity3d").Length + "\t" + string.Join("\t", absent);
+                string[] saved = null;
+                try { if (File.Exists(missFile)) saved = File.ReadAllLines(missFile); } catch { }
+                if (absent.Count > 0 && saved != null && saved.Length > 0 && saved[0] == stamp)
+                {
+                    var wantOnly = new HashSet<string>(absent, StringComparer.OrdinalIgnoreCase);
+                    foreach (string file in saved.Skip(1).Select(l => l.Split('\t')).Where(p => p.Length == 2).Select(p => p[1]).Distinct())
+                        failed += Locate(dataDir, file, wantOnly, where);
+                }
+                else if (absent.Count > 0)
                 {
                     foreach (string group in FallbackGroups)
                     {
                         if (where.Count >= need.Count) break;
                         failed += Locate(dataDir, group, need, where);
                     }
-                    absent.RemoveWhere(n => where.ContainsKey(n));
-                    stamp = Directory.GetFiles(dataDir, "*.unity3d").Length + "\t" + string.Join("\t", absent.OrderBy(x => x, StringComparer.Ordinal));
-                    try { File.WriteAllText(missFile, stamp); } catch { }
+                    var lines = new List<string> { stamp };
+                    foreach (string n in absent) { Located l; if (where.TryGetValue(n, out l)) lines.Add(n + "\t" + Path.GetFileName(l.File)); }
+                    try { File.WriteAllLines(missFile, lines); } catch { }
                 }
                 var art = new Dictionary<string, Located>(StringComparer.OrdinalIgnoreCase);
                 foreach (var kv in cardToArt) { Located l; if (where.TryGetValue(kv.Value, out l)) art[kv.Key] = l; }
                 _art = art;
+                SaveFont(dataDir, cacheFile);
                 _log("[art] " + art.Count + " of " + wanted.Count + " cards have art in the game's files; definitions " + defsMs + " ms ("
                     + reread + " files read), textures " + sw.ElapsedMilliseconds + " ms" + (failed > 0 ? ", " + failed + " files unreadable" : ""));
             }
@@ -136,6 +145,58 @@ namespace HsbgCardLookup.Assets
                 try { _ui.BeginInvoke(new Action(() => done(result))); } catch { }
             }
         }
+
+        // ── the game's number face ──────────────────────────────────────────────────────────────
+        private static string _fontFile;
+        private static Typeface _face;
+        private static bool _faceTried;
+
+        // Belwe sits in the client's "essential" content bundle; it is copied out once (and again when
+        // its size changes) because WPF can only load a font from a file.
+        private static void SaveFont(string dataDir, string cacheFile)
+        {
+            try
+            {
+                string target = Path.Combine(Path.GetDirectoryName(cacheFile), "game-font.ttf");
+                foreach (string f in Directory.GetFiles(dataDir, "essential_base_global-content-*.unity3d"))
+                {
+                    byte[] data;
+                    using (var b = new UnityBundle(f)) data = GameFont.Read(b, "Belwe");
+                    if (data == null) continue;
+                    if (!File.Exists(target) || new FileInfo(target).Length != data.Length) File.WriteAllBytes(target, data);
+                    break;
+                }
+            }
+            catch (Exception ex) { _log("[art] font: " + ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        /// <summary>Where the font copy is kept; set before the first use of <see cref="NumberFace"/>.</summary>
+        public static void UseFontFile(string path) { _fontFile = path; }
+
+        /// <summary>The game's own number face once its file exists (it does from the second run on, or
+        /// seconds into the first), else a plain heavy system face. UI thread.</summary>
+        public static Typeface NumberFace
+        {
+            get
+            {
+                if (_face != null) return _face;
+                try
+                {
+                    if (_fontFile != null && File.Exists(_fontFile))
+                    {
+                        var glyphs = new GlyphTypeface(new Uri(_fontFile));
+                        string family = glyphs.FamilyNames.Values.First();
+                        _face = new Typeface(new FontFamily(new Uri(Path.GetDirectoryName(_fontFile) + Path.DirectorySeparatorChar), "./#" + family),
+                            glyphs.Style, glyphs.Weight, glyphs.Stretch);
+                        return _face;
+                    }
+                }
+                catch (Exception ex) { if (!_faceTried) _log("[art] font load: " + ex.GetType().Name + ": " + ex.Message); }
+                _faceTried = true;
+                return Fallback;
+            }
+        }
+        private static readonly Typeface Fallback = new Typeface(new FontFamily("Arial Black"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal);
 
         private static ArtPicture Load(string cardId)
         {
