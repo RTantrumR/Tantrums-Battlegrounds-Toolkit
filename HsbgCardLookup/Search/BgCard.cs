@@ -103,7 +103,10 @@ namespace HsbgCardLookup.Search
     /// <summary>Shape of data/production/cards.json: { patch, cardCount, cards: [...] }.</summary>
     public class CardsFile
     {
-        public string Patch { get; set; }
+        // The site names the patch "patchDisplay"; the bundled snapshot and older caches say "patch".
+        private string _patch;
+        public string Patch { get { return string.IsNullOrEmpty(_patch) ? PatchDisplay : _patch; } set { _patch = value; } }
+        public string PatchDisplay { get; set; }
         public int CardCount { get; set; }
         public List<BgCard> Cards { get; set; } = new List<BgCard>();
     }
