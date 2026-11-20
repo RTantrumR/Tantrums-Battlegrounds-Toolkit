@@ -35,7 +35,7 @@ namespace HsbgCardLookup.Ui
 
         // Resize grabber: proportional to the card, inset onto the art's (transparent-cornered)
         // top-right so it stays on the visible art at any scale — same tuning as FloatingCard.
-        private const double HandleFrac = 0.16, HandleMin = 16, HandleMax = 44;
+        private const double HandleFrac = 0.16, HandleMin = 22, HandleMax = 22;   // one arrow size on every box (owner, 2026-11-20)
         private const double InsetFracX = 0.05, InsetFracY = 0.07;
 
         private readonly int _index;         // trinket slot index (drives the default stack position)

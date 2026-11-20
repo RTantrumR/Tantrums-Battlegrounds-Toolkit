@@ -253,7 +253,7 @@ namespace HsbgCardLookup.Ui
             };
             _handle = new Border
             {
-                Width = 18, Height = 18,
+                Width = 22, Height = 22,
                 CornerRadius = new CornerRadius(5),
                 Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
                 BorderBrush = UiKit.AccentBrush, BorderThickness = new Thickness(1),
