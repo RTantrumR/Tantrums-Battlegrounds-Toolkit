@@ -69,11 +69,11 @@ namespace HsbgCardLookup.Ui
             var arrow = new Path
             {
                 Data = Geometry.Parse("M3 9 L9 3 M9 3 L9 6 M9 3 L6 3"),
-                Stroke = Brushes.White, StrokeThickness = 1.6, Stretch = Stretch.Uniform, Margin = new Thickness(3)
+                Stroke = Brushes.White, StrokeThickness = 1.6, Stretch = Stretch.Uniform, Margin = new Thickness(4)
             };
             _handle = new Border
             {
-                Width = 14, Height = 14, CornerRadius = new CornerRadius(4),
+                Width = 18, Height = 18, CornerRadius = new CornerRadius(5),
                 Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
                 BorderBrush = UiKit.AccentBrush, BorderThickness = new Thickness(1),
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
@@ -166,7 +166,7 @@ namespace HsbgCardLookup.Ui
             double s = _scale;
             _root.Padding = new Thickness(10 * s, 4 * s, 10 * s, 5 * s);
             // The arrow sits in the box's own top-right corner whatever the padding has grown to.
-            _handle.Margin = new Thickness(0, 1 - 4 * s, 1 - 10 * s, 0);
+            _handle.Margin = new Thickness(0, 2 - 4 * s, 2 - 10 * s, 0);
             _text.FontSize = 17 * s;
             ClampPosition();
         }
