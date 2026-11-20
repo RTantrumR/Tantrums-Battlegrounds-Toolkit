@@ -53,7 +53,9 @@ namespace HsbgCardLookup.Ui
         private const double ControlW = 106;
         // Tabs down the left, the chosen page on the right (owner, 2026-11-20): no main page to go
         // "Back" to, and the page keeps the width the old single-column window had, plus room.
-        private const double NavW = 232, PageW = 540, MinPageH = 560;
+        // One size for every tab: the height the Portrait/Sidebar page needs (owner, 2026-11-20: a
+        // window that resized per tab "jumps around in front of the users"). A longer page scrolls.
+        private const double NavW = 232, PageW = 540, WindowH = 875;
         private const double StatusH = 35;   // two lines of the 13px status strip (17.3 each)
 
         private StackPanel _pageRoot;        // page-local: what ShowPage renders (header + status + body)
@@ -97,7 +99,8 @@ namespace HsbgCardLookup.Ui
             ResizeMode = ResizeMode.NoResize;
             try { Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = UiKit.ThinScrollBarStyle(9); } catch { }
             Width = NavW + PageW;
-            SizeToContent = SizeToContent.Height;   // auto-fit the height to whatever rows exist
+            SizeToContent = SizeToContent.Manual;
+            Height = Math.Max(360, Math.Min(WindowH, SystemParameters.WorkArea.Height - 40));
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             Topmost = true;
             ShowInTaskbar = false;
@@ -1355,9 +1358,8 @@ namespace HsbgCardLookup.Ui
             Changed();
         }
 
-        /// <summary>Show a built page. The ScrollViewer is a floor against pages outgrowing the screen:
-        /// the window is SizeToContent.Height, so without a MaxHeight ON THE SCROLLVIEWER it would be
-        /// measured at infinite height, never scroll, and simply run off the bottom.</summary>
+        /// <summary>Show a built page. The window's height is fixed, so the page fills what is left
+        /// under the title bar and scrolls when it is longer.</summary>
         private void ShowPage()
         {
             if (_indexing) return;                // being read for the search, not shown
@@ -1365,11 +1367,9 @@ namespace HsbgCardLookup.Ui
             {
                 Content = _pageRoot,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 60 - TitleH)
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
-            // One height for most pages, so stepping through the tabs does not resize the window.
-            var both = new DockPanel { LastChildFill = true, MinHeight = Math.Min(MinPageH, page.MaxHeight) };
+            var both = new DockPanel { LastChildFill = true };
             var nav = Nav();
             DockPanel.SetDock(nav, Dock.Left);
             both.Children.Add(nav);
