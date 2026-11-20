@@ -23,7 +23,7 @@ namespace HsbgCardLookup.Ui
     public sealed class LobbyTribesPanel
     {
         private const double RefCellW = 58;       // one type's column at scale 1
-        private const double MinScale = 0.6, MaxScale = 2.4;
+        private const double MinScale = 0.4, MaxScale = 4.8;   // of the settled (pixel) scale
         private const double DefaultXF = 0.005, DefaultYF = 0.115;
 
         /// <summary>English tribe name → the label to draw (the card language's vocabulary).</summary>
@@ -39,7 +39,10 @@ namespace HsbgCardLookup.Ui
         private readonly List<TextBlock> _labels = new List<TextBlock>();
 
         private bool _attached;
+        // _scale is the box's own scale in pixels terms once settled: at the first showing it takes the
+        // game window's height into account (x height/1080), and is kept from then on (config Px).
         private double _xf = DefaultXF, _yf = DefaultYF, _scale = 1;
+        private bool _settled;
         private bool _dragging, _resizing, _moved;
         private Point _startCursor;
         private double _startLeft, _startTop, _startScale;
@@ -93,7 +96,8 @@ namespace HsbgCardLookup.Ui
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
 
             var p = _config.LobbyTribesHud;
-            if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = Clamp(p.WF, MinScale, MaxScale); }
+            if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = p.WF; }
+            if (p != null && p.Px > 0) { _scale = Clamp(p.Px, MinScale, MaxScale); _settled = true; }
 
             _current = this;
             _active = true;          // started mid-match: the first read decides
@@ -182,8 +186,13 @@ namespace HsbgCardLookup.Ui
         {
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null || canvas.ActualHeight <= 0) return;
-            // Follows the window like the other canvas features: scale 1 is tuned to a 1080-high client.
-            double s = _scale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0));
+            if (!_settled)
+            {
+                _scale = Clamp(_scale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0)), MinScale, MaxScale);
+                _settled = true;
+                Save(false);
+            }
+            double s = _scale;
             _root.Padding = new Thickness(5 * s, 5 * s, 5 * s, 4 * s);
             for (int i = 0; i < _icons.Count; i++)
             {
@@ -253,10 +262,16 @@ namespace HsbgCardLookup.Ui
             if (!persist || !_moved || canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
             _xf = Canvas.GetLeft(_root) / canvas.ActualWidth;
             _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
+            Save(true);
+        }
+
+        private void Save(bool placed)
+        {
             try
             {
                 var p = _config.LobbyTribesHud ?? (_config.LobbyTribesHud = new HudPlacement());
-                p.Set = true; p.XF = _xf; p.YF = _yf; p.WF = _scale;
+                if (placed) { p.Set = true; p.XF = _xf; p.YF = _yf; p.WF = _scale; }
+                p.Px = _scale;
                 _config.Save();
             }
             catch { }

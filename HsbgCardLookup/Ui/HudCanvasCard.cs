@@ -54,6 +54,16 @@ namespace HsbgCardLookup.Ui
         /// <summary>A move/resize gesture ended — receives the new placement fractions (xf, yf, wf).</summary>
         public Action<double, double, double> GeometryChanged;
 
+        // A floating box keeps the size it first showed at: the width is settled once, in pixels,
+        // from the game window as it was then, and a later change of the window's size leaves it
+        // alone (the position still follows as fractions). Off for a hosted preview.
+        private bool _keepWidth;
+        private double _wpx;
+        /// <summary>The settled width, to be saved (config <c>Px</c>).</summary>
+        public Action<double> WidthSettled;
+        /// <summary>Switch size-keeping on; px &gt; 0 is the width saved earlier.</summary>
+        public void KeepWidth(double px) { _keepWidth = true; _wpx = px > 0 ? px : 0; }
+
         private bool _attached;
         private bool _editing;
         private int _nativeW = 256;
@@ -273,6 +283,11 @@ namespace HsbgCardLookup.Ui
                 _hasPos = true;
             }
 
+            if (_keepWidth)
+            {
+                if (_wpx <= 0) { _wpx = _wf * cw; try { WidthSettled?.Invoke(_wpx); } catch { } }
+                _wf = _wpx / cw;
+            }
             double w = ClampWidth(_wf * cw, ch);
             double h = w * _aspect;
             double left = Clamp(_xf * cw, 0, Math.Max(0, cw - w));
@@ -297,7 +312,7 @@ namespace HsbgCardLookup.Ui
         // area (wrapping to a new column when they'd run past the bottom), anomaly top-left.
         private void DefaultFrac(double cw, double ch, out double xf, out double yf, out double wf)
         {
-            double w = Math.Min(DefaultWidth, cw * 0.2);
+            double w = Math.Min(DefaultWidth * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), cw * 0.2);
             wf = w / cw;
             if (_isAnomaly) { xf = 24 / cw; yf = 24 / ch; return; }
 
@@ -397,6 +412,7 @@ namespace HsbgCardLookup.Ui
             _xf = Canvas.GetLeft(_root) / cw;
             _yf = Canvas.GetTop(_root) / ch;
             _wf = _root.Width / cw;
+            if (_keepWidth) { _wpx = _root.Width; try { WidthSettled?.Invoke(_wpx); } catch { } }
             try { GeometryChanged?.Invoke(_xf, _yf, _wf); } catch { }
         }
 

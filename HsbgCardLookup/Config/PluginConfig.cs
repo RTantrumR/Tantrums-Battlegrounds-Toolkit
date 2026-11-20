@@ -111,7 +111,8 @@ namespace HsbgCardLookup.Config
         // The standings panel's placement (canvas fractions, like the trinket boxes).
         public HudPlacement MmrPanelHud { get; set; } = new HudPlacement();
 
-        // The lobby's minion types as a small box for the whole match; WF holds its scale.
+        // The lobby's minion types as a small box for the whole match; WF holds its scale against a
+        // 1080-high window, Px the scale it settled at.
         public bool ShowLobbyTribes { get; set; } = true;
         public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
 
@@ -123,7 +124,8 @@ namespace HsbgCardLookup.Config
         // Opponents' last boards: hover a leaderboard portrait to see one, click to pin it.
         public bool ShowOpponentBoards { get; set; } = true;
         public bool BoardPinOnClick { get; set; } = true;
-        // XF = the board's middle, YF = its top (canvas fractions), WF = its scale; unset = top-middle.
+        // XF = the board's middle, YF = its top (canvas fractions), WF = its scale against a
+        // 1080-high window, Px the scale it settled at; unset = top-middle.
         public HudPlacement OpponentBoardsHud { get; set; } = new HudPlacement();
 
         // Location axes ("Off"/"Portraits"/"Panel"/"Both"; unknown/empty = Both) → per-surface bools.
@@ -370,5 +372,8 @@ namespace HsbgCardLookup.Config
         public double XF { get; set; }
         public double YF { get; set; }
         public double WF { get; set; }
+        // A floating box's size as settled at its first showing (a width in pixels, or a scale):
+        // 0 = not settled yet. From then on the game window's size no longer changes the box.
+        public double Px { get; set; }
     }
 }

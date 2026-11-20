@@ -49,7 +49,8 @@ namespace HsbgCardLookup.Ui
         private readonly StackPanel _cards;       // the opened card(s), a canvas child of their own
         private readonly Grid _grip;              // takes the mouse while arranging, collapsed otherwise
         private bool _attached;
-        private const double MinScale = 0.5, MaxScale = 2.0;
+        private const double MinScale = 0.3, MaxScale = 4.0;   // of the settled (pixel) scale
+        private bool _settled;                                  // _userScale already holds the window's share
         private double _xf = 0.5, _yf = 0, _userScale = 1;
         private bool _arranging, _dragging, _resizing, _moved;
         private Point _startCursor;
@@ -131,7 +132,8 @@ namespace HsbgCardLookup.Ui
             };
             try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { }
             var p = _config.OpponentBoardsHud;
-            if (p != null && p.Set && p.WF > 0) { _xf = p.XF; _yf = p.YF; _userScale = Math.Max(MinScale, Math.Min(p.WF, MaxScale)); }
+            if (p != null && p.Set && p.WF > 0) { _xf = p.XF; _yf = p.YF; _userScale = Math.Max(0.5, Math.Min(p.WF, 2.0)); }
+            if (p != null && p.Px > 0) { _userScale = Math.Max(MinScale, Math.Min(p.Px, MaxScale)); _settled = true; }
             _cards = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
         }
 
@@ -301,7 +303,19 @@ namespace HsbgCardLookup.Ui
                 _root.SizeChanged += (s, e) => Place(canvas);
                 _attached = true;
             }
-            double scale = _userScale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0));
+            // The size is settled once, from the game window's height at the first showing, then kept.
+            if (!_settled)
+            {
+                _userScale = Math.Round(_userScale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0)), 3);
+                _settled = true;
+                try
+                {
+                    var hud = _config.OpponentBoardsHud ?? (_config.OpponentBoardsHud = new HudPlacement());
+                    hud.Px = _userScale; _config.Save();
+                }
+                catch { }
+            }
+            double scale = _userScale;
             // A fight's minions arrive over a read or two: redraw when the count grows.
             if (!ReferenceEquals(board, _shown) || board.Minions.Count != _shownCount || scale != _shownScale)
             {
@@ -407,7 +421,7 @@ namespace HsbgCardLookup.Ui
             try
             {
                 var p = _config.OpponentBoardsHud ?? (_config.OpponentBoardsHud = new HudPlacement());
-                p.Set = true; p.XF = _xf; p.YF = _yf; p.WF = _userScale;
+                p.Set = true; p.XF = _xf; p.YF = _yf; p.WF = _userScale; p.Px = _userScale;
                 _config.Save();
             }
             catch { }

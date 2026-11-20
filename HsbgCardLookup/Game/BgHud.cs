@@ -486,6 +486,8 @@ namespace HsbgCardLookup.Game
                 if (_card != null) return;
                 _card = new HudCanvasCard(_index, _isAnomaly);
                 _card.RightClicked = () => _onRightClick?.Invoke(this);
+                _card.KeepWidth(_slot().Px);
+                _card.WidthSettled = px => { _slot().Px = px; try { _config.Save(); } catch { } };
                 _card.GeometryChanged = (xf, yf, wf) =>
                 {
                     var p = _slot();
