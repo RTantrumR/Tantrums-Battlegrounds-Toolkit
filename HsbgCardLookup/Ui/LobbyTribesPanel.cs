@@ -22,7 +22,9 @@ namespace HsbgCardLookup.Ui
     /// </summary>
     public sealed class LobbyTribesPanel
     {
-        private const double RefCellW = 58;       // one type's column at scale 1
+        private const double RefCellW = 46;       // one type's column at scale 1: the box is always this
+                                                  // wide per type, a longer name is set smaller instead
+        private const double LabelSize = 10.5, MinLabelSize = 6;
         private const double MinScale = 0.4, MaxScale = 4.8;   // of the settled (pixel) scale
         private const double DefaultXF = 0.005, DefaultYF = 0.115;
 
@@ -170,10 +172,11 @@ namespace HsbgCardLookup.Ui
                     {
                         Text = text, Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold,
                         TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
-                        HorizontalAlignment = HorizontalAlignment.Center
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                     };
                     var cell = new StackPanel();
-                    cell.Children.Add(icon); cell.Children.Add(label);
+                    cell.Children.Add(icon);
+                    cell.Children.Add(new Grid { Children = { label } });   // a row of one height, the name centred in it
                     _row.Children.Add(cell);
                     _icons.Add(icon); _labels.Add(label);
                 }
@@ -198,9 +201,18 @@ namespace HsbgCardLookup.Ui
             {
                 _icons[i].Width = _icons[i].Height = 34 * s;
                 _icons[i].StrokeThickness = 1.4 * s;
-                _labels[i].FontSize = 10.5 * s;
-                _labels[i].Width = RefCellW * s;
-                _labels[i].Margin = new Thickness(0, 2 * s, 0, 0);
+                // A name too long for its column is set smaller until it fits, never cut.
+                var label = _labels[i];
+                double room = (RefCellW - 5) * s;
+                label.Width = double.NaN;
+                label.FontSize = LabelSize * s;
+                label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                double wide = label.DesiredSize.Width;
+                if (wide > room) label.FontSize = Math.Max(MinLabelSize * s, LabelSize * s * room / wide);
+                label.Width = RefCellW * s;
+                var row = (Grid)label.Parent;
+                row.Height = 15 * s;
+                row.Margin = new Thickness(0, 1 * s, 0, 0);
             }
             ClampPosition();
         }
