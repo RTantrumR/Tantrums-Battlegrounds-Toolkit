@@ -24,6 +24,9 @@ namespace HsbgCardLookup.Ui
         /// <summary>The box's size factor, whatever it means to the box; setting it lays the box out
         /// again and saves it.</summary>
         double DockScale { get; set; }
+        /// <summary>The box is never widened or sized to fit a neighbour (the turn counter: one short
+        /// line that neither stretches nor scales well); it still moves and scales with its group.</summary>
+        bool DockKeepsSize { get; }
     }
 
     public enum DockSide { Top, Bottom, Left, Right }
@@ -76,9 +79,9 @@ namespace HsbgCardLookup.Ui
         {
             Panels.RemoveAll(p => p.DockId == panel.DockId);
             Panels.Add(panel);
-            // A join can make a box wider than its content: the content then sits in the middle.
-            var content = panel.DockRoot.Child as FrameworkElement;
-            if (content != null) content.HorizontalAlignment = HorizontalAlignment.Center;
+            // Our boxes lie over the game's own things and over what we pin to them (the icons by the
+            // portraits), whatever order they were first shown in.
+            Panel.SetZIndex(panel.DockRoot, 500);
             panel.DockRoot.MouseMove += (s, e) => Hover(panel);
             panel.DockRoot.MouseRightButtonUp += (s, e) =>
             {
@@ -170,7 +173,8 @@ namespace HsbgCardLookup.Ui
                         if (!Links.TryGetValue(p.DockId, out l)) continue;
                         var parent = Find(l.Parent);
                         if (!Placed(parent) || !Shown(p)) continue;
-                        if (!natural && Shown(parent) && (l.Side == DockSide.Top || l.Side == DockSide.Bottom))
+                        if (!natural && Shown(parent) && (l.Side == DockSide.Top || l.Side == DockSide.Bottom)
+                            && !p.DockKeepsSize && !parent.DockKeepsSize)
                         {
                             double wide = Math.Max(parent.DockRoot.ActualWidth, p.DockRoot.ActualWidth);
                             if (Math.Abs(parent.DockRoot.MinWidth - wide) > 0.5 && parent.DockRoot.ActualWidth < wide - 0.5) parent.DockRoot.MinWidth = wide;
@@ -244,10 +248,16 @@ namespace HsbgCardLookup.Ui
                             if (asChild ? parent != q : parent != p) continue;
                             if (!Shown(child) || !Shown(parent)) continue;
                             DockSide mine = asChild ? Opposite(l.Side) : l.Side;      // the side of p on the seam
-                            if (mine == DockSide.Top) tl = tr = true;
-                            else if (mine == DockSide.Bottom) bl = br = true;
-                            else if (mine == DockSide.Left) tl = true;                // tops are level; heights differ
-                            else tr = true;
+                            // Boxes meet left edge to left edge (stacked) or top to top (side by side), so
+                            // that corner of the seam is always shared; the far one only when this box is
+                            // not the longer of the two along the seam.
+                            var other = asChild ? parent : child;
+                            bool across = p.DockRoot.ActualWidth <= other.DockRoot.ActualWidth + 1.5;
+                            bool down = p.DockRoot.ActualHeight <= other.DockRoot.ActualHeight + 1.5;
+                            if (mine == DockSide.Top) { tl = true; tr |= across; }
+                            else if (mine == DockSide.Bottom) { bl = true; br |= across; }
+                            else if (mine == DockSide.Left) { tl = true; bl |= down; }
+                            else { tr = true; br |= down; }
                         }
                     }
                 else if (p.DockRoot.MinWidth != 0) p.DockRoot.MinWidth = 0;
@@ -339,7 +349,7 @@ namespace HsbgCardLookup.Ui
             }
             Rect a = RectOf(p), b = RectOf(_offerTo);
             bool stacked = _offerSide == DockSide.Top || _offerSide == DockSide.Bottom;
-            double wide = stacked ? Math.Max(a.Width, b.Width) : a.Width;
+            double wide = stacked && !p.DockKeepsSize && !_offerTo.DockKeepsSize ? Math.Max(a.Width, b.Width) : a.Width;
             var land = Beside(b, new Size(a.Width, a.Height), _offerSide);
             Put(_ghost, land.X, land.Y, wide, a.Height);
             Edge(_barA, a, Opposite(_offerSide));
@@ -424,7 +434,8 @@ namespace HsbgCardLookup.Ui
             Save();
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas != null && (side == DockSide.Top || side == DockSide.Bottom) && Shown(child) && Shown(parent)
-                && !parentSide.Contains(child))          // two groups meeting, not a group re-linked within itself
+                && !parentSide.Contains(child)           // two groups meeting, not a group re-linked within itself
+                && !child.DockKeepsSize && !parent.DockKeepsSize)
             {
                 foreach (var q in childSide.Concat(parentSide)) q.DockRoot.MinWidth = 0;
                 for (int pass = 0; pass < 3; pass++)

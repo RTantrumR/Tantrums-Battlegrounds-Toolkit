@@ -23,6 +23,7 @@ namespace HsbgCardLookup.Ui
     public sealed class LobbyTribesPanel : IDockPanel
     {
         public string DockId => "tribes";
+        public bool DockKeepsSize => false;
         public Border DockRoot => _root;
         public double DockScale
         {
@@ -218,6 +219,8 @@ namespace HsbgCardLookup.Ui
             }
             double s = _scale;
             _root.Padding = new Thickness(5 * s, 5 * s, 5 * s, 4 * s);
+            // The arrow sits in the box's own top-right corner whatever the padding has grown to.
+            _handle.Margin = new Thickness(0, 2 - 5 * s, 2 - 5 * s, 0);
             for (int i = 0; i < _icons.Count; i++)
             {
                 _icons[i].Width = _icons[i].Height = 34 * s;

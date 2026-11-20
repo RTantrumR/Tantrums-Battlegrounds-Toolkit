@@ -28,9 +28,12 @@ namespace HsbgCardLookup.Ui
     {
         // Assembling with other boxes (PanelDock): only the live panel registers, never a hosted preview.
         public string DockId => "sidebar";
+        public bool DockKeepsSize => false;
         public Border DockRoot => _root;
         private bool _docks;
-        public void JoinDock() { _docks = true; PanelDock.Register(this); }
+        // A join can make the box wider than its rows: they then sit in its middle. Only the rows, so
+        // the resize arrow stays in the box's own corner.
+        public void JoinDock() { _docks = true; _list.HorizontalAlignment = HorizontalAlignment.Center; PanelDock.Register(this); }
         public double DockScale
         {
             get { return _nominalW; }
@@ -599,6 +602,8 @@ namespace HsbgCardLookup.Ui
             _nominalW = w;
 
             _root.Padding = new Thickness(7 * s, 4 * s, 7 * s, 4 * s);
+            // The arrow sits in the box's own top-right corner whatever the padding has grown to.
+            _handle.Margin = new Thickness(0, 2 - 4 * s, 2 - 7 * s, 0);
             foreach (var d in _teamDividers)
                 d.Margin = new Thickness(2 * s, 2.5 * s, 2 * s, 1.0 * s);
             // Column gaps are LEFT margins, never right: a collapsed column then takes its gap with

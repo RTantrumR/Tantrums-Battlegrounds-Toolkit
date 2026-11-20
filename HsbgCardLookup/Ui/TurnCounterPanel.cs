@@ -24,6 +24,7 @@ namespace HsbgCardLookup.Ui
     public sealed class TurnCounterPanel : IDockPanel
     {
         public string DockId => "turn";
+        public bool DockKeepsSize => true;
         public Border DockRoot => _root;
         public double DockScale
         {
@@ -164,6 +165,8 @@ namespace HsbgCardLookup.Ui
             }
             double s = _scale;
             _root.Padding = new Thickness(10 * s, 4 * s, 10 * s, 5 * s);
+            // The arrow sits in the box's own top-right corner whatever the padding has grown to.
+            _handle.Margin = new Thickness(0, 1 - 4 * s, 1 - 10 * s, 0);
             _text.FontSize = 17 * s;
             ClampPosition();
         }
