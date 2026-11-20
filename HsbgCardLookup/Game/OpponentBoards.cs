@@ -30,7 +30,23 @@ namespace HsbgCardLookup.Game
         public int PlayerId;
         public int Turn;
         public List<BoardMinion> Minions = new List<BoardMinion>();
+        public BoardMinion Deity;        // the lobby's Deity with this player's stats; null when there is none
         internal DateTime Started;
+    }
+
+    /// <summary>
+    /// One lobby player's tavern tiers over the match: the turn each tier was reached on and the
+    /// triples made while on it (a triple made on tier N discovers from tier N+1).
+    /// </summary>
+    public sealed class PlayerHistory
+    {
+        public int Tier;                                                    // the highest tier seen
+        public readonly Dictionary<int, int> TierTurn = new Dictionary<int, int>();   // absent = not seen happening
+        public readonly Dictionary<int, int> Triples = new Dictionary<int, int>();
+        /// <summary>Changes whenever something a drawing shows has changed.</summary>
+        public string Signature() =>
+            Tier + "|" + string.Join(",", TierTurn.OrderBy(k => k.Key).Select(k => k.Key + ":" + k.Value))
+                 + "|" + string.Join(",", Triples.OrderBy(k => k.Key).Select(k => k.Key + ":" + k.Value));
     }
 
     /// <summary>
@@ -54,7 +70,8 @@ namespace HsbgCardLookup.Game
         // Copies still count for a read or two after the setup ends (a read is not atomic); with no setup
         // seen at all (started mid-fight), for that long after the first copy.
         private static readonly TimeSpan Grace = TimeSpan.FromMilliseconds(300);
-        private const int CardTypeGame = 1;
+        private const int CardTypeGame = 1, CardTypePlayer = 2, CardTypeHero = 3;
+        private readonly Dictionary<int, PlayerHistory> _history = new Dictionary<int, PlayerHistory>();
         private bool _setup, _sawSetup, _open;
         private DateTime _setupEnded;
         private static readonly Regex EnchantmentSuffix = new Regex(@"e\d*$", RegexOptions.Compiled);
@@ -85,6 +102,36 @@ namespace HsbgCardLookup.Game
             return _boards.TryGetValue(playerId, out b) && b.Minions.Count > 0 ? b : null;
         }
 
+        /// <summary>That lobby player's tavern tiers and triples so far; null before they were seen.</summary>
+        public PlayerHistory HistoryOf(int playerId)
+        {
+            PlayerHistory h;
+            return _history.TryGetValue(playerId, out h) ? h : null;
+        }
+
+        // Each lobby player's hero carries their tavern tier and triple count as the leaderboard knows
+        // them. A tier counts from the turn it was first seen on; triples go to the tier they were made
+        // on (the total minus what the lower tiers hold). A player first seen past turn 1 (the toolkit
+        // started mid-match) has no turn for the tiers reached before that.
+        private void Track(int pid, int tier, int triples, int turn)
+        {
+            PlayerHistory h;
+            if (!_history.TryGetValue(pid, out h))
+            {
+                _history[pid] = h = new PlayerHistory { Tier = tier };
+                if (turn <= 1) h.TierTurn[1] = 1;
+            }
+            if (tier > h.Tier)
+            {
+                h.Tier = tier;
+                if (turn > 0) h.TierTurn[tier] = turn;
+            }
+            int lower = 0, here;
+            foreach (var kv in h.Triples) if (kv.Key < h.Tier) lower += kv.Value;
+            h.Triples.TryGetValue(h.Tier, out here);
+            if (triples - lower > here) h.Triples[h.Tier] = triples - lower;
+        }
+
         /// <summary>The lobby player we fight next (or are fighting): NEXT_OPPONENT_PLAYER_ID on our Player.</summary>
         public static int NextOpponent(IGameState g)
         {
@@ -101,17 +148,41 @@ namespace HsbgCardLookup.Game
         {
             try
             {
-                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _current = null; _setup = _sawSetup = _open = false; }
+                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _history.Clear(); _current = null; _setup = _sawSetup = _open = false; }
                 var g = HostServices.Game;
                 if (g == null || !g.IsBattlegroundsMatch) return;
                 int seat = g.OpponentId;
                 if (seat <= 0) return;
 
                 List<BoardMinion> found = null;
+                int deityCard = 0, deityAttack = 0, deityHealth = 0, turnNow = g.TurnNumber;
+                Dictionary<int, int[]> heroes = null;       // PLAYER_ID → { tier, triples }
                 foreach (var e in g.Entities())
                 {
-                    if (e.GetTag(Tags.CARDTYPE) == CardTypeGame)
+                    int type = e.GetTag(Tags.CARDTYPE);
+                    if (type == CardTypeHero)
                     {
+                        // A fight's copy of a hero carries the tier too, and loses it when the fight ends.
+                        int pid = e.GetTag(Tags.PLAYER_ID), tier = e.GetTag(Tags.PLAYER_TECH_LEVEL);
+                        if (pid > 0 && tier > 0 && e.GetTag(Tags.COPIED_FROM_ENTITY_ID) == 0)
+                        {
+                            if (heroes == null) heroes = new Dictionary<int, int[]>();
+                            int[] v;
+                            if (!heroes.TryGetValue(pid, out v)) heroes[pid] = v = new int[2];
+                            v[0] = Math.Max(v[0], tier); v[1] = Math.Max(v[1], e.GetTag(Tags.PLAYER_TRIPLES));
+                        }
+                        continue;
+                    }
+                    if (type == CardTypePlayer)
+                    {
+                        // The opposing seat's Player holds the current opponent's Deity stats for the fight.
+                        if (e.GetTag(Tags.PLAYER_ID) == seat)
+                        { deityAttack = e.GetTag(Tags.BACON_OLD_GOD_ATTACK); deityHealth = e.GetTag(Tags.BACON_OLD_GOD_HEALTH); }
+                        continue;
+                    }
+                    if (type == CardTypeGame)
+                    {
+                        deityCard = e.GetTag(Tags.BACON_GLOBAL_OLD_GOD_DBID);
                         // The game entity holds BACON_COMBAT_SETUP at 1 while the fight's boards are laid
                         // out; the read where it drops is the one in which the last copies land.
                         bool setup = e.GetTag(Tags.BACON_COMBAT_SETUP) == 1;
@@ -125,8 +196,11 @@ namespace HsbgCardLookup.Game
                     if (!_seen.Add(e.Id)) continue;
                     (found ?? (found = new List<BoardMinion>())).Add(Read(g, e));
                 }
+                if (heroes != null)
+                    foreach (var kv in heroes) Track(kv.Key, kv.Value[0], kv.Value[1], turnNow);
                 var now = DateTime.UtcNow;
                 if (_open && !_setup && now - _setupEnded > Grace) _open = false;
+                if (_open) SetDeity(deityCard, deityAttack, deityHealth);
                 if (found == null) return;
 
                 int turn = g.TurnNumber;
@@ -141,12 +215,28 @@ namespace HsbgCardLookup.Game
                 }
                 else if (!_sawSetup && now - _current.Started > Grace) return;
 
+                SetDeity(deityCard, deityAttack, deityHealth);
                 _current.Minions.AddRange(found);
                 _current.Minions.Sort((a, b) => a.Position.CompareTo(b.Position));
                 _log?.Invoke("[boards] turn " + turn + ": " + string.Join(", ", _current.Minions.Select(m =>
                     m.CardId + " " + m.Attack + "/" + m.Health + (m.Gifts.Count > 0 ? " +" + m.Gifts.Count + " gift" : ""))));
             }
             catch (Exception ex) { _log?.Invoke("[boards] " + ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        // The Deity as the fight's opposing seat shows it: the lobby's card with that player's numbers.
+        private void SetDeity(int cardNumber, int attack, int health)
+        {
+            if (_current == null || cardNumber <= 0 || attack <= 0 || health <= 0) return;
+            if (_current.Deity != null && _current.Deity.Attack == attack && _current.Deity.Health == health) return;
+            BgCard card;
+            if (!_store.ById.TryGetValue(cardNumber, out card) || card == null) return;
+            _current.Deity = new BoardMinion
+            {
+                CardId = card.ExternalId, TextId = card.ExternalId, Card = card,
+                Attack = attack, Health = health, Legendary = true, Tier = card.Tier ?? 0
+            };
+            _log?.Invoke("[boards] deity " + card.ExternalId + " " + attack + "/" + health);
         }
 
         private BoardMinion Read(IGameState g, IGameEntity e)

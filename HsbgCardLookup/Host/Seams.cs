@@ -180,6 +180,12 @@ namespace HsbgCardLookup.Host
         public const int NEXT_OPPONENT_PLAYER_ID = 1360;
         public const int PLAYER_LEADERBOARD_PLACE = 1373;
         public const int PLAYER_TECH_LEVEL = 1377;
+        public const int PLAYER_TRIPLES = 1447;
+        // The lobby's Deity (a card's number, on the game entity) and one player's Deity stats (on
+        // the Player entity; the opposing seat holds the current opponent's for the fight).
+        public const int BACON_GLOBAL_OLD_GOD_DBID = 4902;
+        public const int BACON_OLD_GOD_ATTACK = 4914;
+        public const int BACON_OLD_GOD_HEALTH = 4915;
         public const int TAG_SCRIPT_DATA_NUM_3 = 2889;
         public const int TAG_SCRIPT_DATA_NUM_4 = 2919;
         public const int TAG_SCRIPT_DATA_NUM_5 = 2920;

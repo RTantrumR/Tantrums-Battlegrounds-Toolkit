@@ -44,7 +44,11 @@ namespace HsbgCardLookup.Ui
         private readonly OpponentBoards _boards;
         private readonly Action<string> _log;
         private readonly Border _root;
-        private readonly TextBlock _header;
+        private readonly TextBlock _header;      // whose board and from which turn: a line UNDER the board
+        private readonly Canvas _deity;          // the Deity's cell, left of the warband (no width without one)
+        private readonly Canvas _history;        // tavern tiers: the turn each was reached, triples made on it
+        private const double HistW = 58, SideGap = 12;
+        private string _shownSide;
         private readonly Canvas _row;
         private readonly StackPanel _cards;       // the opened card(s), a canvas child of their own
         private readonly Grid _grip;              // takes the mouse while arranging, collapsed otherwise
@@ -66,6 +70,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>Test aid: draw a fixed sample board (every keyword, long numbers) whatever the game is doing.</summary>
         public static bool TestBoard;
         private OpponentBoard _sample;
+        private PlayerHistory _sampleHistory;
 
         private OpponentBoard Sample()
         {
@@ -84,6 +89,12 @@ namespace HsbgCardLookup.Ui
             var h = m("BG36_364", 24, 18); h.Golden = true; h.Tier = 5; h.TextId = "BG36_364_G"; h.Script[0] = 1200; h.Script[1] = 1050;
             try { foreach (string id in new[] { "BG36_364", "BG36_364_G", "BG31_816" }) HostServices.Memory?.CardText(id); } catch { }
             b.Minions.AddRange(new[] { a, r, h, k, e, d, x });
+            BgCard deity;
+            if (_store.ById.TryGetValue(132532, out deity) && deity != null)
+                b.Deity = new BoardMinion { CardId = deity.ExternalId, TextId = deity.ExternalId, Card = deity, Attack = 21, Health = 11, Legendary = true, Tier = deity.Tier ?? 0 };
+            _sampleHistory = new PlayerHistory { Tier = 5 };
+            foreach (var t in new[] { new[] { 1, 1, 0 }, new[] { 2, 2, 1 }, new[] { 3, 5, 0 }, new[] { 4, 7, 2 }, new[] { 5, 10, 1 } })
+            { _sampleHistory.TierTurn[t[0]] = t[1]; _sampleHistory.Triples[t[0]] = t[2]; }
             return _sample = b;
         }
 
@@ -101,9 +112,15 @@ namespace HsbgCardLookup.Ui
             _config = config; _store = store; _boards = boards; _log = log; CardStats.Log = log; CardTextPaint.Log = log;
             _header = new TextBlock { Foreground = UiKit.TextSecondary, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
             _row = new Canvas();
+            _deity = new Canvas();
+            _history = new Canvas();
+            var body = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            body.Children.Add(_deity);
+            body.Children.Add(_row);
+            body.Children.Add(_history);
             var stack = new StackPanel();
+            stack.Children.Add(body);
             stack.Children.Add(_header);
-            stack.Children.Add(_row);
             var arrow = new Path
             {
                 Data = Geometry.Parse("M3 9 L9 3 M9 3 L9 6 M9 3 L6 3"),
@@ -159,7 +176,7 @@ namespace HsbgCardLookup.Ui
                 if (TestBoard && canvas != null && canvas.ActualHeight > 0)
                 {
                     EnsureArt(canvas); EnsureTextFace();
-                    Show(canvas, Sample(), "Sample board");
+                    Show(canvas, Sample(), "Sample board", _sampleHistory);
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
                     return;
                 }
@@ -173,7 +190,7 @@ namespace HsbgCardLookup.Ui
                 if (arranging)
                 {
                     EnsureArt(canvas); EnsureTextFace();
-                    Show(canvas, Sample(), "Sample board");
+                    Show(canvas, Sample(), "Sample board", _sampleHistory);
                     return;
                 }
                 if (!_config.ShowOpponentBoards || ArrangeSession.IsActive || g == null || canvas == null || !g.IsBattlegroundsMatch
@@ -207,7 +224,7 @@ namespace HsbgCardLookup.Ui
                 var board = pid == 0 ? null : _boards.For(pid);
                 if (board == null) { Hide(); return; }
 
-                Show(canvas, board, HeroOf(g, pid));
+                Show(canvas, board, HeroOf(g, pid), _boards.HistoryOf(pid));
                 OpenCardUnder(canvas, haveCursor ? cursor : new Point(-1, -1));
             }
             catch (Exception ex)
@@ -294,7 +311,7 @@ namespace HsbgCardLookup.Ui
 
         // ── The board ───────────────────────────────────────────────────────────────────────────
 
-        private void Show(Canvas canvas, OpponentBoard board, string hero)
+        private void Show(Canvas canvas, OpponentBoard board, string hero, PlayerHistory history)
         {
             if (!_attached)
             {
@@ -317,14 +334,17 @@ namespace HsbgCardLookup.Ui
             }
             double scale = _userScale;
             // A fight's minions arrive over a read or two: redraw when the count grows.
-            if (!ReferenceEquals(board, _shown) || board.Minions.Count != _shownCount || scale != _shownScale)
+            string side = (board.Deity == null ? "" : board.Deity.Attack + "/" + board.Deity.Health) + "#" + history?.Signature();
+            if (!ReferenceEquals(board, _shown) || board.Minions.Count != _shownCount || scale != _shownScale || side != _shownSide)
             {
+                _shownSide = side;
+                Sides(board, history, scale);
                 _shown = board; _shownCount = board.Minions.Count; _shownScale = scale; _opened = null;
                 _cards.Visibility = Visibility.Collapsed;
                 _header.Text = hero == null ? Strings.F("boards.headerTurn", board.Turn) : Strings.F("boards.header", hero, board.Turn);
                 _header.FontSize = 13 * scale;
                 _header.Height = HeaderH * scale;
-                _root.Padding = new Thickness(Pad * scale, 4 * scale, Pad * scale, 4 * scale);
+                _root.Padding = new Thickness(Pad * scale, 4 * scale, Pad * scale, 2 * scale);
                 _row.Children.Clear();
                 _row.Width = board.Minions.Count * CellW * scale;
                 _row.Height = CellH * scale;
@@ -338,6 +358,67 @@ namespace HsbgCardLookup.Ui
             if (_root.Visibility != Visibility.Visible) _root.Visibility = Visibility.Visible;
             Place(canvas);
         }
+
+        // Left of the warband: the Deity as one more minion, behind a thin line. Right of it: one cell per
+        // tavern tier with the turn it was reached on and the triples made while on it; a tier not
+        // reached yet is only its dimmed icon.
+        private void Sides(OpponentBoard board, PlayerHistory history, double s)
+        {
+            _deity.Children.Clear();
+            _deity.Height = CellH * s;
+            _deity.Width = board.Deity == null ? 0 : (CellW + SideGap) * s;
+            if (board.Deity != null)
+            {
+                _deity.Children.Add(Minion(board.Deity, s));
+                Add(_deity, Line(s), CellW + SideGap / 2, CellH * 0.12, s);
+            }
+
+            _history.Children.Clear();
+            _history.Height = CellH * s;
+            if (history == null) { _history.Width = 0; return; }
+            int tiers = Math.Min(7, Math.Max(6, history.Tier)), cols = (tiers + 1) / 2;
+            double cellH = CellH / 2;
+            _history.Width = (SideGap + cols * HistW) * s;
+            Add(_history, Line(s), SideGap / 2, CellH * 0.12, s);
+            for (int tier = 1; tier <= tiers; tier++)
+            {
+                double x = SideGap + (tier - 1) % cols * HistW, y = (tier - 1) / cols * cellH;
+                bool reached = tier <= history.Tier;
+                var icon = new Image { Stretch = Stretch.Uniform, Width = 27 * s, Opacity = reached ? 1 : 0.25 };
+                try { icon.Source = ImageCache.Load(CardStore.TierIconPath(tier), 0); } catch { }
+                Add(_history, icon, x + (reached ? 5 : (HistW - 27) / 2), y + 14, s);
+                if (!reached) continue;
+
+                // Triples made on this tier: three small cards and the count.
+                int triples; history.Triples.TryGetValue(tier, out triples);
+                for (int i = 0; i < 3; i++)
+                    Add(_history, new Rectangle
+                    {
+                        Width = 6 * s, Height = 8.5 * s, RadiusX = 1.2 * s, RadiusY = 1.2 * s,
+                        Fill = TripleFill, Stroke = TripleEdge, StrokeThickness = 0.8 * s, Opacity = triples > 0 ? 1 : 0.45
+                    }, x + 33 + i * 2.6, y + 15 + (2 - i) * 1.3, s);
+                Add(_history, new TextBlock
+                {
+                    Text = triples.ToString(), FontSize = 14 * s, FontWeight = FontWeights.Bold,
+                    Foreground = triples > 0 ? TripleText : UiKit.TextMuted
+                }, x + 46, y + 11.5, s);
+
+                int turn;
+                if (history.TierTurn.TryGetValue(tier, out turn))
+                    Add(_history, new TextBlock
+                    {
+                        Text = Strings.F("boards.headerTurn", turn), FontSize = 11 * s, Width = HistW * s,
+                        TextAlignment = TextAlignment.Center, Foreground = UiKit.TextSecondary
+                    }, x, y + 46, s);
+            }
+        }
+
+        private static readonly Brush TripleFill = Frozen(Color.FromRgb(0x6B, 0x4A, 0x12));
+        private static readonly Brush TripleEdge = Frozen(Color.FromRgb(0xF2, 0xC1, 0x4E));
+        private static readonly Brush TripleText = Frozen(Color.FromRgb(0xF7, 0xD2, 0x6A));
+
+        private static Rectangle Line(double s) =>
+            new Rectangle { Width = Math.Max(1, s), Height = CellH * 0.76 * s, Fill = UiKit.StrokeBrush };
 
         private void Place(Canvas canvas)
         {
@@ -400,7 +481,7 @@ namespace HsbgCardLookup.Ui
                 // ways from its middle, hence twice the cursor's travel).
                 double w0 = Math.Max(80, _root.ActualWidth / (_userScale / _startScale));
                 double next = Clamp(Math.Round(_startScale * (w0 + 2 * dx) / w0, 2), MinScale, MaxScale);
-                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), "Sample board"); }
+                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), "Sample board", _sampleHistory); }
             }
         }
 
@@ -588,6 +669,12 @@ namespace HsbgCardLookup.Ui
                         index = (int)((cursor.X - origin.X) / w);
                         if (index >= 0 && index < _shown.Minions.Count) over = _shown.Minions[index];
                     }
+                    double centre = origin.X + (index + 0.5) * w;
+                    if (over == null && _shown.Deity != null && _deity.ActualWidth > 0)
+                    {
+                        var at = _deity.TransformToAncestor(canvas).Transform(new Point(0, 0));
+                        if (new Rect(at.X, at.Y, w, CellH * _shownScale).Contains(cursor)) { over = _shown.Deity; centre = at.X + w / 2; }
+                    }
                     if (over == null) { _cards.Visibility = Visibility.Collapsed; _opened = null; return; }
                     if (!ReferenceEquals(over, _opened))
                     {
@@ -598,10 +685,10 @@ namespace HsbgCardLookup.Ui
                         _cards.Visibility = Visibility.Visible;
                     }
                     double total = CardW * _shownScale * _cards.Children.Count;
-                    double left = origin.X + (index + 0.5) * w - CardW * _shownScale / 2;
+                    double left = centre - CardW * _shownScale / 2;
                     Canvas.SetLeft(_cards, Math.Max(0, Math.Min(left, canvas.ActualWidth - total)));
-                    double below = origin.Y + CellH * _shownScale + 6 * _shownScale, cardH = CardW * _shownScale * 672.0 / 512.0;
-                    Canvas.SetTop(_cards, below + cardH <= canvas.ActualHeight ? below : Math.Max(0, origin.Y - HeaderH * _shownScale - 6 * _shownScale - cardH));
+                    double below = origin.Y + (CellH + HeaderH) * _shownScale + 6 * _shownScale, cardH = CardW * _shownScale * 672.0 / 512.0;
+                    Canvas.SetTop(_cards, below + cardH <= canvas.ActualHeight ? below : Math.Max(0, origin.Y - 6 * _shownScale - cardH));
                 }
                 catch (Exception ex) { if (!_failed) { _failed = true; try { _log("[boards] card: " + ex); } catch { } } }
             }
