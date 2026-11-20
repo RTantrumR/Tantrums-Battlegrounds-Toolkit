@@ -141,6 +141,7 @@
   "settings.darkGifts.title": "Dark Gifts",
   "boards.header": "{0} · turn {1}",
   "boards.headerTurn": "Turn {0}",
+  "boards.headerNone": "{0} · no board seen yet",
   "settings.boards.label": "Opponents' last boards",
   "settings.boards.hint": "Hover a leaderboard portrait to see the board that player last fought you with.",
   "settings.boards.intro": "Hover a leaderboard portrait to see the board that player last fought you with, and the turn it is from. Rest the cursor on a minion to open its card.",

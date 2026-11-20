@@ -47,7 +47,9 @@ namespace HsbgCardLookup.Ui
         private readonly TextBlock _header;      // whose board and from which turn: a line UNDER the board
         private readonly Canvas _deity;          // the Deity's cell, left of the warband (no width without one)
         private readonly Canvas _history;        // tavern tiers: the turn each was reached, triples made on it
-        private const double HistW = 58, SideGap = 12;
+        private const double HistW = 78, SideGap = 12;
+        // A player we have not fought: no warband to show, the tiers and triples all the same.
+        private readonly Dictionary<int, OpponentBoard> _noBoard = new Dictionary<int, OpponentBoard>();
         private string _shownSide;
         private readonly Canvas _row;
         private readonly StackPanel _cards;       // the opened card(s), a canvas child of their own
@@ -91,7 +93,7 @@ namespace HsbgCardLookup.Ui
             b.Minions.AddRange(new[] { a, r, h, k, e, d, x });
             BgCard deity;
             if (_store.ById.TryGetValue(132532, out deity) && deity != null)
-                b.Deity = new BoardMinion { CardId = deity.ExternalId, TextId = deity.ExternalId, Card = deity, Attack = 21, Health = 11, Legendary = true, Tier = deity.Tier ?? 0 };
+                b.Deity = new BoardMinion { CardId = deity.ExternalId, TextId = deity.ExternalId, Card = deity, Attack = 21, Health = 11, Legendary = true, Tier = deity.Tier ?? 0, KeepText = true };
             _sampleHistory = new PlayerHistory { Tier = 5 };
             foreach (var t in new[] { new[] { 1, 1, 0 }, new[] { 2, 2, 1 }, new[] { 3, 5, 0 }, new[] { 4, 7, 2 }, new[] { 5, 10, 1 } })
             { _sampleHistory.TierTurn[t[0]] = t[1]; _sampleHistory.Triples[t[0]] = t[2]; }
@@ -222,9 +224,12 @@ namespace HsbgCardLookup.Ui
 
                 int pid = hovered != 0 ? hovered : _pinned;
                 var board = pid == 0 ? null : _boards.For(pid);
+                var history = pid == 0 ? null : _boards.HistoryOf(pid);
+                if (board == null && history != null && !_noBoard.TryGetValue(pid, out board))
+                    _noBoard[pid] = board = new OpponentBoard { PlayerId = pid };
                 if (board == null) { Hide(); return; }
 
-                Show(canvas, board, HeroOf(g, pid), _boards.HistoryOf(pid));
+                Show(canvas, board, HeroOf(g, pid), history);
                 OpenCardUnder(canvas, haveCursor ? cursor : new Point(-1, -1));
             }
             catch (Exception ex)
@@ -341,7 +346,8 @@ namespace HsbgCardLookup.Ui
                 Sides(board, history, scale);
                 _shown = board; _shownCount = board.Minions.Count; _shownScale = scale; _opened = null;
                 _cards.Visibility = Visibility.Collapsed;
-                _header.Text = hero == null ? Strings.F("boards.headerTurn", board.Turn) : Strings.F("boards.header", hero, board.Turn);
+                _header.Text = board.Minions.Count == 0 && board.Deity == null ? Strings.F("boards.headerNone", hero ?? "")
+                    : hero == null ? Strings.F("boards.headerTurn", board.Turn) : Strings.F("boards.header", hero, board.Turn);
                 _header.FontSize = 13 * scale;
                 _header.Height = HeaderH * scale;
                 _root.Padding = new Thickness(Pad * scale, 4 * scale, Pad * scale, 2 * scale);
@@ -379,43 +385,42 @@ namespace HsbgCardLookup.Ui
             int tiers = Math.Min(7, Math.Max(6, history.Tier)), cols = (tiers + 1) / 2;
             double cellH = CellH / 2;
             _history.Width = (SideGap + cols * HistW) * s;
-            Add(_history, Line(s), SideGap / 2, CellH * 0.12, s);
+            if (board.Minions.Count > 0 || board.Deity != null) Add(_history, Line(s), SideGap / 2, CellH * 0.12, s);
             for (int tier = 1; tier <= tiers; tier++)
             {
                 double x = SideGap + (tier - 1) % cols * HistW, y = (tier - 1) / cols * cellH;
                 bool reached = tier <= history.Tier;
-                var icon = new Image { Stretch = Stretch.Uniform, Width = 27 * s, Opacity = reached ? 1 : 0.25 };
+                var icon = new Image { Stretch = Stretch.Uniform, Width = 31 * s, Opacity = reached ? 1 : 0.25 };
                 try { icon.Source = ImageCache.Load(CardStore.TierIconPath(tier), 0); } catch { }
-                Add(_history, icon, x + (reached ? 5 : (HistW - 27) / 2), y + 14, s);
+                Add(_history, icon, x + (reached ? 4 : (HistW - 31) / 2), y + 10, s);
                 if (!reached) continue;
 
-                // Triples made on this tier: three small cards and the count.
                 int triples; history.Triples.TryGetValue(tier, out triples);
-                for (int i = 0; i < 3; i++)
-                    Add(_history, new Rectangle
-                    {
-                        Width = 6 * s, Height = 8.5 * s, RadiusX = 1.2 * s, RadiusY = 1.2 * s,
-                        Fill = TripleFill, Stroke = TripleEdge, StrokeThickness = 0.8 * s, Opacity = triples > 0 ? 1 : 0.45
-                    }, x + 33 + i * 2.6, y + 15 + (2 - i) * 1.3, s);
-                Add(_history, new TextBlock
-                {
-                    Text = triples.ToString(), FontSize = 14 * s, FontWeight = FontWeights.Bold,
-                    Foreground = triples > 0 ? TripleText : UiKit.TextMuted
-                }, x + 46, y + 11.5, s);
+                Add(_history, Triples(triples, s), x + 37, y + 8, s);
 
                 int turn;
                 if (history.TierTurn.TryGetValue(tier, out turn))
                     Add(_history, new TextBlock
                     {
-                        Text = Strings.F("boards.headerTurn", turn), FontSize = 11 * s, Width = HistW * s,
-                        TextAlignment = TextAlignment.Center, Foreground = UiKit.TextSecondary
-                    }, x, y + 46, s);
+                        Text = Strings.F("boards.headerTurn", turn), FontSize = 12.5 * s, Width = HistW * s, FontWeight = FontWeights.Bold,
+                        TextAlignment = TextAlignment.Center, Foreground = UiKit.TextPrimary
+                    }, x, y + 48, s);
             }
         }
 
-        private static readonly Brush TripleFill = Frozen(Color.FromRgb(0x6B, 0x4A, 0x12));
-        private static readonly Brush TripleEdge = Frozen(Color.FromRgb(0xF2, 0xC1, 0x4E));
-        private static readonly Brush TripleText = Frozen(Color.FromRgb(0xF7, 0xD2, 0x6A));
+        // Triples made on a tier, as the game's own leaderboard panel marks them: its picture of three
+        // cards and an arrow (cut from the client's leaderboard texture, dataoard	riples.png) with
+        // the count over the cards.
+        private static FrameworkElement Triples(int count, double s)
+        {
+            var c = new Canvas { Width = 40 * s, Height = 33 * s, Opacity = count > 0 ? 1 : 0.6 };
+            c.Children.Add(Sprite("triples", 40, s));
+            var number = new OutlinedText(count.ToString(), 19 * s, Brushes.White);
+            Canvas.SetLeft(number, 13 * s - number.Width / 2);
+            Canvas.SetTop(number, 19 * s - number.Height / 2);
+            c.Children.Add(number);
+            return c;
+        }
 
         private static Rectangle Line(double s) =>
             new Rectangle { Width = Math.Max(1, s), Height = CellH * 0.76 * s, Fill = UiKit.StrokeBrush };
@@ -706,7 +711,7 @@ namespace HsbgCardLookup.Ui
                 if (render == null) return;
                 if (stats == null) { img.Source = render; return; }
                 // The text as it stood on this board, when it differs from what the render shows.
-                try
+                if (!stats.KeepText) try
                 {
                     // In the language of the render: the client holds every language's text.
                     string language = "enUS";

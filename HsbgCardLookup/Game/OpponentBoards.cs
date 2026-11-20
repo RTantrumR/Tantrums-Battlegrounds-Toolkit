@@ -20,6 +20,7 @@ namespace HsbgCardLookup.Game
         public int[] Script = new int[6]; // TAG_SCRIPT_DATA_NUM_1..6: the numbers a card's text shows
         public int AltText;              // USE_ALTERNATE_CARD_TEXT: which variant of the text
         public string TextId;            // the entity's own card id (golden ones have their own text record)
+        public bool KeepText;            // no entity behind it (the Deity): the card keeps the text it is drawn with
         public List<BgCard> Gifts = new List<BgCard>();          // Dark Gifts on it, repeats included
         public List<string> Enchantments = new List<string>();   // card ids, as the game holds them
     }
@@ -162,9 +163,10 @@ namespace HsbgCardLookup.Game
                     int type = e.GetTag(Tags.CARDTYPE);
                     if (type == CardTypeHero)
                     {
-                        // A fight's copy of a hero carries the tier too, and loses it when the fight ends.
+                        // The leaderboard's heroes are the ones with a place (themselves copies of the heroes
+                        // offered at the start); a fight's copy of a hero has the tier too, but no place.
                         int pid = e.GetTag(Tags.PLAYER_ID), tier = e.GetTag(Tags.PLAYER_TECH_LEVEL);
-                        if (pid > 0 && tier > 0 && e.GetTag(Tags.COPIED_FROM_ENTITY_ID) == 0)
+                        if (pid > 0 && tier > 0 && e.GetTag(Tags.PLAYER_LEADERBOARD_PLACE) > 0)
                         {
                             if (heroes == null) heroes = new Dictionary<int, int[]>();
                             int[] v;
@@ -234,7 +236,7 @@ namespace HsbgCardLookup.Game
             _current.Deity = new BoardMinion
             {
                 CardId = card.ExternalId, TextId = card.ExternalId, Card = card,
-                Attack = attack, Health = health, Legendary = true, Tier = card.Tier ?? 0
+                Attack = attack, Health = health, Legendary = true, Tier = card.Tier ?? 0, KeepText = true
             };
             _log?.Invoke("[boards] deity " + card.ExternalId + " " + attack + "/" + health);
         }
