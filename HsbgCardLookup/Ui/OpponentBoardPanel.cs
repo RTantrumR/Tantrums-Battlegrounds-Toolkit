@@ -223,7 +223,7 @@ namespace HsbgCardLookup.Ui
                 if (TestBoard && canvas != null && canvas.ActualHeight > 0)
                 {
                     EnsureArt(canvas); EnsureTextFace();
-                    Show(canvas, Sample(), "Sample board", _sampleHistory);
+                    Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory);
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
                     return;
                 }
@@ -237,7 +237,7 @@ namespace HsbgCardLookup.Ui
                 if (arranging)
                 {
                     EnsureArt(canvas); EnsureTextFace();
-                    Show(canvas, Sample(), "Sample board", _sampleHistory);
+                    Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory);
                     return;
                 }
                 if (!_config.ShowOpponentBoards || ArrangeSession.IsActive || g == null || canvas == null || !g.IsBattlegroundsMatch
@@ -544,7 +544,7 @@ namespace HsbgCardLookup.Ui
                 // ways from its middle, hence twice the cursor's travel).
                 double w0 = Math.Max(80, _root.ActualWidth / (_userScale / _startScale));
                 double next = Clamp(Math.Round(_startScale * (w0 + 2 * dx) / w0, 2), MinScale, MaxScale);
-                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), "Sample board", _sampleHistory); }
+                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory); }
             }
         }
 
