@@ -1000,6 +1000,21 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
+            // What a board looks like: the sample one, as it is drawn over the game.
+            if (!_indexing)
+            {
+                try
+                {
+                    stack.Children.Add(new Border
+                    {
+                        Background = UiKit.Br(UiKit.FieldBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(8), Padding = new Thickness(10), Margin = new Thickness(0, 8, 0, 10),
+                        Child = OpponentBoardPanel.Preview(_config, _store)
+                    });
+                }
+                catch { }
+            }
+
             stack.Children.Add(ArrangeHudRow(ArrangeTarget.Boards, Strings.T("settings.boards.arrangeTitle")));
             ShowPage();
         }

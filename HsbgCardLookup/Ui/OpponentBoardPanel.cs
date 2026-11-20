@@ -145,9 +145,22 @@ namespace HsbgCardLookup.Ui
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xD8, 0x0A, 0x0D, 0x14));
 
-        public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log)
+        /// <summary>The sample board as a picture for the settings page: a panel of its own that is
+        /// never put on the overlay, drawn at its natural size and scaled down to the room it is given.</summary>
+        public static FrameworkElement Preview(PluginConfig config, CardStore store)
         {
-            _config = config; _store = store; _boards = boards; _log = log; CardStats.Log = log; CardTextPaint.Log = log;
+            var p = new OpponentBoardPanel(config, store, null, null, preview: true);
+            p.EnsureArt(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            p.EnsureTextFace();
+            p.Fill(p.Sample(), Strings.T("boards.sample"), p._sampleHistory, 1);
+            p._root.Visibility = Visibility.Visible;
+            return new Viewbox { Child = p._root, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, IsHitTestVisible = false };
+        }
+
+        public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log, bool preview = false)
+        {
+            _config = config; _store = store; _boards = boards; _log = log ?? (s => { });
+            if (!preview) { CardStats.Log = log; CardTextPaint.Log = log; }
             _header = new TextBlock { Foreground = UiKit.TextSecondary, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
             _row = new Canvas();
             _deity = new Canvas();
@@ -185,7 +198,7 @@ namespace HsbgCardLookup.Ui
                 Background = PanelBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8), Visibility = Visibility.Collapsed, Child = grid
             };
-            try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { }
+            if (!preview) { try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { } }
             LoadPlacement();
             _cards = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
         }
@@ -222,7 +235,7 @@ namespace HsbgCardLookup.Ui
                 var canvas = HostServices.Overlay?.Canvas;
                 if (TestBoard && canvas != null && canvas.ActualHeight > 0)
                 {
-                    EnsureArt(canvas); EnsureTextFace();
+                    EnsureArt(canvas.Dispatcher); EnsureTextFace();
                     Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory);
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
                     return;
@@ -236,7 +249,7 @@ namespace HsbgCardLookup.Ui
                 }
                 if (arranging)
                 {
-                    EnsureArt(canvas); EnsureTextFace();
+                    EnsureArt(canvas.Dispatcher); EnsureTextFace();
                     Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory);
                     return;
                 }
@@ -245,7 +258,7 @@ namespace HsbgCardLookup.Ui
                 { Hide(); _pinned = 0; WatchClicks(null, false); return; }
                 WatchClicks(canvas, _config.BoardPinOnClick && !TestCursor.HasValue);
 
-                EnsureArt(canvas); EnsureTextFace();
+                EnsureArt(canvas.Dispatcher); EnsureTextFace();
                 Point cursor; bool haveCursor = Cursor(canvas, out cursor);
                 var now = DateTime.UtcNow;
                 if (TestCursor.HasValue)
@@ -302,7 +315,7 @@ namespace HsbgCardLookup.Ui
         }
 
         // A match is on: have the game's own art read in the background, well before a board is shown.
-        private void EnsureArt(Canvas canvas)
+        private void EnsureArt(System.Windows.Threading.Dispatcher ui)
         {
             if (Assets.GameArt.Started || _artTried) return;
             _artTried = true;
@@ -311,7 +324,7 @@ namespace HsbgCardLookup.Ui
             var ids = _store.All.Where(c => !string.IsNullOrEmpty(c.ExternalId)
                 && (c.CardType == "minion" || (c.Categories != null && c.Categories.Contains("darkgift")))).Select(c => c.ExternalId).ToList();
             Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-numbers.ttf"));
-            Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), canvas.Dispatcher, _log);
+            Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), ui, _log);
         }
         private bool _artTried;
         private string _faceAsked;
@@ -390,7 +403,13 @@ namespace HsbgCardLookup.Ui
                 }
                 catch { }
             }
-            double scale = _userScale;
+            Fill(board, hero, history, _userScale);
+            if (_root.Visibility != Visibility.Visible) _root.Visibility = Visibility.Visible;
+            Place(canvas);
+        }
+
+        private void Fill(OpponentBoard board, string hero, PlayerHistory history, double scale)
+        {
             // A fight's minions arrive over a read or two: redraw when the count grows.
             string side = (board.Deity == null ? "" : board.Deity.Attack + "/" + board.Deity.Health) + "#" + history?.Signature();
             if (!ReferenceEquals(board, _shown) || board.Minions.Count != _shownCount || scale != _shownScale || side != _shownSide)
@@ -416,8 +435,6 @@ namespace HsbgCardLookup.Ui
                     _row.Children.Add(cell);
                 }
             }
-            if (_root.Visibility != Visibility.Visible) _root.Visibility = Visibility.Visible;
-            Place(canvas);
         }
 
         // Left of the warband: the Deity as one more minion, behind a thin line. Right of it: one cell per
@@ -428,7 +445,7 @@ namespace HsbgCardLookup.Ui
             _deity.Children.Clear();
             _deity.Height = CellH * s;
             // Only for a player we have fought, in a lobby with Aberrations: the place costs width.
-            bool deityPlace = board.Deity != null || (_boards.LobbyHasDeity && board.Minions.Count > 0);
+            bool deityPlace = board.Deity != null || (_boards != null && _boards.LobbyHasDeity && board.Minions.Count > 0);
             _deity.Width = deityPlace ? (CellW + SideGap) * s : 0;
             if (deityPlace && board.Deity == null) Add(_deity, Line(s), CellW + SideGap / 2, CellH * 0.12, s);
             if (board.Deity != null)
