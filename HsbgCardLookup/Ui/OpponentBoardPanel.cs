@@ -418,7 +418,8 @@ namespace HsbgCardLookup.Ui
         {
             _deity.Children.Clear();
             _deity.Height = CellH * s;
-            bool deityPlace = board.Deity != null || _boards.LobbyHasDeity;
+            // Only for a player we have fought, in a lobby with Aberrations: the place costs width.
+            bool deityPlace = board.Deity != null || (_boards.LobbyHasDeity && board.Minions.Count > 0);
             _deity.Width = deityPlace ? (CellW + SideGap) * s : 0;
             if (deityPlace && board.Deity == null) Add(_deity, Line(s), CellW + SideGap / 2, CellH * 0.12, s);
             if (board.Deity != null)
