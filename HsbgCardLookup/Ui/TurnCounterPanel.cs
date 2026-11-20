@@ -17,11 +17,14 @@ namespace HsbgCardLookup.Ui
     /// The match's turn number in a small box, top right by default. Lives on the overlay canvas;
     /// moved by dragging it and scaled by its top-right grabber, the way <see cref="LobbyTribesPanel"/>
     /// is (same LL-hook gesture, config <c>TurnCounterHud</c>). XF is the box's RIGHT edge, so a
-    /// longer number grows it to the left and it stays against the screen's edge.
+    /// longer number grows it to the left and it stays against the screen's edge. Its size is
+    /// settled once, at the first showing, from the game window's height then (DefaultScale at
+    /// 1080), and saved: a later change of the window's size leaves it alone.
     /// </summary>
     public sealed class TurnCounterPanel
     {
-        private const double MinScale = 0.6, MaxScale = 2.4;
+        private const double MinScale = 0.4, MaxScale = 4;
+        private const double DefaultScale = 1.277;     // the owner's size on a 1920x1080 client
         private const double DefaultXF = 0.995, DefaultYF = 0.008;
 
         private readonly PluginConfig _config;
@@ -32,7 +35,7 @@ namespace HsbgCardLookup.Ui
         private readonly DispatcherTimer _handleHide;
 
         private bool _attached;
-        private double _xf = DefaultXF, _yf = DefaultYF, _scale = 1;
+        private double _xf = DefaultXF, _yf = DefaultYF, _scale;   // _scale 0 = not settled yet
         private bool _dragging, _resizing, _moved;
         private Point _startCursor;
         private double _startLeft, _startTop, _startScale;
@@ -133,8 +136,12 @@ namespace HsbgCardLookup.Ui
         {
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null || canvas.ActualHeight <= 0) return;
-            // Follows the window like the other canvas features: scale 1 is tuned to a 1080-high client.
-            double s = _scale * Math.Max(0.6, Math.Min(canvas.ActualHeight / 1080.0, 2.0));
+            if (_scale <= 0)
+            {
+                _scale = Clamp(DefaultScale * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
+                Save();
+            }
+            double s = _scale;
             _root.Padding = new Thickness(10 * s, 4 * s, 10 * s, 5 * s);
             _text.FontSize = 17 * s;
             ClampPosition();
@@ -201,6 +208,11 @@ namespace HsbgCardLookup.Ui
                 _xf = (Canvas.GetLeft(_root) + _root.ActualWidth) / canvas.ActualWidth;
                 _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
             }
+            Save();
+        }
+
+        private void Save()
+        {
             try
             {
                 var p = _config.TurnCounterHud ?? (_config.TurnCounterHud = new HudPlacement());

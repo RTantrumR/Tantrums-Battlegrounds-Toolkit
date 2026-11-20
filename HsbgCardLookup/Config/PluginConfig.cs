@@ -115,7 +115,8 @@ namespace HsbgCardLookup.Config
         public bool ShowLobbyTribes { get; set; } = true;
         public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
 
-        // The match's turn number in a small box, top right; XF = its RIGHT edge, WF = its scale.
+        // The match's turn number in a small box, top right; XF = its RIGHT edge, WF = its scale
+        // in pixels terms (settled from the window's height at the first showing, then kept).
         public bool ShowTurnCounter { get; set; } = true;
         public HudPlacement TurnCounterHud { get; set; } = new HudPlacement();
 
