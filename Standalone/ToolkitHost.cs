@@ -162,6 +162,19 @@ namespace Toolkit.Standalone
                         catch { }
                     }
 
+                    // Test aid: dock.trigger ("child parent Side", or "child apart") joins two boxes.
+                    string dockFile = Path.Combine(Shared.ExeDir, "dock.trigger");
+                    if (File.Exists(dockFile))
+                    {
+                        try
+                        {
+                            string[] parts = File.ReadAllText(dockFile).Trim().Split(' ');
+                            File.Delete(dockFile);
+                            HsbgCardLookup.Ui.PanelDock.TestJoin(parts[0], parts.Length > 2 ? parts[1] : null, parts.Length > 2 ? parts[2] : null);
+                        }
+                        catch { }
+                    }
+
                     // Test aid: settings.trigger next to the exe opens the settings window.
                     string settingsFile = Path.Combine(Shared.ExeDir, "settings.trigger");
                     if (File.Exists(settingsFile))

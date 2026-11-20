@@ -116,6 +116,11 @@ namespace HsbgCardLookup.Config
         public bool ShowLobbyTribes { get; set; } = true;
         public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
 
+        // Floating boxes assemble into one when dragged together (lobby types, sidebar, turn counter).
+        // PanelLinks holds the joins, "child>parent:Side" (see Ui\PanelDock.cs).
+        public bool AssemblePanels { get; set; } = true;
+        public System.Collections.Generic.List<string> PanelLinks { get; set; } = new System.Collections.Generic.List<string>();
+
         // The match's turn number in a small box, top right; XF = its RIGHT edge, WF = its scale
         // in pixels terms (settled from the window's height at the first showing, then kept).
         public bool ShowTurnCounter { get; set; } = true;

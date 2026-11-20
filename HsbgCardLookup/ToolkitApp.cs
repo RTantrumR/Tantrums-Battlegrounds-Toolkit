@@ -100,6 +100,7 @@ namespace HsbgCardLookup
             _bgHud = new Game.BgHud(_store, _config, _ui);
             _bgMmr = new Game.BgMmr(_config, _ui, Log, HeroDisplayName);
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
+            Ui.PanelDock.Init(_config);
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
             _turnCounter = new Ui.TurnCounterPanel(_config, _ui);
             _opponentBoards = new Game.OpponentBoards(_store, Log);
@@ -137,6 +138,7 @@ namespace HsbgCardLookup
             _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
             _turnCounter?.Poll(); // the turn number
+            Ui.PanelDock.Layout(); // boxes assembled into one stay together
             _darkGifts?.Poll();  // opt-in Dark Gift list (“?” marker above the Dark Discovery button)
             _searchButton?.Poll(); // in-game 🔍 button by the card-list book (shows during a BG match)
             _bell?.Poll();         // the bell beside it
@@ -515,6 +517,7 @@ namespace HsbgCardLookup
             _darkGifts?.OnSettingsChanged(); // Dark Gift panel on/off
             _lobbyTribes?.OnSettingsChanged();
             _turnCounter?.OnSettingsChanged();
+            Ui.PanelDock.Invalidate();
             _boardPanel?.OnSettingsChanged();
             _searchButton?.OnSettingsChanged(); // in-game search button on/off
             _bell?.OnSettingsChanged();         // stands down during an arrange session

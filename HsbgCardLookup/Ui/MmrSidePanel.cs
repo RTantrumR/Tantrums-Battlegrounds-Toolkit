@@ -24,8 +24,36 @@ namespace HsbgCardLookup.Ui
     /// loses foreground. Placement persists as canvas fractions (config `MmrPanelHud`); resizing
     /// drags the top-right grabber and scales the whole panel (fonts included) via its width.
     /// </summary>
-    public sealed class MmrSidePanel
+    public sealed class MmrSidePanel : IDockPanel
     {
+        // Assembling with other boxes (PanelDock): only the live panel registers, never a hosted preview.
+        public string DockId => "sidebar";
+        public Border DockRoot => _root;
+        private bool _docks;
+        public void JoinDock() { _docks = true; PanelDock.Register(this); }
+        public double DockScale
+        {
+            get { return _nominalW; }
+            set
+            {
+                var canvas = Host;
+                if (canvas == null || canvas.ActualWidth <= 0) return;
+                double w = Clamp(value, MinW, MaxW);
+                _wf = w / canvas.ActualWidth;
+                if (_keepWidth) { _wpx = w; try { WidthSettled?.Invoke(_wpx); } catch { } }
+                if (_root.Visibility == Visibility.Visible) Layout();
+                try { GeometryChanged?.Invoke(_xf, _yf, _wf); } catch { }
+            }
+        }
+        public void DockMoveTo(double left, double top, bool save)
+        {
+            var canvas = Host;
+            if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            Canvas.SetLeft(_root, left); Canvas.SetTop(_root, top);
+            _xf = left / canvas.ActualWidth; _yf = top / canvas.ActualHeight; _hasPos = true;
+            if (save) { try { GeometryChanged?.Invoke(_xf, _yf, _wf); } catch { } }
+        }
+
         private const int MaxSlots = 8;
         private const double RefW = 210;          // panel width at scale 1 (fonts are tuned to this)
         private const double MinW = 140, MaxW = 480;
@@ -308,6 +336,7 @@ namespace HsbgCardLookup.Ui
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
             double actualW = _root.ActualWidth > 0 ? _root.ActualWidth : _nominalW;
+            if (_docks && PanelDock.Holds(this)) return;
             Canvas.SetLeft(_root, Clamp(_xf * cw, 0, Math.Max(0, cw - actualW)));
             Canvas.SetTop(_root, Clamp(_yf * ch, 0, Math.Max(0, ch * 0.97)));
             if (!_hasPos) _hasPos = true;
@@ -647,20 +676,24 @@ namespace HsbgCardLookup.Ui
             {
                 Canvas.SetLeft(_root, Clamp(_startLeft + dx, 0, Math.Max(0, cw - _root.ActualWidth)));
                 Canvas.SetTop(_root, Clamp(_startTop + dy, 0, Math.Max(0, ch - _root.ActualHeight)));
+                if (_docks) PanelDock.Dragging(this);
             }
             else if (_resizing)
             {
                 // Drag right to scale up: the panel has no fixed width any more, so this drives the
                 // nominal width that Layout turns into the scale factor.
+                double before = _nominalW;
                 _wf = Clamp(_startW + dx, MinW, MaxW) / cw;
                 if (_keepWidth) _wpx = _wf * cw;
                 Layout();
+                if (_docks && before > 0) PanelDock.Scaled(this, _nominalW / before);
             }
         }
 
         private void EndGesture(bool persist = true)
         {
             if (!_dragging && !_resizing) return;
+            bool dragged = _dragging;
             _dragging = _resizing = false;
             RemoveHook();
             if (!persist || !_moved) return;
@@ -669,6 +702,7 @@ namespace HsbgCardLookup.Ui
             if (canvas == null) return;
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
+            if (dragged && _docks) PanelDock.Dropped(this);
             _xf = Canvas.GetLeft(_root) / cw;
             _yf = Canvas.GetTop(_root) / ch;
             _wf = _nominalW / cw;

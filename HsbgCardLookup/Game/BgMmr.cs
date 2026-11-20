@@ -582,6 +582,7 @@ namespace HsbgCardLookup.Game
             var p = _config.MmrPanelHud;
             if (p.WF > 0) _panel.Place(p.XF, p.YF, p.WF);
             _panel.KeepWidth(p.Px);
+            _panel.JoinDock();
             _panel.WidthSettled = px => { _config.MmrPanelHud.Px = px; try { _config.Save(); } catch { } };
             _panel.GeometryChanged = (xf, yf, wf) =>
             {

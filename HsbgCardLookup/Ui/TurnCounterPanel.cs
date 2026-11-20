@@ -21,8 +21,24 @@ namespace HsbgCardLookup.Ui
     /// settled once, at the first showing, from the game window's height then (DefaultScale at
     /// 1080), and saved: a later change of the window's size leaves it alone.
     /// </summary>
-    public sealed class TurnCounterPanel
+    public sealed class TurnCounterPanel : IDockPanel
     {
+        public string DockId => "turn";
+        public Border DockRoot => _root;
+        public double DockScale
+        {
+            get { return _scale; }
+            set { _scale = Clamp(value, MinScale, MaxScale); if (_root.Visibility == Visibility.Visible) Layout(); Save(); }
+        }
+        public void DockMoveTo(double left, double top, bool save)
+        {
+            var canvas = HostServices.Overlay?.Canvas;
+            if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            Canvas.SetLeft(_root, left); Canvas.SetTop(_root, top);
+            _xf = (left + _root.ActualWidth) / canvas.ActualWidth; _yf = top / canvas.ActualHeight;
+            if (save) Save();
+        }
+
         private const double MinScale = 0.4, MaxScale = 4;
         private const double DefaultScale = 1.277;     // the owner's size on a 1920x1080 client
         private const double DefaultXF = 0.995, DefaultYF = 0.008;
@@ -47,7 +63,7 @@ namespace HsbgCardLookup.Ui
         public TurnCounterPanel(PluginConfig config, Dispatcher ui)
         {
             _config = config; _ui = ui;
-            _text = new TextBlock { Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+            _text = new TextBlock { Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
 
             var arrow = new Path
             {
@@ -74,6 +90,7 @@ namespace HsbgCardLookup.Ui
                 Child = grid
             };
             _root.SizeChanged += (s, e) => { if (!_dragging && !_resizing) ClampPosition(); };
+            PanelDock.Register(this);
 
             _handleHide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
             _handleHide.Tick += (s, e) => { _handleHide.Stop(); if (!_resizing) _handle.Visibility = Visibility.Collapsed; };
@@ -152,7 +169,7 @@ namespace HsbgCardLookup.Ui
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null) return;
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
-            if (cw <= 0 || ch <= 0) return;
+            if (cw <= 0 || ch <= 0 || PanelDock.Holds(this)) return;
             Canvas.SetLeft(_root, Clamp(_xf * cw - _root.ActualWidth, 0, Math.Max(0, cw - _root.ActualWidth)));
             Canvas.SetTop(_root, Clamp(_yf * ch, 0, Math.Max(0, ch - _root.ActualHeight)));
         }
@@ -185,13 +202,16 @@ namespace HsbgCardLookup.Ui
             {
                 Canvas.SetLeft(_root, Clamp(_startLeft + dx, 0, Math.Max(0, cw - _root.ActualWidth)));
                 Canvas.SetTop(_root, Clamp(_startTop + dy, 0, Math.Max(0, ch - _root.ActualHeight)));
+                PanelDock.Dragging(this);
             }
             else if (_resizing)
             {
                 // Drag up or right to scale up; the box keeps its right edge (see ClampPosition).
+                double before = _scale;
                 _scale = Clamp(_startScale * (1 + (dx - dy) / 120.0), MinScale, MaxScale);
                 _moved = true;
                 Layout();
+                PanelDock.Scaled(this, _scale / before);
             }
         }
 
@@ -205,6 +225,7 @@ namespace HsbgCardLookup.Ui
             if (!persist || !_moved || canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
             if (dragged)
             {
+                PanelDock.Dropped(this);
                 _xf = (Canvas.GetLeft(_root) + _root.ActualWidth) / canvas.ActualWidth;
                 _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
             }

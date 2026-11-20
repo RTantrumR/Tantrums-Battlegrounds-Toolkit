@@ -20,8 +20,24 @@ namespace HsbgCardLookup.Ui
     /// top-right grabber, the way <see cref="MmrSidePanel"/> is (same LL-hook gesture, same
     /// canvas-fraction placement, config <c>LobbyTribesHud</c>).
     /// </summary>
-    public sealed class LobbyTribesPanel
+    public sealed class LobbyTribesPanel : IDockPanel
     {
+        public string DockId => "tribes";
+        public Border DockRoot => _root;
+        public double DockScale
+        {
+            get { return _scale; }
+            set { _scale = Clamp(value, MinScale, MaxScale); if (_root.Visibility == Visibility.Visible) Layout(); Save(false); }
+        }
+        public void DockMoveTo(double left, double top, bool save)
+        {
+            var canvas = HostServices.Overlay?.Canvas;
+            if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            Canvas.SetLeft(_root, left); Canvas.SetTop(_root, top);
+            _xf = left / canvas.ActualWidth; _yf = top / canvas.ActualHeight;
+            if (save) Save(true);
+        }
+
         private const double RefCellW = 46;       // one type's column at scale 1: the box is always this
                                                   // wide per type, a longer name is set smaller instead
         private const double LabelSize = 10.5, MinLabelSize = 6;
@@ -62,7 +78,7 @@ namespace HsbgCardLookup.Ui
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
             _config = config; _ui = ui;
-            _row = new StackPanel { Orientation = Orientation.Horizontal };
+            _row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
 
             var arrow = new Path
             {
@@ -101,6 +117,7 @@ namespace HsbgCardLookup.Ui
             if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = p.WF; }
             if (p != null && p.Px > 0) { _scale = Clamp(p.Px, MinScale, MaxScale); _settled = true; }
 
+            PanelDock.Register(this);
             _current = this;
             _active = true;          // started mid-match: the first read decides
             if (!_hooked)
@@ -222,7 +239,7 @@ namespace HsbgCardLookup.Ui
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null) return;
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
-            if (cw <= 0 || ch <= 0) return;
+            if (cw <= 0 || ch <= 0 || PanelDock.Holds(this)) return;
             Canvas.SetLeft(_root, Clamp(_xf * cw, 0, Math.Max(0, cw - _root.ActualWidth)));
             Canvas.SetTop(_root, Clamp(_yf * ch, 0, Math.Max(0, ch - _root.ActualHeight)));
         }
@@ -255,23 +272,28 @@ namespace HsbgCardLookup.Ui
             {
                 Canvas.SetLeft(_root, Clamp(_startLeft + dx, 0, Math.Max(0, cw - _root.ActualWidth)));
                 Canvas.SetTop(_root, Clamp(_startTop + dy, 0, Math.Max(0, ch - _root.ActualHeight)));
+                PanelDock.Dragging(this);
             }
             else if (_resizing)
             {
                 // Drag right to scale up, by the width the box had when the drag began.
                 double w0 = Math.Max(40, _root.ActualWidth / (_scale / _startScale));
+                double before = _scale;
                 _scale = Clamp(_startScale * (w0 + dx) / w0, MinScale, MaxScale);
                 Layout();
+                PanelDock.Scaled(this, _scale / before);
             }
         }
 
         private void EndGesture(bool persist = true)
         {
             if (!_dragging && !_resizing) return;
+            bool dragged = _dragging;
             _dragging = _resizing = false;
             RemoveHook();
             var canvas = HostServices.Overlay?.Canvas;
             if (!persist || !_moved || canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            if (dragged) PanelDock.Dropped(this);
             _xf = Canvas.GetLeft(_root) / canvas.ActualWidth;
             _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
             Save(true);

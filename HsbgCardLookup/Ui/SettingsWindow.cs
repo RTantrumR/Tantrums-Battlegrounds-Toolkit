@@ -340,7 +340,7 @@ namespace HsbgCardLookup.Ui
         }
 
         /// <summary>The page the window opens on.</summary>
-        private void BuildMain() { BuildMmr(); }
+        private void BuildMain() { BuildCardSearch(); }
 
         // The tab column: one entry per page, the one on screen marked; a feature's entry carries a dot
         // for on/off (the switch itself heads its page). Website and Close sit at its foot.
@@ -792,6 +792,14 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.lobbyTribes.on") : Strings.T("settings.lobbyTribes.off");
                 Changed();
             }));
+
+            stack.Children.Add(ToggleRow(Strings.T("settings.general.assemble"), _config.AssemblePanels, v =>
+            {
+                _config.AssemblePanels = v;
+                _status.Text = v ? Strings.T("settings.general.assembleOn") : Strings.T("settings.general.assembleOff");
+                Changed();
+            }));
+            stack.Children.Add(AssembleDemo.Build());
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {
