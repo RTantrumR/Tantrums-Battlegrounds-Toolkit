@@ -24,9 +24,11 @@ namespace HsbgCardLookup.Ui
         /// <summary>The box's size factor, whatever it means to the box; setting it lays the box out
         /// again and saves it.</summary>
         double DockScale { get; set; }
-        /// <summary>The box is never widened or sized to fit a neighbour (the turn counter: one short
-        /// line that neither stretches nor scales well); it still moves and scales with its group.</summary>
-        bool DockKeepsSize { get; }
+        /// <summary>Whether the box is sized to fit a neighbour: for a stacked join (above / below) its
+        /// width, for a side join its height. Both boxes of a join must agree, or each keeps the size
+        /// it has. Never for the turn counter (one short line that neither stretches nor scales well);
+        /// the lobby types box by its layout. A box that does not fit still moves and scales with its group.</summary>
+        bool DockStretches(bool stacked);
     }
 
     public enum DockSide { Top, Bottom, Left, Right }
@@ -38,8 +40,9 @@ namespace HsbgCardLookup.Ui
     /// A join is "child sits on that side of parent" (config <c>PanelLinks</c>, "child&gt;parent:Side").
     /// A box with no parent is its group's root and keeps its own placement; every other box is put
     /// beside its parent on each poll, so a box whose content changes size keeps the group tight.
-    /// Stacked boxes take the wider one's width; the corners on a seam are squared and the two borders
-    /// share one line. UI thread only.
+    /// Stacked boxes take the wider one's width and boxes side by side the taller one's height, where
+    /// both agree to (<see cref="IDockPanel.DockStretches"/>); the corners on a seam are squared and the
+    /// two borders share one line. UI thread only.
     /// </summary>
     public static partial class PanelDock
     {
@@ -93,6 +96,14 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>A setting or a size changed: stacked widths are worked out afresh.</summary>
         public static void Invalidate() { _widthsStale = true; }
+
+        // A join's shared dimension: the width of two stacked boxes, the height of two side by side.
+        private static bool Stacked(DockSide s) => s == DockSide.Top || s == DockSide.Bottom;
+        private static bool Fits(IDockPanel a, IDockPanel b, bool stacked) => a.DockStretches(stacked) && b.DockStretches(stacked);
+        private static double Across(FrameworkElement r, bool stacked) => stacked ? r.ActualWidth : r.ActualHeight;
+        private static double MinAcross(FrameworkElement r, bool stacked) => stacked ? r.MinWidth : r.MinHeight;
+        private static void SetMinAcross(FrameworkElement r, bool stacked, double v) { if (stacked) r.MinWidth = v; else r.MinHeight = v; }
+        private static void Unstretch(FrameworkElement r) { if (r.MinWidth != 0) r.MinWidth = 0; if (r.MinHeight != 0) r.MinHeight = 0; }
 
         private static IDockPanel Find(string id) => Panels.FirstOrDefault(p => p.DockId == id);
         private static bool Shown(IDockPanel p) => p != null && p.DockRoot.Visibility == Visibility.Visible && p.DockRoot.ActualHeight > 0;
@@ -164,7 +175,7 @@ namespace HsbgCardLookup.Ui
                 if (natural)
                 {
                     _widthsStale = false;
-                    foreach (var p in Panels) if (p.DockRoot.MinWidth != 0) p.DockRoot.MinWidth = 0;
+                    foreach (var p in Panels) Unstretch(p.DockRoot);
                 }
                 for (int pass = 0; pass < 2; pass++)          // a child of a child follows on the second pass
                     foreach (var p in Panels)
@@ -173,12 +184,12 @@ namespace HsbgCardLookup.Ui
                         if (!Links.TryGetValue(p.DockId, out l)) continue;
                         var parent = Find(l.Parent);
                         if (!Placed(parent) || !Shown(p)) continue;
-                        if (!natural && Shown(parent) && (l.Side == DockSide.Top || l.Side == DockSide.Bottom)
-                            && !p.DockKeepsSize && !parent.DockKeepsSize)
+                        bool stacked = Stacked(l.Side);
+                        if (!natural && Shown(parent) && Fits(p, parent, stacked))
                         {
-                            double wide = Math.Max(parent.DockRoot.ActualWidth, p.DockRoot.ActualWidth);
-                            if (Math.Abs(parent.DockRoot.MinWidth - wide) > 0.5 && parent.DockRoot.ActualWidth < wide - 0.5) parent.DockRoot.MinWidth = wide;
-                            if (Math.Abs(p.DockRoot.MinWidth - wide) > 0.5 && p.DockRoot.ActualWidth < wide - 0.5) p.DockRoot.MinWidth = wide;
+                            double most = Math.Max(Across(parent.DockRoot, stacked), Across(p.DockRoot, stacked));
+                            foreach (var r in new[] { parent.DockRoot, p.DockRoot })
+                                if (Math.Abs(MinAcross(r, stacked) - most) > 0.5 && Across(r, stacked) < most - 0.5) SetMinAcross(r, stacked, most);
                         }
                         var at = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                         // "Not within 0.4 of it", so that a box never placed before (NaN) is placed too: the
@@ -260,7 +271,7 @@ namespace HsbgCardLookup.Ui
                             else { tr = true; br |= down; }
                         }
                     }
-                else if (p.DockRoot.MinWidth != 0) p.DockRoot.MinWidth = 0;
+                else Unstretch(p.DockRoot);
                 var want = new CornerRadius(tl ? 0 : Radius, tr ? 0 : Radius, br ? 0 : Radius, bl ? 0 : Radius);
                 if (p.DockRoot.CornerRadius != want) p.DockRoot.CornerRadius = want;
             }
@@ -348,10 +359,9 @@ namespace HsbgCardLookup.Ui
                 _barB.BeginAnimation(UIElement.OpacityProperty, pulse);
             }
             Rect a = RectOf(p), b = RectOf(_offerTo);
-            bool stacked = _offerSide == DockSide.Top || _offerSide == DockSide.Bottom;
-            double wide = stacked && !p.DockKeepsSize && !_offerTo.DockKeepsSize ? Math.Max(a.Width, b.Width) : a.Width;
+            bool stacked = Stacked(_offerSide), fits = Fits(p, _offerTo, stacked);
             var land = Beside(b, new Size(a.Width, a.Height), _offerSide);
-            Put(_ghost, land.X, land.Y, wide, a.Height);
+            Put(_ghost, land.X, land.Y, fits && stacked ? Math.Max(a.Width, b.Width) : a.Width, fits && !stacked ? Math.Max(a.Height, b.Height) : a.Height);
             Edge(_barA, a, Opposite(_offerSide));
             Edge(_barB, b, _offerSide);
             foreach (UIElement el in new UIElement[] { _ghost, _barA, _barB }) el.Visibility = Visibility.Visible;
@@ -424,24 +434,26 @@ namespace HsbgCardLookup.Ui
             Joined(c, p, s, from);
         }
 
-        // Link the two, and for a stack bring the narrower side up to the wider one's width by SIZE
-        // (its text and icons grow with it), so the join reads as one panel; what little is left over
-        // (a box's width does not follow its size exactly) is evened out by centring.
+        // Link the two, and where both fit each other bring the smaller side up to the larger one's
+        // width (stacked) or height (side by side) by SIZE (its text and icons grow with it), so the
+        // join reads as one panel; what little is left over (a box's width does not follow its size
+        // exactly) is evened out by centring.
         private static void Join(IDockPanel child, IDockPanel parent, DockSide side)
         {
             var childSide = GroupOf(child); var parentSide = GroupOf(parent);
             Links[child.DockId] = new Link { Parent = parent.DockId, Side = side };
             Save();
             var canvas = HostServices.Overlay?.Canvas;
-            if (canvas != null && (side == DockSide.Top || side == DockSide.Bottom) && Shown(child) && Shown(parent)
+            bool stacked = Stacked(side);
+            if (canvas != null && Shown(child) && Shown(parent)
                 && !parentSide.Contains(child)           // two groups meeting, not a group re-linked within itself
-                && !child.DockKeepsSize && !parent.DockKeepsSize)
+                && Fits(child, parent, stacked))
             {
-                foreach (var q in childSide.Concat(parentSide)) q.DockRoot.MinWidth = 0;
+                foreach (var q in childSide.Concat(parentSide)) Unstretch(q.DockRoot);
                 for (int pass = 0; pass < 3; pass++)
                 {
                     canvas.UpdateLayout();
-                    double wc = child.DockRoot.ActualWidth, wp = parent.DockRoot.ActualWidth;
+                    double wc = Across(child.DockRoot, stacked), wp = Across(parent.DockRoot, stacked);
                     if (wc <= 0 || wp <= 0) break;
                     double ratio = wc < wp ? wp / wc : wc / wp;
                     if (ratio < 1.01) break;
@@ -482,7 +494,7 @@ namespace HsbgCardLookup.Ui
                         var r = RectOf(root);
                         x += Math.Sign(x - r.Left) * 10; y += Math.Sign(y - r.Top) * 10;
                     }
-                    q.DockRoot.MinWidth = 0;
+                    Unstretch(q.DockRoot);
                     q.DockMoveTo(x, y, true);
                     Nudge(q.DockRoot, 0.94);
                 }

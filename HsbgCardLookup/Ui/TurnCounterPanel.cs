@@ -24,7 +24,7 @@ namespace HsbgCardLookup.Ui
     public sealed class TurnCounterPanel : IDockPanel
     {
         public string DockId => "turn";
-        public bool DockKeepsSize => true;
+        public bool DockStretches(bool stacked) => false;
         public Border DockRoot => _root;
         public double DockScale
         {

@@ -123,6 +123,7 @@ namespace HsbgCardLookup.Ui
                 foreach (var p in group)
                 {
                     if (p.DockRoot.MinWidth > 0) p.DockRoot.MinWidth = p.DockRoot.MinWidth * _sizeRatio;
+                    if (p.DockRoot.MinHeight > 0) p.DockRoot.MinHeight = p.DockRoot.MinHeight * _sizeRatio;
                     p.DockScale = p.DockScale * _sizeRatio;
                 }
                 var canvas = HostServices.Overlay?.Canvas;

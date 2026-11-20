@@ -24,7 +24,10 @@ namespace HsbgCardLookup.Ui
     public sealed class LobbyTribesPanel : IDockPanel
     {
         public string DockId => "tribes";
-        public bool DockKeepsSize => false;
+        // A box that is wider than tall (one row, or three and two) fits the width of what it is
+        // stacked on; a tall one (one column, or two-two-one) fits the height of what stands beside it.
+        // The other way round it joins at the size it has.
+        public bool DockStretches(bool stacked) => stacked == (PerRow(_config.LobbyTribesLayout) >= 3);
         public Border DockRoot => _root;
         public double DockScale
         {
@@ -80,7 +83,7 @@ namespace HsbgCardLookup.Ui
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
             _config = config; _ui = ui;
-            _rows = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+            _rows = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 
             var arrow = new Path
             {

@@ -28,7 +28,7 @@ namespace HsbgCardLookup.Ui
     {
         // Assembling with other boxes (PanelDock): only the live panel registers, never a hosted preview.
         public string DockId => "sidebar";
-        public bool DockKeepsSize => false;
+        public bool DockStretches(bool stacked) => true;
         public Border DockRoot => _root;
         private bool _docks;
         // A join can make the box wider than its rows: they then sit in its middle. Only the rows, so
