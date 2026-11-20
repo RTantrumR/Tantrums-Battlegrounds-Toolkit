@@ -125,6 +125,8 @@
   "settings.general.turnCounterOff": "Turn counter off.",
   "turnCounter.text": "Turn {0}",
   "dock.takeApart": "Take the panels apart",
+  "dock.tip": "Right-click the panel to take it apart",
+  "settings.general.assembleTip": "Right-click an assembled panel to take it apart.",
   "settings.general.assemble": "Assemble panels",
   "settings.general.assembleOn": "Drag the lobby types box, the sidebar or the turn counter against one another and they join into one panel. Right-click it to take it apart.",
   "settings.general.assembleOff": "Panels stay separate.",

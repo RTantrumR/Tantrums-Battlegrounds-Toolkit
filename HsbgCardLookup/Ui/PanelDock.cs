@@ -515,6 +515,7 @@ namespace HsbgCardLookup.Ui
             pull.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, back) { EasingFunction = ease });
             pull.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, back) { EasingFunction = ease });
             Nudge(parent.DockRoot, 1.03);
+            Tip(canvas, Bounds(GroupOf(child)));
 
             bool stacked = side == DockSide.Top || side == DockSide.Bottom;
             double x0, y0, length;
@@ -576,6 +577,37 @@ namespace HsbgCardLookup.Ui
                 blink.Completed += (s, e) => canvas.Children.Remove(mine);
                 spark.BeginAnimation(UIElement.OpacityProperty, blink);
             }
+        }
+
+        // How to undo it, said once by the new panel: under it (above when there is no room), gone in a
+        // few seconds. One line at a time: a second join replaces the first one's.
+        private static Border _tip;
+
+        private static void Tip(Canvas canvas, Rect group)
+        {
+            if (group.IsEmpty) return;
+            if (_tip != null) canvas.Children.Remove(_tip);
+            var tip = _tip = new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x0A, 0x0D, 0x14)),
+                BorderBrush = new SolidColorBrush(Spark), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(9, 4, 9, 5), IsHitTestVisible = false, Opacity = 0,
+                Child = new TextBlock { Text = Strings.T("dock.tip"), Foreground = UiKit.TextPrimary, FontSize = 12.5 }
+            };
+            Panel.SetZIndex(tip, 9003);
+            canvas.Children.Add(tip);
+            tip.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double w = tip.DesiredSize.Width, h = tip.DesiredSize.Height;
+            double x = Math.Max(4, Math.Min(group.Left + (group.Width - w) / 2, canvas.ActualWidth - w - 4));
+            double y = group.Bottom + 8 + h <= canvas.ActualHeight ? group.Bottom + 8 : group.Top - 8 - h;
+            Canvas.SetLeft(tip, x); Canvas.SetTop(tip, y);
+            var show = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(5.5) };
+            show.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.5))));
+            show.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(0.8))));
+            show.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(4.9))));
+            show.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(5.5))));
+            show.Completed += (s, e) => { canvas.Children.Remove(tip); if (_tip == tip) _tip = null; };
+            tip.BeginAnimation(UIElement.OpacityProperty, show);
         }
 
         // A quick swell (or dip) and back, about the box's middle.

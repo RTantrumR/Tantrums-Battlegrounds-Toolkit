@@ -878,6 +878,11 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
             stack.Children.Add(AssembleDemo.Build());
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.general.assembleTip"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, -6, 0, 12)
+            });
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {
