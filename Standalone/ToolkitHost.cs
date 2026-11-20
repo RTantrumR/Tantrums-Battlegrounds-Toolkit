@@ -162,6 +162,14 @@ namespace Toolkit.Standalone
                         catch { }
                     }
 
+                    // Test aid: settings.trigger next to the exe opens the settings window.
+                    string settingsFile = Path.Combine(Shared.ExeDir, "settings.trigger");
+                    if (File.Exists(settingsFile))
+                    {
+                        try { File.Delete(settingsFile); } catch { }
+                        toolkit.OpenSettings();
+                    }
+
                     // Test aid: testboard.trigger next to the exe switches a fixed sample board on or off.
                     string sampleFile = Path.Combine(Shared.ExeDir, "testboard.trigger");
                     if (File.Exists(sampleFile))

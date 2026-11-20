@@ -51,6 +51,9 @@ namespace HsbgCardLookup.Ui
         // Every right-hand control on a settings row (key binding, On/Off pill, cycler, action button)
         // uses this, so their left AND right edges line up down the page.
         private const double ControlW = 106;
+        // Tabs down the left, the chosen page on the right (owner, 2026-11-20): no main page to go
+        // "Back" to, and the page keeps the width the old single-column window had, plus room.
+        private const double NavW = 232, PageW = 540, MinPageH = 560;
         private const double StatusH = 35;   // two lines of the 13px status strip (17.3 each)
 
         private StackPanel _pageRoot;        // page-local: what ShowPage renders (header + status + body)
@@ -91,7 +94,7 @@ namespace HsbgCardLookup.Ui
             Title = Strings.F("settings.windowTitle", ToolkitApp.DisplayName);
             WindowStyle = WindowStyle.SingleBorderWindow;
             ResizeMode = ResizeMode.NoResize;
-            Width = 470;
+            Width = NavW + PageW;
             SizeToContent = SizeToContent.Height;   // auto-fit the height to whatever rows exist
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             Topmost = true;
@@ -268,8 +271,8 @@ namespace HsbgCardLookup.Ui
         {
             EndKeyCapture();              // navigating away cancels a pending key capture
             FlushPending();               // ...but a pending setting still has to land
-            _onSubPage = sub;
-            _onMainPage = !sub;
+            _onSubPage = false;           // no page stack any more: Esc closes
+            _onMainPage = false;
             _onUpdatesPage = false; _updateActionsHost = null;   // page-local; rebuilt when its page shows
             // Arranging belongs to the page whose button started it, so leaving that page ends it —
             // otherwise the mode strands with no visible Done button anywhere.
@@ -287,16 +290,6 @@ namespace HsbgCardLookup.Ui
             if (sub)
             {
                 var head = new DockPanel { LastChildFill = true };
-                var backLbl = new TextBlock { Text = Strings.T("settings.common.back"), Foreground = UiKit.AccentBrush, FontSize = 14, FontWeight = FontWeights.SemiBold };
-                var back = new Border
-                {
-                    Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(7), Padding = new Thickness(11, 5, 11, 5), Cursor = Cursors.Hand,
-                    VerticalAlignment = VerticalAlignment.Center, Child = backLbl
-                };
-                back.MouseLeftButtonUp += (s, e) => BuildMain();
-                DockPanel.SetDock(back, Dock.Left);
-                head.Children.Add(back);
                 if (master != null)
                 {
                     var pill = TogglePill(master(), setMaster, width: 74, get: master);
@@ -307,7 +300,7 @@ namespace HsbgCardLookup.Ui
                 head.Children.Add(new TextBlock
                 {
                     Text = title, Foreground = UiKit.TextPrimary, FontSize = 20, FontWeight = FontWeights.SemiBold,
-                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 8, 0),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0),
                     TextWrapping = TextWrapping.Wrap
                 });
                 stack.Children.Add(head);
@@ -346,116 +339,92 @@ namespace HsbgCardLookup.Ui
             return body;
         }
 
-        private void BuildMain()
+        /// <summary>The page the window opens on.</summary>
+        private void BuildMain() { BuildMmr(); }
+
+        // The tab column: one entry per page, the one on screen marked; a feature's entry carries a dot
+        // for on/off (the switch itself heads its page). Website and Close sit at its foot.
+        private UIElement Nav()
         {
-            _currentPage = BuildMain;
-            var stack = NewPage(Strings.T("settings.title"), sub: false);
-
-            // Order is the owner's (2026-11-06): the two in-match overlays players come for first,
-            // then the search, the two streamer HUDs, updates, language.
-            stack.Children.Add(CategoryRow(Strings.T("settings.mmr.title"),
-                Strings.T("settings.main.mmrHint"),
-                () => _config.ShowOpponentMmr, v =>
-                {
-                    _config.ShowOpponentMmr = v;
-                    _status.Text = v
-                        ? Strings.T("settings.main.mmrOn")
-                        : Strings.T("settings.main.mmrOff");
-                    Changed();
-                    UpdateArrangeRow();
-                }, BuildMmr));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.darkGifts.title"),
-                Strings.T("settings.main.darkGiftsHint"),
-                () => _config.ShowDarkGifts, v =>
-                {
-                    _config.ShowDarkGifts = v;
-                    _status.Text = v
-                        ? Strings.T("settings.main.darkGiftsOn")
-                        : Strings.T("settings.darkGifts.off");
-                    Changed();
-                }, BuildDarkGifts));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.general.title"),
-                Strings.T("settings.main.generalHint"),
-                null, null, BuildCardSearch));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.trinkets.title"),
-                Strings.T("settings.main.trinketsHint"),
-                () => _config.ShowTrinkets, v =>
-                {
-                    _config.ShowTrinkets = v;
-                    _status.Text = v ? Strings.T("settings.trinkets.on") : Strings.T("settings.trinkets.off");
-                    Changed();
-                    UpdateArrangeRow();
-                }, BuildTrinkets));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.anomaly.title"),
-                Strings.T("settings.main.anomalyHint"),
-                () => _config.ShowAnomaly, v =>
-                {
-                    _config.ShowAnomaly = v;
-                    _status.Text = v ? Strings.T("settings.anomaly.on") : Strings.T("settings.anomaly.off");
-                    Changed();
-                    UpdateArrangeRow();
-                }, BuildAnomaly));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.boards.label"),
-                Strings.T("settings.boards.hint"),
-                () => _config.ShowOpponentBoards, v =>
-                {
-                    _config.ShowOpponentBoards = v;
-                    _status.Text = v ? Strings.T("settings.boards.on") : Strings.T("settings.boards.off");
-                    Changed();
-                    UpdateArrangeRow();
-                }, BuildBoards));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.updates.title"), UpdatesHint(), null, null, BuildUpdates));
-
-            stack.Children.Add(CategoryRow(Strings.T("settings.tools.title"), Strings.T("settings.main.toolsHint"), null, null, BuildTools));
-
-            // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
-            bool? autostart = null;
-            try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
-            if (autostart.HasValue)
+            var tabs = new StackPanel();
+            tabs.Children.Add(new TextBlock
             {
-                stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
-                {
-                    try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
-                    _status.Text = v ? Strings.T("settings.autostart.on") : Strings.T("settings.autostart.off");
-                }));
-                stack.Children.Add(new TextBlock
-                {
-                    Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
-                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10)
-                });
-            }
-
-            // Language is its own row, last and under the globe, so it is found at a glance rather than
-            // buried in the card-search page: it governs every surface, not one feature.
-            stack.Children.Add(CategoryRow(Strings.T("settings.language"),
-                Strings.F("settings.language.mainHint", CurrentLanguageCaption()),
-                null, null, BuildLanguage, Flags.Globe(18, UiKit.AccentBrush)));
+                Text = Strings.T("settings.title"), Foreground = UiKit.TextMuted, FontSize = 12, FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(12, 0, 0, 8)
+            });
+            tabs.Children.Add(NavTab(Strings.T("settings.general.title"), BuildCardSearch, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.mmr.title"), BuildMmr, () => _config.ShowOpponentMmr));
+            tabs.Children.Add(NavTab(Strings.T("settings.boards.label"), BuildBoards, () => _config.ShowOpponentBoards));
+            tabs.Children.Add(NavTab(Strings.T("settings.darkGifts.title"), BuildDarkGifts, () => _config.ShowDarkGifts));
+            tabs.Children.Add(NavTab(Strings.T("settings.trinkets.title"), BuildTrinkets, () => _config.ShowTrinkets));
+            tabs.Children.Add(NavTab(Strings.T("settings.anomaly.title"), BuildAnomaly, () => _config.ShowAnomaly));
+            tabs.Children.Add(NavTab(Strings.T("settings.updates.title"), BuildUpdates, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
 
             var closeLabel = new TextBlock { Text = Strings.T("settings.common.close"), Foreground = UiKit.TextPrimary, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center };
             var close = new Border
             {
                 Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8), Padding = new Thickness(18, 8, 18, 8), Cursor = Cursors.Hand,
-                HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0), Child = closeLabel
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 8, 0, 0), Child = closeLabel
             };
             close.MouseLeftButtonUp += (s, e) => Close();
+            var foot = new StackPanel();
+            foot.Children.Add(WebsiteButton());
+            foot.Children.Add(close);
 
-            // The site, one click away: Website on the left, Close on the right.
-            var bottom = new DockPanel { LastChildFill = false };
-            DockPanel.SetDock(close, Dock.Right);
-            bottom.Children.Add(close);
-            var website = WebsiteButton();
-            DockPanel.SetDock(website, Dock.Left);
-            bottom.Children.Add(website);
-            stack.Children.Add(bottom);
+            var column = new DockPanel { LastChildFill = true, Margin = new Thickness(14, 22, 14, 22) };
+            DockPanel.SetDock(foot, Dock.Bottom);
+            column.Children.Add(foot);
+            column.Children.Add(tabs);
+            return new Border
+            {
+                Width = NavW, Child = column, Background = UiKit.Br(Color.FromRgb(0x0D, 0x11, 0x18)),
+                BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(0, 0, 1, 0)
+            };
+        }
 
-            ShowPage();
+        private UIElement NavTab(string title, Action open, Func<bool> on, UIElement icon = null)
+        {
+            bool active = _currentPage == open;
+            var dock = new DockPanel { LastChildFill = true };
+            if (on != null)
+            {
+                var dot = new System.Windows.Shapes.Ellipse
+                {
+                    Width = 8, Height = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 1, 0, 0),
+                    Fill = on() ? UiKit.Br(Color.FromRgb(0x4C, 0xC2, 0x6A)) : UiKit.Br(Color.FromRgb(0x4A, 0x52, 0x60))
+                };
+                DockPanel.SetDock(dot, Dock.Right);
+                dock.Children.Add(dot);
+                _modeRefresh.Add(() => dot.Fill = on() ? UiKit.Br(Color.FromRgb(0x4C, 0xC2, 0x6A)) : UiKit.Br(Color.FromRgb(0x4A, 0x52, 0x60)));
+            }
+            if (icon is FrameworkElement fe)
+            {
+                fe.Margin = new Thickness(0, 0, 7, 0); fe.VerticalAlignment = VerticalAlignment.Center;
+                DockPanel.SetDock(fe, Dock.Left);
+                dock.Children.Add(fe);
+            }
+            dock.Children.Add(new TextBlock
+            {
+                Text = title, FontSize = 14, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = active ? UiKit.TextPrimary : UiKit.TextSecondary, FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal
+            });
+            var tab = new Border
+            {
+                Child = dock, CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 9, 10, 9), Margin = new Thickness(0, 0, 0, 3),
+                Cursor = Cursors.Hand, BorderThickness = new Thickness(1),
+                Background = active ? UiKit.Br(UiKit.RowBg) : Brushes.Transparent,
+                BorderBrush = active ? UiKit.AccentBrush : Brushes.Transparent
+            };
+            if (!active)
+            {
+                tab.MouseEnter += (s, e) => tab.Background = UiKit.Br(UiKit.RowBg);
+                tab.MouseLeave += (s, e) => tab.Background = Brushes.Transparent;
+            }
+            tab.MouseLeftButtonUp += (s, e) => open();
+            return tab;
         }
 
         // ── Website button: hsbg.cards in its own colours (wood, gold rim, the blue/yellow wordmark) ──
@@ -480,6 +449,7 @@ namespace HsbgCardLookup.Ui
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
                 Margin = new Thickness(0, 10, 0, 0), Child = text
             };
+            text.HorizontalAlignment = HorizontalAlignment.Center;
             b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(SiteGoldBright);
             b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(SiteGold);
             b.MouseLeftButtonUp += (s, e) => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "")
@@ -865,6 +835,24 @@ namespace HsbgCardLookup.Ui
                     : Strings.T("settings.cardSearch.hideDraggedWithAppOff");
                 Changed();
             }));
+
+            // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
+            bool? autostart = null;
+            try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
+            if (autostart.HasValue)
+            {
+                stack.Children.Add(Separator());
+                stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
+                {
+                    try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
+                    _status.Text = v ? Strings.T("settings.autostart.on") : Strings.T("settings.autostart.off");
+                }));
+                stack.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10)
+                });
+            }
 
             stack.Children.Add(Separator());
             stack.Children.Add(ArtFolderRow());
@@ -1292,13 +1280,20 @@ namespace HsbgCardLookup.Ui
         /// measured at infinite height, never scroll, and simply run off the bottom.</summary>
         private void ShowPage()
         {
-            Content = new ScrollViewer
+            var page = new ScrollViewer
             {
                 Content = _pageRoot,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 90)
             };
+            // One height for most pages, so stepping through the tabs does not resize the window.
+            var both = new DockPanel { LastChildFill = true, MinHeight = Math.Min(MinPageH, page.MaxHeight) };
+            var nav = Nav();
+            DockPanel.SetDock(nav, Dock.Left);
+            both.Children.Add(nav);
+            both.Children.Add(page);
+            Content = both;
         }
 
         // A heading that splits a page into groups. Pages used to be one flat list of toggles, which
