@@ -59,7 +59,7 @@
 1. **Встановіть Hearthstone Deck Tracker.** Завантажте [HDT](https://hsdecktracker.net/) і запустіть
    його один раз.
 2. **Завантажте інсталятор.** Візьміть `TantrumsBattlegroundsToolkit-Setup-X.Y.Z.exe` зі сторінки
-   [Releases](https://github.com/RTantrumR/HDT-Plugin-Cards/releases/latest).
+   [Releases](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/latest).
 3. **Запустіть його.** Спершу майстер перевіряє, чи встановлено HDT. Якщо ні, він зупиняється на
    сторінці з посиланням на завантаження HDT і кнопками **Check again** та **Locate HDT** і нічого не
    встановлює, доки HDT не знайдено. Далі він закриє HDT, скопіює плагін куди треба й може знову запустити HDT. Якщо
@@ -124,7 +124,7 @@ HDT: назви, текст і зображення карт, слова, які
 - **Інсталятор**: коректно закриває й знову відкриває HDT, перевіряє, що файли справді скопійовано, і вмикає плагін у HDT під час першого встановлення, що розв'язує проблему, про яку повідомляли кілька людей.
 - **Готово одразу**: нове встановлення показує тіри таверни й трайби опонентів біля портретів, панель з іменами/MMR та Dark Gifts без жодних налаштувань. Наявні налаштування не змінюються, окрім нового підсумку матчу, який увімкнено для всіх.
 
-[Повні нотатки релізу](https://github.com/RTantrumR/HDT-Plugin-Cards/releases/tag/v0.7.1) | [Усі релізи](https://github.com/RTantrumR/HDT-Plugin-Cards/releases)
+[Повні нотатки релізу](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/tag/v0.7.1) | [Усі релізи](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases)
 
 ## Видалення
 

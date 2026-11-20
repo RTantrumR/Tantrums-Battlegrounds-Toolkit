@@ -10,7 +10,7 @@
 
 const { execFileSync } = require("child_process");
 
-const REPO = "RTantrumR/HDT-Plugin-Cards";
+const REPO = "RTantrumR/Tantrums-Battlegrounds-Toolkit";
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const onlyTag = args.find((a) => !a.startsWith("--"));

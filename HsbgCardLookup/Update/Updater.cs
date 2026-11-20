@@ -57,7 +57,7 @@ namespace HsbgCardLookup.Update
     /// </summary>
     internal static class Updater
     {
-        public const string GitHubRepo = "RTantrumR/HDT-Plugin-Cards";
+        public const string GitHubRepo = "RTantrumR/Tantrums-Battlegrounds-Toolkit";
 
         private static string ReleasesUrl => "https://github.com/" + GitHubRepo + "/releases/latest";
         private static string ApiLatest => "https://api.github.com/repos/" + GitHubRepo + "/releases/latest";

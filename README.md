@@ -50,7 +50,7 @@ Windows only. Hearthstone must run in **Borderless** or **Windowed** mode, as fo
 
 1. **Get Hearthstone Deck Tracker.** Install [HDT](https://hsdecktracker.net/) and launch it once.
 2. **Download the installer.** Grab `TantrumsBattlegroundsToolkit-Setup-X.Y.Z.exe` from
-   [Releases](https://github.com/RTantrumR/HDT-Plugin-Cards/releases/latest).
+   [Releases](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/latest).
 3. **Run it.** The wizard first checks that HDT is installed. If it is not, the wizard stops on a page
    that links HDT's download, with **Check again** and **Locate HDT** buttons, and installs nothing
    until HDT is found. Then it closes HDT, copies the plugin into place and can start HDT again. If Windows
@@ -114,7 +114,7 @@ browser's download. Card data and art refresh automatically.
 - **Installer**: closes and reopens HDT properly, checks that the files fully arrived, and switches the plugin on in HDT on a first install, addressing an issue brought up by a few people.
 - **Ready from the start**: a new install shows opponents' tavern tiers and tribes by their portraits, the Names/MMR panel and Dark Gifts without touching the settings. Existing setups are left as they are, apart from the new match recap, which is on for everyone.
 
-[Full release notes](https://github.com/RTantrumR/HDT-Plugin-Cards/releases/tag/v0.7.1) | [All releases](https://github.com/RTantrumR/HDT-Plugin-Cards/releases)
+[Full release notes](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/tag/v0.7.1) | [All releases](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases)
 
 ## Uninstall
 
