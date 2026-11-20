@@ -119,6 +119,8 @@
   "settings.windowTitle": "{0} - Settings",
   "settings.common.back": "‹ Back",
   "settings.title": "Settings",
+  "settings.search.placeholder": "Search settings",
+  "settings.search.none": "Nothing found.",
   "settings.general.title": "General",
   "settings.main.generalHint": "Hotkeys, turn counter, lobby minion types, card search, art folder.",
   "settings.general.turnCounter": "Turn counter",

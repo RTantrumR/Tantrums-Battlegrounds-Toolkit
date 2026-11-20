@@ -179,8 +179,10 @@ namespace Toolkit.Standalone
                     string settingsFile = Path.Combine(Shared.ExeDir, "settings.trigger");
                     if (File.Exists(settingsFile))
                     {
+                        // A word in the file goes into the settings' search box.
+                        string term = ""; try { term = File.ReadAllText(settingsFile).Trim(); } catch { }
                         try { File.Delete(settingsFile); } catch { }
-                        toolkit.OpenSettings();
+                        if (term.Length > 0) toolkit.OpenSettings(term); else toolkit.OpenSettings();
                     }
 
                     // Test aid: testboard.trigger next to the exe switches a fixed sample board on or off.

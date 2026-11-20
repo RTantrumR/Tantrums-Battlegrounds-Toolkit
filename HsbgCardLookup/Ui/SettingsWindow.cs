@@ -24,7 +24,7 @@ namespace HsbgCardLookup.Ui
     /// here doesn't summon the overlay) and routed to us. Esc goes back / closes; rebinding to an
     /// already-used key STEALS it — the previous owner is set to unbound, with a notice.
     /// </summary>
-    public sealed class SettingsWindow : Window
+    public partial class SettingsWindow : Window
     {
         private static readonly string[] Kinds = { "browser", "golden", "focus" };
         private const string Unbound = "None";
@@ -347,11 +347,8 @@ namespace HsbgCardLookup.Ui
         private UIElement Nav()
         {
             var tabs = new StackPanel();
-            tabs.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.title"), Foreground = UiKit.TextMuted, FontSize = 12, FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(12, 0, 0, 8)
-            });
+            _navTabs.Clear();
+            tabs.Children.Add(SearchBox());
             tabs.Children.Add(NavTab(Strings.T("settings.general.title"), BuildCardSearch, null));
             tabs.Children.Add(NavTab(Strings.T("settings.mmr.title"), BuildMmr, () => _config.ShowOpponentMmr));
             tabs.Children.Add(NavTab(Strings.T("settings.boards.label"), BuildBoards, () => _config.ShowOpponentBoards));
@@ -361,6 +358,13 @@ namespace HsbgCardLookup.Ui
             tabs.Children.Add(NavTab(Strings.T("settings.updates.title"), BuildUpdates, null));
             tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
             tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
+            _navNone = new TextBlock
+            {
+                Text = Strings.T("settings.search.none"), Foreground = UiKit.TextMuted, FontSize = 13, Margin = new Thickness(12, 6, 0, 0),
+                Visibility = Visibility.Collapsed
+            };
+            tabs.Children.Add(_navNone);
+            FilterNav();
 
             var closeLabel = new TextBlock { Text = Strings.T("settings.common.close"), Foreground = UiKit.TextPrimary, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center };
             var close = new Border
@@ -424,6 +428,7 @@ namespace HsbgCardLookup.Ui
                 tab.MouseLeave += (s, e) => tab.Background = Brushes.Transparent;
             }
             tab.MouseLeftButtonUp += (s, e) => open();
+            _navTabs.Add(new KeyValuePair<Action, FrameworkElement>(open, tab));
             return tab;
         }
 
@@ -1288,6 +1293,7 @@ namespace HsbgCardLookup.Ui
         /// measured at infinite height, never scroll, and simply run off the bottom.</summary>
         private void ShowPage()
         {
+            if (_indexing) return;                // being read for the search, not shown
             var page = new ScrollViewer
             {
                 Content = _pageRoot,
@@ -1302,6 +1308,9 @@ namespace HsbgCardLookup.Ui
             both.Children.Add(nav);
             both.Children.Add(page);
             Content = both;
+            MarkPage();
+            if (_term.Length > 0 && !_searchTyping)
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() => { try { _searchBox.Focus(); _searchBox.CaretIndex = _searchBox.Text.Length; } catch { } }));
         }
 
         // A heading that splits a page into groups. Pages used to be one flat list of toggles, which
@@ -2099,6 +2108,7 @@ namespace HsbgCardLookup.Ui
             if (_capturing != null) return;
             if (e.Key != Key.Escape) return;
             e.Handled = true;
+            if (_term.Length > 0) { _searchBox.Text = ""; return; }      // Esc clears a search before it closes the window
             if (_onSubPage) BuildMain();   // Esc steps back before it closes
             else Close();
         }

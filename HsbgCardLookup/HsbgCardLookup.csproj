@@ -181,6 +181,7 @@
     <Compile Include="Ui\FloatingCard.cs" />
     <Compile Include="Ui\FloatingCardManager.cs" />
     <Compile Include="Ui\SettingsWindow.cs" />
+    <Compile Include="Ui\SettingsSearch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
