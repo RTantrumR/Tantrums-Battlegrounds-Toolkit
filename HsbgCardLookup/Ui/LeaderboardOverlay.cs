@@ -100,6 +100,18 @@ namespace HsbgCardLookup.Ui
         private readonly bool[] _shifted = new bool[MaxSlots];
 
         private bool _attached;
+        private readonly Canvas _host;      // a canvas of our own (the settings demonstration); null = the overlay's
+        private Canvas Host => _host ?? HostServices.Overlay?.Canvas;
+
+        /// <summary>The player's own size for everything drawn by the portraits (config PortraitSize,
+        /// 0.70..1.35), on top of the game window's scale. Each part grows about its own anchor: the
+        /// plate from its bottom edge, centred on the portrait; the tier and type icons about the
+        /// middle of the pair, from the plate's right edge.</summary>
+        public double UserScale { get; set; } = 1;
+        // The tier + type pair is 65 px tall at 1080p and duos cells are 78 px apart: past this the
+        // icons of two teammates would run into each other.
+        private const double DuosMaxIconScale = 1.2;
+        private const double RefLabelRise = 8.0;      // how far a larger plate may rise above its usual top
 
         /// <summary>Per-part content switches (set from config before <see cref="SetStandings"/>).
         /// The label box renders only the enabled lines (and hides entirely when names, rating AND
@@ -135,8 +147,9 @@ namespace HsbgCardLookup.Ui
         private static readonly Brush Down = Frozen(Color.FromRgb(0xF8, 0x71, 0x71));
         private static readonly Brush Swords = Frozen(Color.FromRgb(0xF5, 0xC4, 0x51));
 
-        public LeaderboardOverlay()
+        public LeaderboardOverlay(Canvas host = null)
         {
+            _host = host;
             for (int i = 0; i < MaxSlots; i++)
             {
                 var name = new TextBlock
@@ -190,7 +203,7 @@ namespace HsbgCardLookup.Ui
         public void Attach()
         {
             if (_attached) return;
-            var canvas = HostServices.Overlay?.Canvas;
+            var canvas = Host;
             if (canvas == null) return;
             for (int i = 0; i < MaxSlots; i++)
             {
@@ -211,7 +224,7 @@ namespace HsbgCardLookup.Ui
             _attached = false;
             try
             {
-                var canvas = HostServices.Overlay?.Canvas;
+                var canvas = Host;
                 if (canvas == null) return;
                 canvas.SizeChanged -= OnCanvasSizeChanged;
                 for (int i = 0; i < MaxSlots; i++)
@@ -306,7 +319,7 @@ namespace HsbgCardLookup.Ui
 
         private void UpdateLayout()
         {
-            var canvas = HostServices.Overlay?.Canvas;
+            var canvas = Host;
             if (canvas == null) return;
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
@@ -319,6 +332,9 @@ namespace HsbgCardLookup.Ui
 
             double refH = TwoLines ? RefLabelH : RefLabelH1;
             double lift = TwoLines ? 0.0 : RefNoNameLift;
+            double k = Math.Max(0.5, Math.Min(UserScale, 2.0));
+            double ls = scale * k;                                              // the plate and its text
+            double si = scale * (IsDuos ? Math.Min(k, DuosMaxIconScale) : k);   // the icons and their numbers
 
             for (int i = 0; i < MaxSlots; i++)
             {
@@ -326,61 +342,72 @@ namespace HsbgCardLookup.Ui
                 // Width stays fixed for every slot on purpose — a column of equal-width plates reads
                 // better than one that ragged-edges itself to each battletag. Only the HEIGHT follows
                 // the content (see TwoLines).
-                b.Width = RefLabelW * scale;
-                b.Height = refH * scale;
-                b.CornerRadius = new CornerRadius(4.0 * scale);
-                b.Padding = new Thickness(2.0 * scale, 0, 2.0 * scale, 0);
-                _names[i].FontSize = 11.5 * scale;
-                _ratings[i].FontSize = 11.5 * scale;
-                _arrows[i].FontSize = 9.5 * scale;
+                b.Width = RefLabelW * ls;
+                b.Height = refH * ls;
+                b.CornerRadius = new CornerRadius(4.0 * ls);
+                b.Padding = new Thickness(2.0 * ls, 0, 2.0 * ls, 0);
+                _names[i].FontSize = 11.5 * ls;
+                _ratings[i].FontSize = 11.5 * ls;
+                _arrows[i].FontSize = 9.5 * ls;
 
                 double refSlotLeft = IsDuos ? DuosRefSlotLeft[i] : RefSlotLeft[i];
                 double refSlotTop = IsDuos ? DuosRefSlotTop[i] : RefSlotTop[i];
                 double refLeft = refSlotLeft + (_shifted[i] ? RefOpponentShift : 0.0);
-                double left = contentLeft + (refLeft / RefW) * contentW;
+                // Where the plate sits at the player's size 1; a larger or smaller one keeps the same
+                // bottom edge and the same middle.
+                double left1 = contentLeft + (refLeft / RefW) * contentW;
                 // Bottom-anchored: a shorter (name-less) label keeps the same bottom edge, then lifts.
-                double top = contentTop + ((refSlotTop - RefLabelUp + (RefLabelH - refH) - lift) / RefH) * contentH;
+                double top1 = contentTop + ((refSlotTop - RefLabelUp + (RefLabelH - refH) - lift) / RefH) * contentH;
+                double left = left1 - RefLabelW * (ls - scale) * 0.5;
+                double top = top1 - refH * (ls - scale);
+                // ...but it rises no further than the gap to the portrait above (9 px at 1080p between
+                // that portrait's frame and a two-line plate); the rest of a larger plate goes downwards.
+                double highest = contentTop + ((refSlotTop - RefLabelUp - RefLabelRise) / RefH) * contentH;
+                if (top < highest && top < top1) top = Math.Min(top1, highest);
                 Canvas.SetLeft(b, left);
                 Canvas.SetTop(b, top);
 
                 var t = _tiers[i];
-                t.Height = RefTierH * scale;
-                double tierLeft = left + RefLabelW * scale;
+                t.Height = RefTierH * si;
+                // Right of the portrait, and of the plate when that has grown wider than the portrait.
+                double tierLeft = BoxVisible && ls > scale ? left + RefLabelW * ls : left1 + RefLabelW * scale;
                 // With a plate the tier sits beside it. With none (tiers/types only) the pair is centred
                 // on the portrait instead: measured 2026-11-19 at 1080p, portrait centres are slot top + 38.
-                double tierTop = BoxVisible
-                    ? top + (refH - RefTierH) * 0.5 * scale
+                double tierTop1 = BoxVisible
+                    ? top1 + (refH - RefTierH) * 0.5 * scale
                     : contentTop + ((refSlotTop + RefPortraitMid - (RefTierH + RefTribeH) * 0.5) / RefH) * contentH;
+                // The pair grows about its own middle, so it stays level with its portrait.
+                double tierTop = tierTop1 - (RefTierH + RefTribeH) * 0.5 * (si - scale);
                 Canvas.SetLeft(t, tierLeft);
                 Canvas.SetTop(t, tierTop);
 
                 // Minion type: directly under the tier icon, sharing its left edge; its count sits
                 // right of it, vertically centred on the icon.
                 var m = _tribes[i];
-                m.Width = m.Height = RefTribeH * scale;
-                m.StrokeThickness = 1.5 * scale;
-                double tribeTop = tierTop + RefTierH * scale;
+                m.Width = m.Height = RefTribeH * si;
+                m.StrokeThickness = 1.5 * si;
+                double tribeTop = tierTop + RefTierH * si;
                 // The shield's box is 33 wide (35 tall × the PNG's 96:102); centre the disc under it.
-                double tribeLeft = tierLeft + (RefTierH * (96.0 / 102.0) - RefTribeH) * 0.5 * scale;
+                double tribeLeft = tierLeft + (RefTierH * (96.0 / 102.0) - RefTribeH) * 0.5 * si;
                 Canvas.SetLeft(m, tribeLeft);
                 Canvas.SetTop(m, tribeTop);
 
                 var c = _tribeCounts[i];
-                c.FontSize = 16.0 * scale;
-                c.Height = RefTribeH * scale;
-                c.Padding = new Thickness(0, 4.0 * scale, 0, 0);
-                double countLeft = tribeLeft + (RefTribeH + RefTribeGap) * scale;
+                c.FontSize = 16.0 * si;
+                c.Height = RefTribeH * si;
+                c.Padding = new Thickness(0, 4.0 * si, 0, 0);
+                double countLeft = tribeLeft + (RefTribeH + RefTribeGap) * si;
                 Canvas.SetLeft(c, countLeft);
                 Canvas.SetTop(c, tribeTop);
 
                 // ⚔ keeps its old spot under the tier unless the type icon is there — then it steps
                 // right of the icon (and its count, when shown), so nothing overlaps.
                 var s = _lastOpp[i];
-                s.FontSize = 16.0 * scale;
+                s.FontSize = 16.0 * si;
                 bool tribeShown = m.Visibility == Visibility.Visible;
                 bool countShown = c.Visibility == Visibility.Visible;
-                double swordsLeft = !tribeShown ? tierLeft + 4.0 * scale
-                    : countShown ? countLeft + (RefTribeCountW + RefTribeGap) * scale
+                double swordsLeft = !tribeShown ? tierLeft + 4.0 * si
+                    : countShown ? countLeft + (RefTribeCountW + RefTribeGap) * si
                     : countLeft;
                 Canvas.SetLeft(s, swordsLeft);
                 Canvas.SetTop(s, tribeTop);

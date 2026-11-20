@@ -64,6 +64,7 @@ namespace HsbgCardLookup.Ui
         private DispatcherTimer _applyDebounce;   // see ChangedLive
         private bool _applyPending;
         private MmrPanelPreview _mmrPreview; // page-local: the live MMR side-panel preview
+        private PortraitsPreview _portraitsPreview; // page-local: the labels and icons by the portraits
         private HudPreview _hudPreview;      // page-local: the live trinket / anomaly HUD preview
         private DarkGiftPreview _giftPreview; // page-local: the live Dark Gift panel preview
         private TextBlock _arrangeBtnLabel;
@@ -142,6 +143,7 @@ namespace HsbgCardLookup.Ui
                 _hotkey.KeyCaptured -= OnKeyCaptured;
                 if (_arranging != ArrangeTarget.None) { _arranging = ArrangeTarget.None; try { _onArrange?.Invoke(ArrangeTarget.None); } catch { } }
                 _mmrPreview?.Close(); _mmrPreview = null;
+                _portraitsPreview = null;
                 _hudPreview?.Close(); _hudPreview = null;
                 _giftPreview?.Close(); _giftPreview = null;
             };
@@ -283,6 +285,7 @@ namespace HsbgCardLookup.Ui
             // otherwise the mode strands with no visible Done button anywhere.
             if (_arranging != ArrangeTarget.None) SetArrange(ArrangeTarget.None);
             _mmrPreview?.Close(); _mmrPreview = null;
+            _portraitsPreview = null;
             _hudPreview?.Close(); _hudPreview = null;
             _giftPreview?.Close(); _giftPreview = null;
             _arrangeBtn = null; _arrangeBtnLabel = null;
@@ -1113,6 +1116,23 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.mmr.dimDeadOn") : Strings.T("settings.mmr.dimDeadOff");
                 Changed();
             }));
+
+            // ── By the portraits: one size for the plate and the icons, shown on the game's own
+            // leaderboard. The demonstration follows the slider at once; the game follows when the
+            // drag settles (ChangedLive).
+            stack.Children.Add(GroupHeader(Strings.T("settings.mmr.portraitsHeader")));
+            const int sizeStep = 5;
+            _portraitsPreview = new PortraitsPreview(_config, 394);
+            stack.Children.Add(SliderRow(Strings.T("settings.mmr.portraitSize"),
+                (PluginConfig.MaxPortraitSize - PluginConfig.MinPortraitSize) / sizeStep,
+                () => (_config.PortraitSize - PluginConfig.MinPortraitSize) / sizeStep,
+                i => { _config.PortraitSize = PluginConfig.MinPortraitSize + i * sizeStep; _portraitsPreview?.Refresh(); },
+                i => (PluginConfig.MinPortraitSize + i * sizeStep) + "%",
+                i => Strings.T("settings.mmr.portraitSizeHint"),
+                () => _config.MmrOnPortraits || _config.NamesOnPortraits
+                      || PluginConfig.OnPortraits(_config.TavernTierMode) || PluginConfig.OnPortraits(_config.OpponentTribeMode)));
+            stack.Children.Add(_portraitsPreview.Root);
+            _modeRefresh.Add(() => _portraitsPreview?.Refresh());
 
             stack.Children.Add(Separator());
 

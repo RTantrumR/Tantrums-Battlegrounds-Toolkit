@@ -583,7 +583,18 @@ namespace HsbgCardLookup
 
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
-        public void OpenSettings(string search) { OpenSettings(); try { _settings?.TestSearch(search); } catch { } }
+        /// "snap general|mmr|boards" opens that page instead and saves it as settings.png beside the program.
+        public void OpenSettings(string search)
+        {
+            OpenSettings();
+            try
+            {
+                if (search.StartsWith("snap ", StringComparison.Ordinal))
+                    _settings?.TestSnap(search.Substring(5).Trim(), System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png"));
+                else _settings?.TestSearch(search);
+            }
+            catch { }
+        }
 
         public void OpenSettings()
         {

@@ -108,6 +108,15 @@ namespace HsbgCardLookup.Config
         // same location axis as TavernTierMode. The type comes from HDT's last-known board snapshot
         // of that player, so it is blank until they've been fought once.
         public string OpponentTribeMode { get; set; } = "Both";
+        // The player's own size for what is drawn by the portraits (plate, tier and type icons), in
+        // percent of the size the game window gives them. The setter clamps.
+        public const int MinPortraitSize = 70, MaxPortraitSize = 135;
+        private int _portraitSize = 100;
+        public int PortraitSize
+        {
+            get { return _portraitSize; }
+            set { _portraitSize = value < MinPortraitSize ? MinPortraitSize : (value > MaxPortraitSize ? MaxPortraitSize : value); }
+        }
         // The standings panel's placement (canvas fractions, like the trinket boxes).
         public HudPlacement MmrPanelHud { get; set; } = new HudPlacement();
 

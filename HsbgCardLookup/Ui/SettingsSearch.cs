@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Media;
 using System.Windows.Threading;
 using HsbgCardLookup.Localization;
 
@@ -43,6 +44,33 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>Test aid: as if typed into the search box.</summary>
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
+
+        /// <summary>Test aid: open a page by name ("general", "mmr", "boards") and save all of it, the
+        /// part below the window's edge too, as a PNG.</summary>
+        public void TestSnap(string page, string path)
+        {
+            if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else BuildCardSearch();
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
+                try
+                {
+                    var el = _pageRoot as FrameworkElement;
+                    int w = (int)Math.Ceiling(el.ActualWidth), h = (int)Math.Ceiling(el.ActualHeight);
+                    var shot = new DrawingVisual();
+                    using (var dc = shot.RenderOpen())
+                    {
+                        dc.DrawRectangle(Background ?? Brushes.Black, null, new Rect(0, 0, w, h));
+                        dc.DrawRectangle(new VisualBrush(el) { Stretch = Stretch.None }, null, new Rect(0, 0, w, h));
+                    }
+                    var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                    bmp.Render(shot);
+                    var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                    using (var fs = System.IO.File.Create(path)) png.Save(fs);
+                }
+                catch { }
+            }));
+        }
 
         private void OnSearchChanged()
         {
