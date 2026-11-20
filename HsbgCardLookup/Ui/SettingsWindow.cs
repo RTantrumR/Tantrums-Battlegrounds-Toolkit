@@ -410,13 +410,6 @@ namespace HsbgCardLookup.Ui
                     UpdateArrangeRow();
                 }, BuildBoards));
 
-            stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
-            {
-                _config.ShowLobbyTribes = v;
-                _status.Text = v ? Strings.T("settings.lobbyTribes.on") : Strings.T("settings.lobbyTribes.off");
-                Changed();
-            }));
-
             stack.Children.Add(CategoryRow(Strings.T("settings.updates.title"), UpdatesHint(), null, null, BuildUpdates));
 
             stack.Children.Add(CategoryRow(Strings.T("settings.tools.title"), Strings.T("settings.main.toolsHint"), null, null, BuildTools));
@@ -820,6 +813,13 @@ namespace HsbgCardLookup.Ui
             {
                 _config.ShowTurnCounter = v;
                 _status.Text = v ? Strings.T("settings.general.turnCounterOn") : Strings.T("settings.general.turnCounterOff");
+                Changed();
+            }));
+
+            stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
+            {
+                _config.ShowLobbyTribes = v;
+                _status.Text = v ? Strings.T("settings.lobbyTribes.on") : Strings.T("settings.lobbyTribes.off");
                 Changed();
             }));
 

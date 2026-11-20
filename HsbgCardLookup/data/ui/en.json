@@ -120,7 +120,7 @@
   "settings.common.back": "‹ Back",
   "settings.title": "Settings",
   "settings.general.title": "General",
-  "settings.main.generalHint": "Hotkeys, turn counter, card search, drag-out cards, art folder.",
+  "settings.main.generalHint": "Hotkeys, turn counter, lobby minion types, card search, art folder.",
   "settings.general.turnCounter": "Turn counter",
   "settings.general.turnCounterOn": "The turn number shows top right during a match. Drag the box to move it, its corner to resize.",
   "settings.general.turnCounterOff": "Turn counter off.",
