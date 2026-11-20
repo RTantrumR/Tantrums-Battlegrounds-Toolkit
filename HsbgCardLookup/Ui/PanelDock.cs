@@ -94,8 +94,18 @@ namespace HsbgCardLookup.Ui
             };
         }
 
-        /// <summary>A setting or a size changed: stacked widths are worked out afresh.</summary>
-        public static void Invalidate() { _widthsStale = true; }
+        /// <summary>A setting or a size changed: stacked widths are worked out afresh, and joined boxes
+        /// that no longer fit each other are sized to fit again.</summary>
+        public static void Invalidate() { _widthsStale = true; _fitRounds = 3; }
+
+        // Fitting is a standing rule, not only something a drop does: a join saved earlier can meet
+        // boxes whose sizes have since gone their own ways (a setting that changes a box's content, an
+        // imported layout, a box that was sized while its neighbour was not on screen). So whenever
+        // the widths are worked out afresh, or another set of boxes is on screen, two joined boxes
+        // more than 3% apart get the smaller one sized up, as on a drop. At most three rounds each
+        // time: a box's width does not follow its size exactly.
+        private static int _fitRounds = 3;
+        private static string _shownSet = "";
 
         // A join's shared dimension: the width of two stacked boxes, the height of two side by side.
         private static bool Stacked(DockSide s) => s == DockSide.Top || s == DockSide.Bottom;
@@ -171,7 +181,9 @@ namespace HsbgCardLookup.Ui
                 }
                 // One pass at natural width, so the next can take the wider of the two; the boxes are
                 // still put in place on this one.
-                bool natural = _widthsStale;
+                string shownSet = string.Join(",", Panels.Where(Shown).Select(p => p.DockId));
+                if (shownSet != _shownSet) { _shownSet = shownSet; Invalidate(); }
+                bool natural = _widthsStale, refit = false;
                 if (natural)
                 {
                     _widthsStale = false;
@@ -187,9 +199,19 @@ namespace HsbgCardLookup.Ui
                         bool stacked = Stacked(l.Side);
                         if (!natural && Shown(parent) && Fits(p, parent, stacked))
                         {
-                            double most = Math.Max(Across(parent.DockRoot, stacked), Across(p.DockRoot, stacked));
-                            foreach (var r in new[] { parent.DockRoot, p.DockRoot })
-                                if (Math.Abs(MinAcross(r, stacked) - most) > 0.5 && Across(r, stacked) < most - 0.5) SetMinAcross(r, stacked, most);
+                            double mine = Across(p.DockRoot, stacked), its = Across(parent.DockRoot, stacked);
+                            double most = Math.Max(mine, its), least = Math.Min(mine, its);
+                            // Both at their own size (nothing stretched yet) and clearly apart: size, not stretch.
+                            if (_fitRounds > 0 && pass == 0 && !refit && least > 0 && most / least > 1.03
+                                && MinAcross(p.DockRoot, stacked) == 0 && MinAcross(parent.DockRoot, stacked) == 0)
+                            {
+                                var small = mine < its ? p : parent;
+                                small.DockScale = small.DockScale * most / least;
+                                refit = true;
+                            }
+                            else
+                                foreach (var r in new[] { parent.DockRoot, p.DockRoot })
+                                    if (Math.Abs(MinAcross(r, stacked) - most) > 0.5 && Across(r, stacked) < most - 0.5) SetMinAcross(r, stacked, most);
                         }
                         var at = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                         // "Not within 0.4 of it", so that a box never placed before (NaN) is placed too: the
@@ -197,6 +219,7 @@ namespace HsbgCardLookup.Ui
                         if (!(Math.Abs(Canvas.GetLeft(p.DockRoot) - at.X) <= 0.4)) Canvas.SetLeft(p.DockRoot, at.X);
                         if (!(Math.Abs(Canvas.GetTop(p.DockRoot) - at.Y) <= 0.4)) Canvas.SetTop(p.DockRoot, at.Y);
                     }
+                if (refit) { _fitRounds--; _widthsStale = true; }      // measured again at the new size
                 KeepInside();
                 Decorate(true);
             }
