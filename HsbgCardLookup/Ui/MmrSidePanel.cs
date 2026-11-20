@@ -315,7 +315,11 @@ namespace HsbgCardLookup.Ui
             {
                 _handle.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(resize: true, e); };
                 _root.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(resize: false, e); };
-                _root.MouseMove += (s, e) => { _handle.Visibility = Visibility.Visible; _handleHide.Stop(); _handleHide.Start(); };
+                _root.MouseMove += (s, e) =>
+            {
+                if (_docks && PanelDock.Grouped(this)) { _handle.Visibility = Visibility.Collapsed; return; }     // an assembled group has one arrow of its own
+                _handle.Visibility = Visibility.Visible; _handleHide.Stop(); _handleHide.Start();
+            };
 
                 // Registers with HDT's hover loop so the overlay stops being click-through over this
                 // element. Meaningless for a preview, which is not in HDT's overlay at all.

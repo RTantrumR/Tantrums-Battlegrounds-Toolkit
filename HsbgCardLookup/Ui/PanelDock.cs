@@ -38,7 +38,7 @@ namespace HsbgCardLookup.Ui
     /// Stacked boxes take the wider one's width; the corners on a seam are squared and the two borders
     /// share one line. UI thread only.
     /// </summary>
-    public static class PanelDock
+    public static partial class PanelDock
     {
         private sealed class Link { public string Parent; public DockSide Side; }
 
@@ -76,6 +76,7 @@ namespace HsbgCardLookup.Ui
         {
             Panels.RemoveAll(p => p.DockId == panel.DockId);
             Panels.Add(panel);
+            panel.DockRoot.MouseMove += (s, e) => Hover(panel);
             panel.DockRoot.MouseRightButtonUp += (s, e) =>
             {
                 if (!Enabled || GroupOf(panel).Count < 2) return;
@@ -144,12 +145,14 @@ namespace HsbgCardLookup.Ui
             {
                 if (Panels.Count == 0) return;
                 if (!Enabled) { Decorate(false); return; }
-                if (_widthsStale)
+                if (_sizing != null) return;                 // being resized as one picture: hands off
+                // One pass at natural width, so the next can take the wider of the two; the boxes are
+                // still put in place on this one.
+                bool natural = _widthsStale;
+                if (natural)
                 {
-                    // One poll at natural width, so the next can take the wider of the two.
                     _widthsStale = false;
                     foreach (var p in Panels) if (p.DockRoot.MinWidth != 0) p.DockRoot.MinWidth = 0;
-                    return;
                 }
                 for (int pass = 0; pass < 2; pass++)          // a child of a child follows on the second pass
                     foreach (var p in Panels)
@@ -158,7 +161,7 @@ namespace HsbgCardLookup.Ui
                         if (!Links.TryGetValue(p.DockId, out l)) continue;
                         var parent = Find(l.Parent);
                         if (!Placed(parent) || !Shown(p)) continue;
-                        if (Shown(parent) && (l.Side == DockSide.Top || l.Side == DockSide.Bottom))
+                        if (!natural && Shown(parent) && (l.Side == DockSide.Top || l.Side == DockSide.Bottom))
                         {
                             double wide = Math.Max(parent.DockRoot.ActualWidth, p.DockRoot.ActualWidth);
                             if (Math.Abs(parent.DockRoot.MinWidth - wide) > 0.5 && parent.DockRoot.ActualWidth < wide - 0.5) parent.DockRoot.MinWidth = wide;
@@ -350,6 +353,14 @@ namespace HsbgCardLookup.Ui
         {
             var c = Find(child); var p = Find(parent);
             if (c == null) return;
+            double ratio;
+            if (parent == "size" && double.TryParse(side, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out ratio))
+            {
+                // As the group's arrow would: the whole group to that many times its size.
+                _sizing = GroupOf(c).Where(Shown).ToList(); _sizeBox = Bounds(_sizing); _sizeRatio = ratio;
+                EndSize(true);
+                return;
+            }
             DockSide s;
             if (p == null || !Enum.TryParse(side, out s)) { TakeApart(c); return; }
             var from = RectOf(c);

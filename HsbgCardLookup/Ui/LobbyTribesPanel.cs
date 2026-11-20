@@ -110,7 +110,11 @@ namespace HsbgCardLookup.Ui
             _handleHide.Tick += (s, e) => { _handleHide.Stop(); if (!_resizing) _handle.Visibility = Visibility.Collapsed; };
             _handle.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(true, e); };
             _root.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(false, e); };
-            _root.MouseMove += (s, e) => { _handle.Visibility = Visibility.Visible; _handleHide.Stop(); _handleHide.Start(); };
+            _root.MouseMove += (s, e) =>
+            {
+                if (PanelDock.Grouped(this)) { _handle.Visibility = Visibility.Collapsed; return; }     // an assembled group has one arrow of its own
+                _handle.Visibility = Visibility.Visible; _handleHide.Stop(); _handleHide.Start();
+            };
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
 
             var p = _config.LobbyTribesHud;
