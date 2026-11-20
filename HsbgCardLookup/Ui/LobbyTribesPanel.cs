@@ -16,7 +16,8 @@ namespace HsbgCardLookup.Ui
 {
     /// <summary>
     /// This lobby's minion types for the whole match: one small box of round type icons with the
-    /// type's name under each. Lives on the overlay canvas; moved by dragging it and scaled by its
+    /// type's name under each, in one row, one column, or two or three rows (config
+    /// <c>LobbyTribesLayout</c>). Lives on the overlay canvas; moved by dragging it and scaled by its
     /// top-right grabber, the way <see cref="MmrSidePanel"/> is (same LL-hook gesture, same
     /// canvas-fraction placement, config <c>LobbyTribesHud</c>).
     /// </summary>
@@ -51,7 +52,7 @@ namespace HsbgCardLookup.Ui
         private readonly PluginConfig _config;
         private readonly Dispatcher _ui;
         private readonly Border _root;
-        private readonly StackPanel _row;
+        private readonly StackPanel _rows;        // one horizontal panel of types per row of the layout
         private readonly Border _handle;
         private readonly DispatcherTimer _handleHide;
         private readonly List<Ellipse> _icons = new List<Ellipse>();
@@ -79,7 +80,7 @@ namespace HsbgCardLookup.Ui
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
             _config = config; _ui = ui;
-            _row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            _rows = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
 
             var arrow = new Path
             {
@@ -96,7 +97,7 @@ namespace HsbgCardLookup.Ui
                 Cursor = Cursors.SizeNESW, Child = arrow
             };
             var grid = new Grid();
-            grid.Children.Add(_row);
+            grid.Children.Add(_rows);
             grid.Children.Add(_handle);
             _root = new Border
             {
@@ -189,13 +190,17 @@ namespace HsbgCardLookup.Ui
                 canvas.SizeChanged += (s, e) => { if (_root.Visibility == Visibility.Visible) Layout(); };
                 _attached = true;
             }
-            string key = string.Join(",", _tribes);
+            int perRow = PerRow(_config.LobbyTribesLayout);
+            string key = string.Join(",", _tribes) + "|" + perRow;
             if (key != _shownKey)
             {
                 _shownKey = key;
-                _row.Children.Clear(); _icons.Clear(); _labels.Clear();
+                _rows.Children.Clear(); _icons.Clear(); _labels.Clear();
+                StackPanel line = null;
                 foreach (string tribe in _tribes)
                 {
+                    if (line == null || line.Children.Count >= perRow)
+                        _rows.Children.Add(line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center });
                     var icon = new Ellipse { Fill = TribeIcons.BrushFor(tribe), Stroke = TribeIcons.Ring, HorizontalAlignment = HorizontalAlignment.Center };
                     string text = tribe;
                     try { text = TribeLabel?.Invoke(tribe) ?? tribe; } catch { }
@@ -208,12 +213,24 @@ namespace HsbgCardLookup.Ui
                     var cell = new StackPanel();
                     cell.Children.Add(icon);
                     cell.Children.Add(new Grid { Children = { label } });   // a row of one height, the name centred in it
-                    _row.Children.Add(cell);
+                    line.Children.Add(cell);
                     _icons.Add(icon); _labels.Add(label);
                 }
                 Layout();
             }
             if (_root.Visibility != Visibility.Visible) { _root.Visibility = Visibility.Visible; Layout(); }
+        }
+
+        // Types to a row: rows x columns, the last row holding what is left of the five.
+        private static int PerRow(string layout)
+        {
+            switch (layout)
+            {
+                case "5x1": return 1;
+                case "2x3": return 3;
+                case "3x2": return 2;
+                default: return 5;
+            }
         }
 
         private void Layout()
@@ -230,6 +247,8 @@ namespace HsbgCardLookup.Ui
             _root.Padding = new Thickness(5 * s, 5 * s, 5 * s, 4 * s);
             // The arrow sits in the box's own top-right corner whatever the padding has grown to.
             _handle.Margin = new Thickness(0, 2 - 5 * s, 2 - 5 * s, 0);
+            for (int i = 1; i < _rows.Children.Count; i++)
+                ((FrameworkElement)_rows.Children[i]).Margin = new Thickness(0, 3 * s, 0, 0);
             for (int i = 0; i < _icons.Count; i++)
             {
                 _icons[i].Width = _icons[i].Height = 34 * s;

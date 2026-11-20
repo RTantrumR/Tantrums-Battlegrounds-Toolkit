@@ -56,7 +56,7 @@ namespace HsbgCardLookup.Config
             "ShowTrinkets", "ShowAnomaly", "LesserTrinketHud", "GreaterTrinketHud", "Trinket3Hud", "Trinket4Hud", "AnomalyHud",
             "ShowOpponentMmr", "OpponentMmrMode", "OpponentNameMode", "OpponentNameType", "ShowMmrDeltas", "TavernTierMode",
             "ShowLastOpponent", "DimDeadPlayers", "OpponentTribeMode", "PortraitTextSize", "PortraitIconSize", "MmrPanelHud",
-            "ShowLobbyTribes", "LobbyTribesHud", "AssemblePanels", "PanelLinks", "ShowTurnCounter", "TurnCounterHud",
+            "ShowLobbyTribes", "LobbyTribesLayout", "LobbyTribesHud", "AssemblePanels", "PanelLinks", "ShowTurnCounter", "TurnCounterHud",
             "ShowOpponentBoards", "BoardPinOnClick", "OpponentBoardsHud",
             "ShowDarkGifts", "DarkGiftMode", "DarkGiftPoolCount",
         };
@@ -73,6 +73,7 @@ namespace HsbgCardLookup.Config
             { "TavernTierMode", v => Places.Contains(v) }, { "OpponentTribeMode", v => Places.Contains(v) },
             { "OpponentNameType", v => v == "Battletags" || v == "Heroes" },
             { "DarkGiftMode", v => v == "Both" || v == "Gifts" || v == "Minions" },
+            { "LobbyTribesLayout", v => v == "1x5" || v == "5x1" || v == "2x3" || v == "3x2" },
         };
 
         private static bool IsKey(string v) => KeyNames.Contains(v) && !NoKeys.Contains(v);

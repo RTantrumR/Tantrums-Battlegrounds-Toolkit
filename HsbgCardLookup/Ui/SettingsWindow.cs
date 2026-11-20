@@ -871,6 +871,19 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
+            // Rows x columns: the captions are the same in every language.
+            var typesLayout = CycleRow(Strings.T("settings.lobbyTribes.layout"),
+                new[] { "1x5", "5x1", "2x3", "3x2" },
+                new[] { "1 × 5", "5 × 1", "2 × 3", "3 × 2" },
+                new[]
+                {
+                    Strings.T("settings.lobbyTribes.layoutRow"), Strings.T("settings.lobbyTribes.layoutColumn"),
+                    Strings.T("settings.lobbyTribes.layoutTwoRows"), Strings.T("settings.lobbyTribes.layoutThreeRows")
+                },
+                () => _config.LobbyTribesLayout, v => _config.LobbyTribesLayout = v);
+            FollowPart(typesLayout, () => _config.ShowLobbyTribes);
+            stack.Children.Add(typesLayout);
+
             stack.Children.Add(ToggleRow(Strings.T("settings.general.assemble"), _config.AssemblePanels, v =>
             {
                 _config.AssemblePanels = v;
