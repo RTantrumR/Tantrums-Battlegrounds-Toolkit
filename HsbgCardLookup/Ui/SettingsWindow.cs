@@ -92,8 +92,10 @@ namespace HsbgCardLookup.Ui
             _skipUpdate = skipUpdate;
 
             Title = Strings.F("settings.windowTitle", ToolkitApp.DisplayName);
-            WindowStyle = WindowStyle.SingleBorderWindow;
+            // No system frame: the title bar is drawn here (TitleBar), in the window's own colours.
+            WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
+            try { Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = UiKit.ThinScrollBarStyle(9); } catch { }
             Width = NavW + PageW;
             SizeToContent = SizeToContent.Height;   // auto-fit the height to whatever rows exist
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -343,7 +345,7 @@ namespace HsbgCardLookup.Ui
         private void BuildMain() { BuildCardSearch(); }
 
         // The tab column: one entry per page, the one on screen marked; a feature's entry carries a dot
-        // for on/off (the switch itself heads its page). Website and Close sit at its foot.
+        // for on/off (the switch itself heads its page). Website and Support sit at its foot.
         private UIElement Nav()
         {
             var tabs = new StackPanel();
@@ -366,17 +368,9 @@ namespace HsbgCardLookup.Ui
             tabs.Children.Add(_navNone);
             FilterNav();
 
-            var closeLabel = new TextBlock { Text = Strings.T("settings.common.close"), Foreground = UiKit.TextPrimary, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center };
-            var close = new Border
-            {
-                Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 8, 0, 0), Child = closeLabel
-            };
-            close.MouseLeftButtonUp += (s, e) => Close();
             var foot = new StackPanel();
             foot.Children.Add(WebsiteButton());
-            foot.Children.Add(close);
+            foot.Children.Add(SupportButton());
 
             var column = new DockPanel { LastChildFill = true, Margin = new Thickness(14, 22, 14, 22) };
             DockPanel.SetDock(foot, Dock.Bottom);
@@ -460,6 +454,78 @@ namespace HsbgCardLookup.Ui
             b.MouseLeftButtonUp += (s, e) => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "")
                 + "?utm_source=toolkit&utm_medium=settings&utm_campaign=website");
             return b;
+        }
+
+        // ── Support button: the site's own "Support us" (dark rose, pink rim, a heart) ──
+
+        private static readonly Color SupportBg = Color.FromRgb(0x3A, 0x1C, 0x2A);
+        private static readonly Color SupportBgDark = Color.FromRgb(0x2A, 0x14, 0x1F);
+        private static readonly Color SupportRim = Color.FromRgb(0xB8, 0x3F, 0x78);
+        private static readonly Color SupportPink = Color.FromRgb(0xF4, 0x8F, 0xB6);
+
+        private Border SupportButton()
+        {
+            var heart = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M12 21 C5 15 2 12 2 8 A5 5 0 0 1 12 6 A5 5 0 0 1 22 8 C22 12 19 15 12 21 Z"),
+                Fill = new SolidColorBrush(SupportPink), Stretch = Stretch.Uniform, Width = 15, Height = 14,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1, 8, 0)
+            };
+            var text = new TextBlock
+            {
+                Text = Strings.T("settings.support"), FontSize = 14, FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(SupportPink), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap
+            };
+            var row = new DockPanel { LastChildFill = true, HorizontalAlignment = HorizontalAlignment.Center };
+            DockPanel.SetDock(heart, Dock.Left);
+            row.Children.Add(heart);
+            row.Children.Add(text);
+            var b = new Border
+            {
+                Background = new LinearGradientBrush(SupportBg, SupportBgDark, 90),
+                BorderBrush = new SolidColorBrush(SupportRim), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 8, 0, 0), Child = row
+            };
+            b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(SupportPink);
+            b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(SupportRim);
+            b.MouseLeftButtonUp += (s, e) => OpenUrl(Net.AssetClient.SiteBase + Locales.SitePath(Strings.Web, "/support")
+                + "?utm_source=toolkit&utm_medium=settings&utm_campaign=support");
+            return b;
+        }
+
+        // ── Title bar: the window has no system frame, so its name, the drag and the close are here ──
+
+        private const double TitleH = 34;
+
+        private UIElement TitleBar()
+        {
+            var name = new TextBlock
+            {
+                Text = Title, Foreground = UiKit.TextSecondary, FontSize = 13, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(14, 0, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            var glyph = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M0 0 L10 10 M10 0 L0 10"), Stroke = UiKit.TextSecondary, StrokeThickness = 1.3,
+                Width = 10, Height = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
+            var close = new Border { Width = 46, Background = Brushes.Transparent, Child = glyph };
+            close.MouseEnter += (s, e) => { close.Background = UiKit.Br(Color.FromRgb(0xC4, 0x2B, 0x1C)); glyph.Stroke = Brushes.White; };
+            close.MouseLeave += (s, e) => { close.Background = Brushes.Transparent; glyph.Stroke = UiKit.TextSecondary; };
+            close.MouseLeftButtonDown += (s, e) => e.Handled = true;        // not the start of a drag
+            close.MouseLeftButtonUp += (s, e) => { e.Handled = true; Close(); };
+            var row = new DockPanel { LastChildFill = true };
+            DockPanel.SetDock(close, Dock.Right);
+            row.Children.Add(close);
+            row.Children.Add(name);
+            var bar = new Border
+            {
+                Height = TitleH, Child = row, Background = UiKit.Br(Color.FromRgb(0x0A, 0x0D, 0x13)),
+                BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(0, 0, 0, 1)
+            };
+            bar.MouseLeftButtonDown += (s, e) => { try { DragMove(); } catch { } };
+            return bar;
         }
 
         private static void OpenUrl(string url)
@@ -1299,7 +1365,7 @@ namespace HsbgCardLookup.Ui
                 Content = _pageRoot,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 90)
+                MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 60 - TitleH)
             };
             // One height for most pages, so stepping through the tabs does not resize the window.
             var both = new DockPanel { LastChildFill = true, MinHeight = Math.Min(MinPageH, page.MaxHeight) };
@@ -1307,7 +1373,12 @@ namespace HsbgCardLookup.Ui
             DockPanel.SetDock(nav, Dock.Left);
             both.Children.Add(nav);
             both.Children.Add(page);
-            Content = both;
+            var all = new DockPanel { LastChildFill = true };
+            var bar = TitleBar();
+            DockPanel.SetDock(bar, Dock.Top);
+            all.Children.Add(bar);
+            all.Children.Add(both);
+            Content = new Border { Child = all, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1) };
             MarkPage();
             if (_term.Length > 0 && !_searchTyping)
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() => { try { _searchBox.Focus(); _searchBox.CaretIndex = _searchBox.Text.Length; } catch { } }));

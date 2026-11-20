@@ -306,6 +306,7 @@
   "bell.update.skip": "Skip",
   "bell.patch.title": "Patch {0} notes",
   "settings.website": "Website",
+  "settings.support": "Support the project",
   "settings.tools.title": "BepInEx mods",
   "settings.main.toolsHint": "Find, install and manage mods for Hearthstone",
   "settings.tools.intro": "Each mod is installed by its own Setup, which also adds BepInEx if it's missing. Download opens the Setup in your browser.",
