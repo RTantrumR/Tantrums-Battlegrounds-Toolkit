@@ -4,6 +4,7 @@ v1.0.1
 - A bell now sits left of the search button. A green number means a new version of the toolkit is out, a yellow one means new patch notes. Click it for a small menu: download the update, skip it, or open the patch notes in your language. Read items stay in the menu, so you can still open a link after the match.
 - The bell replaces the "Update available" tag above the search button and the bell inside the card search.
 - A pinned opponent board has a resize arrow in its top-right corner while the cursor is on it. Drag it and the board grows or shrinks around the middle of its top edge. To move the board, use "Position the board" in Settings as before.
+- Right-click the lobby minion types box, while it stands on its own, to pick its layout on the spot.
 - After two panels join, a short hint under them says how to undo it: right-click the panel.
 
 ### Settings

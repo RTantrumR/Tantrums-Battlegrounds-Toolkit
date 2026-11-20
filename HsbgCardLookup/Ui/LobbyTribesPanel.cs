@@ -120,6 +120,14 @@ namespace HsbgCardLookup.Ui
                 if (PanelDock.Grouped(this)) { _handle.Visibility = Visibility.Collapsed; return; }     // an assembled group has one arrow of its own
                 _handle.Visibility = Visibility.Visible; _handleHide.Stop(); _handleHide.Start();
             };
+            // A right-click on the box by itself offers its layouts; in an assembled group the same
+            // click is the group's ("take the panels apart", PanelDock).
+            _root.MouseRightButtonUp += (s, e) =>
+            {
+                if (PanelDock.Grouped(this)) return;
+                e.Handled = true;
+                LayoutMenu();
+            };
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
 
             LoadPlacement();
@@ -223,6 +231,29 @@ namespace HsbgCardLookup.Ui
             }
             if (_root.Visibility != Visibility.Visible) { _root.Visibility = Visibility.Visible; Layout(); }
         }
+
+        // The four layouts as a menu under the cursor, the one in use ticked. Rows x columns, written
+        // the same in every language (as in Settings).
+        private void LayoutMenu()
+        {
+            string now = PerRow(_config.LobbyTribesLayout) == 5 ? "1x5" : _config.LobbyTribesLayout;
+            var items = new List<KeyValuePair<string, Action>>();
+            foreach (string layout in new[] { "1x5", "5x1", "2x3", "3x2" })
+            {
+                string pick = layout;
+                items.Add(new KeyValuePair<string, Action>((pick == now ? "✓  " : "     ") + pick.Replace("x", " × "), () =>
+                {
+                    _config.LobbyTribesLayout = pick;
+                    try { _config.Save(); } catch { }
+                    _shownKey = null;
+                    PanelDock.Invalidate();
+                }));
+            }
+            HudContextMenu.ShowMenu(items);
+        }
+
+        /// <summary>Test aid: the layout menu, as a right-click on the box opens it.</summary>
+        public static void TestMenu() { _current?.LayoutMenu(); }
 
         // Types to a row: rows x columns, the last row holding what is left of the five.
         private static int PerRow(string layout)

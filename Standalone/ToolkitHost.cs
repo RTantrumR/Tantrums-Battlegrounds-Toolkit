@@ -185,6 +185,14 @@ namespace Toolkit.Standalone
                         if (term.Length > 0) toolkit.OpenSettings(term); else toolkit.OpenSettings();
                     }
 
+                    // Test aid: tribesmenu.trigger opens the lobby types box's layout menu under the cursor.
+                    string menuFile = Path.Combine(Shared.ExeDir, "tribesmenu.trigger");
+                    if (File.Exists(menuFile))
+                    {
+                        try { File.Delete(menuFile); } catch { }
+                        HsbgCardLookup.Ui.LobbyTribesPanel.TestMenu();
+                    }
+
                     // Test aid: testboard.trigger next to the exe switches a fixed sample board on or off.
                     string sampleFile = Path.Combine(Shared.ExeDir, "testboard.trigger");
                     if (File.Exists(sampleFile))
