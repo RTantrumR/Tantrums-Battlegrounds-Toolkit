@@ -249,7 +249,7 @@ namespace HsbgCardLookup.Ui
                     PanelDock.Invalidate();
                 }));
             }
-            HudContextMenu.ShowMenu(items);
+            HudContextMenu.ShowMenu(items, 0);
         }
 
         /// <summary>Test aid: the layout menu, as a right-click on the box opens it.</summary>

@@ -24,14 +24,16 @@ namespace HsbgCardLookup.Ui
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xF2, 0x10, 0x14, 0x1C));
 
-        public static void ShowMenu(IReadOnlyList<KeyValuePair<string, Action>> items)
+        /// <param name="minWidth">The least width of the menu; 0 for a menu of short entries, which
+        /// is then as wide as they are.</param>
+        public static void ShowMenu(IReadOnlyList<KeyValuePair<string, Action>> items, double minWidth = 170)
         {
             try { _open?.Close(); } catch { }
-            _open = new HudContextMenu(items);
+            _open = new HudContextMenu(items, minWidth);
             _open.Show();
         }
 
-        private HudContextMenu(IReadOnlyList<KeyValuePair<string, Action>> items)
+        private HudContextMenu(IReadOnlyList<KeyValuePair<string, Action>> items, double minWidth)
         {
             WindowStyle = WindowStyle.None;
             AllowsTransparency = true;
@@ -43,7 +45,7 @@ namespace HsbgCardLookup.Ui
             SizeToContent = SizeToContent.WidthAndHeight;
             WindowStartupLocation = WindowStartupLocation.Manual;
 
-            var stack = new StackPanel { MinWidth = 170 };
+            var stack = new StackPanel { MinWidth = minWidth };
             foreach (var it in items)
             {
                 var row = new Border
@@ -67,6 +69,9 @@ namespace HsbgCardLookup.Ui
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(0, 4, 0, 4),
+                // Windows keeps a top-level window at least ~136 px wide; a menu of short entries is
+                // narrower than that, so the panel hugs its entries and the rest of the window is clear.
+                HorizontalAlignment = HorizontalAlignment.Left,
                 Child = stack
             };
 
