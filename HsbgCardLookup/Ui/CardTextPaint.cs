@@ -161,7 +161,6 @@ namespace HsbgCardLookup.Ui
                     if (wrapped != null) { set = wrapped; size = s; }
                 }
                 if (set == null) return render;
-                Log?.Invoke("[boards] card text: measured " + measured.ToString("0.0") + " px, pitch " + pitch.ToString("0.00") + ", " + oldLines.Count + " lines; set at " + size.ToString("0.0") + " px on " + set.Count + " lines");
 
                 var clean = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, px, w * 4);
                 var visual = new DrawingVisual();
