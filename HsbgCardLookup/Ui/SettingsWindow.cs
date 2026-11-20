@@ -376,8 +376,8 @@ namespace HsbgCardLookup.Ui
                     Changed();
                 }, BuildDarkGifts));
 
-            stack.Children.Add(CategoryRow(Strings.T("settings.cardSearch.title"),
-                Strings.T("settings.main.cardSearchHint"),
+            stack.Children.Add(CategoryRow(Strings.T("settings.general.title"),
+                Strings.T("settings.main.generalHint"),
                 null, null, BuildCardSearch));
 
             stack.Children.Add(CategoryRow(Strings.T("settings.trinkets.title"),
@@ -801,7 +801,7 @@ namespace HsbgCardLookup.Ui
         private void BuildCardSearch()
         {
             _currentPage = BuildCardSearch;
-            var stack = NewPage(Strings.T("settings.cardSearch.title"), sub: true);
+            var stack = NewPage(Strings.T("settings.general.title"), sub: true);
 
             stack.Children.Add(new TextBlock
             {
@@ -815,6 +815,13 @@ namespace HsbgCardLookup.Ui
             stack.Children.Add(KeyRow("focus", Strings.T("settings.cardSearch.keyFocusSearch")));
 
             stack.Children.Add(Separator());
+
+            stack.Children.Add(ToggleRow(Strings.T("settings.general.turnCounter"), _config.ShowTurnCounter, v =>
+            {
+                _config.ShowTurnCounter = v;
+                _status.Text = v ? Strings.T("settings.general.turnCounterOn") : Strings.T("settings.general.turnCounterOff");
+                Changed();
+            }));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {

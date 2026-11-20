@@ -44,6 +44,7 @@ namespace HsbgCardLookup
         private Game.BgMmr _bgMmr;                                // opt-in in-match opponent-MMR reader
         private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
         private Ui.OpponentBoardPanel _boardPanel;                // …shown from the leaderboard portraits
+        private Ui.TurnCounterPanel _turnCounter;                 // the match's turn number, top right
         private Ui.LobbyTribesPanel _lobbyTribes;                 // the lobby's minion types, whole match
         private Game.DarkGiftWatcher _darkGifts;                  // opt-in Dark Gift list (“?” marker by the button)
         private Ui.ArrangeBanner _arrangeBanner;                  // in-game strip shown while positioning
@@ -100,6 +101,7 @@ namespace HsbgCardLookup
             _bgMmr = new Game.BgMmr(_config, _ui, Log, HeroDisplayName);
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
+            _turnCounter = new Ui.TurnCounterPanel(_config, _ui);
             _opponentBoards = new Game.OpponentBoards(_store, Log);
             _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards, Log);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
@@ -134,6 +136,7 @@ namespace HsbgCardLookup
             _opponentBoards?.Poll(); // remembers each opponent's board as a fight begins
             _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
+            _turnCounter?.Poll(); // the turn number
             _darkGifts?.Poll();  // opt-in Dark Gift list (“?” marker above the Dark Discovery button)
             _searchButton?.Poll(); // in-game 🔍 button by the card-list book (shows during a BG match)
             _bell?.Poll();         // the bell beside it
@@ -156,6 +159,7 @@ namespace HsbgCardLookup
                 _bgMmr?.CloseAll();
                 _darkGifts?.CloseAll();
                 _lobbyTribes?.CloseAll();
+                _turnCounter?.CloseAll();
                 _boardPanel?.CloseAll();
                 _searchButton?.CloseAll();
                 _bell?.CloseAll();
@@ -454,6 +458,7 @@ namespace HsbgCardLookup
             _overlayLarge?.OnLanguageChanged();
             _darkGifts?.OnLanguageChanged();
             _lobbyTribes?.OnLanguageChanged();
+            _turnCounter?.OnLanguageChanged();
             _boardPanel?.OnLanguageChanged();
             _bgHud?.OnLanguageChanged();
             _bgMmr?.OnLanguageChanged();
@@ -509,6 +514,7 @@ namespace HsbgCardLookup
             _bgMmr?.OnSettingsChanged();    // opponent-MMR reader on/off
             _darkGifts?.OnSettingsChanged(); // Dark Gift panel on/off
             _lobbyTribes?.OnSettingsChanged();
+            _turnCounter?.OnSettingsChanged();
             _boardPanel?.OnSettingsChanged();
             _searchButton?.OnSettingsChanged(); // in-game search button on/off
             _bell?.OnSettingsChanged();         // stands down during an arrange session
