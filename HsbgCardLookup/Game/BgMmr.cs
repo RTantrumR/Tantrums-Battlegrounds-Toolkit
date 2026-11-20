@@ -557,7 +557,8 @@ namespace HsbgCardLookup.Game
                     _overlay.ShowTribes = TribesOnPortraits;
                     _overlay.ShowLastOpp = _config.ShowLastOpponent;
                     _overlay.DimDead = _config.DimDeadPlayers;
-                    _overlay.UserScale = _config.PortraitSize / 100.0;
+                    _overlay.PlateScale = _config.PortraitTextSize / 100.0;
+                    _overlay.IconScale = _config.PortraitIconSize / 100.0;
                     _overlay.SetStandings(rows);
                 }
                 else _overlay.HideAll();

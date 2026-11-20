@@ -1117,20 +1117,24 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
-            // ── By the portraits: one size for the plate and the icons, shown on the game's own
-            // leaderboard. The demonstration follows the slider at once; the game follows when the
-            // drag settles (ChangedLive).
+            // ── By the portraits: a size for the name / MMR plate and one for the tier and type
+            // icons, shown on the game's own leaderboard. The demonstration follows a slider at once;
+            // the game follows when the drag settles (ChangedLive).
             stack.Children.Add(GroupHeader(Strings.T("settings.mmr.portraitsHeader")));
             const int sizeStep = 5;
             _portraitsPreview = new PortraitsPreview(_config, 394);
-            stack.Children.Add(SliderRow(Strings.T("settings.mmr.portraitSize"),
-                (PluginConfig.MaxPortraitSize - PluginConfig.MinPortraitSize) / sizeStep,
-                () => (_config.PortraitSize - PluginConfig.MinPortraitSize) / sizeStep,
-                i => { _config.PortraitSize = PluginConfig.MinPortraitSize + i * sizeStep; _portraitsPreview?.Refresh(); },
-                i => (PluginConfig.MinPortraitSize + i * sizeStep) + "%",
-                i => Strings.T("settings.mmr.portraitSizeHint"),
-                () => _config.MmrOnPortraits || _config.NamesOnPortraits
-                      || PluginConfig.OnPortraits(_config.TavernTierMode) || PluginConfig.OnPortraits(_config.OpponentTribeMode)));
+            Func<string, Func<int>, Action<int>, string, Func<bool>, UIElement> sizeRow = (label, get, set, hint, live) =>
+                SliderRow(label, (PluginConfig.MaxPortraitSize - PluginConfig.MinPortraitSize) / sizeStep,
+                    () => (get() - PluginConfig.MinPortraitSize) / sizeStep,
+                    i => { set(PluginConfig.MinPortraitSize + i * sizeStep); _portraitsPreview?.Refresh(); },
+                    i => (PluginConfig.MinPortraitSize + i * sizeStep) + "%",
+                    i => hint, live);
+            stack.Children.Add(sizeRow(Strings.T("settings.mmr.portraitTextSize"),
+                () => _config.PortraitTextSize, v => _config.PortraitTextSize = v, Strings.T("settings.mmr.portraitTextSizeHint"),
+                () => _config.MmrOnPortraits || _config.NamesOnPortraits));
+            stack.Children.Add(sizeRow(Strings.T("settings.mmr.portraitIconSize"),
+                () => _config.PortraitIconSize, v => _config.PortraitIconSize = v, Strings.T("settings.mmr.portraitIconSizeHint"),
+                () => PluginConfig.OnPortraits(_config.TavernTierMode) || PluginConfig.OnPortraits(_config.OpponentTribeMode)));
             stack.Children.Add(_portraitsPreview.Root);
             _modeRefresh.Add(() => _portraitsPreview?.Refresh());
 

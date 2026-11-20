@@ -76,7 +76,8 @@ namespace HsbgCardLookup.Ui
                 _overlay.ShowTribes = PluginConfig.OnPortraits(_config.OpponentTribeMode);
                 _overlay.ShowLastOpp = _config.ShowLastOpponent;
                 _overlay.DimDead = _config.DimDeadPlayers;
-                _overlay.UserScale = _config.PortraitSize / 100.0;
+                _overlay.PlateScale = _config.PortraitTextSize / 100.0;
+                _overlay.IconScale = _config.PortraitIconSize / 100.0;
                 _overlay.SetStandings(Rows());
             }
             catch { }

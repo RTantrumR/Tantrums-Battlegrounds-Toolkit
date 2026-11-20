@@ -103,11 +103,12 @@ namespace HsbgCardLookup.Ui
         private readonly Canvas _host;      // a canvas of our own (the settings demonstration); null = the overlay's
         private Canvas Host => _host ?? HostServices.Overlay?.Canvas;
 
-        /// <summary>The player's own size for everything drawn by the portraits (config PortraitSize,
-        /// 0.70..1.35), on top of the game window's scale. Each part grows about its own anchor: the
-        /// plate from its bottom edge, centred on the portrait; the tier and type icons about the
-        /// middle of the pair, from the plate's right edge.</summary>
-        public double UserScale { get; set; } = 1;
+        /// <summary>The player's own sizes for what is drawn by the portraits (config PortraitTextSize
+        /// and PortraitIconSize, 0.70..1.35), on top of the game window's scale. Each part grows about
+        /// its own anchor: the plate from its bottom edge, centred on the portrait; the tier and type
+        /// icons about the middle of the pair, from the portrait's (or a wider plate's) right edge.</summary>
+        public double PlateScale { get; set; } = 1;
+        public double IconScale { get; set; } = 1;
         // The tier + type pair is 65 px tall at 1080p and duos cells are 78 px apart: past this the
         // icons of two teammates would run into each other.
         private const double DuosMaxIconScale = 1.2;
@@ -332,9 +333,9 @@ namespace HsbgCardLookup.Ui
 
             double refH = TwoLines ? RefLabelH : RefLabelH1;
             double lift = TwoLines ? 0.0 : RefNoNameLift;
-            double k = Math.Max(0.5, Math.Min(UserScale, 2.0));
-            double ls = scale * k;                                              // the plate and its text
-            double si = scale * (IsDuos ? Math.Min(k, DuosMaxIconScale) : k);   // the icons and their numbers
+            double ki = Math.Max(0.5, Math.Min(IconScale, 2.0));
+            double ls = scale * Math.Max(0.5, Math.Min(PlateScale, 2.0));         // the plate and its text
+            double si = scale * (IsDuos ? Math.Min(ki, DuosMaxIconScale) : ki);   // the icons and their numbers
 
             for (int i = 0; i < MaxSlots; i++)
             {

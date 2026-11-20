@@ -55,7 +55,7 @@ namespace HsbgCardLookup.Config
             "DragFromDetail", "DragFromGrid", "FloatingCardWidth",
             "ShowTrinkets", "ShowAnomaly", "LesserTrinketHud", "GreaterTrinketHud", "Trinket3Hud", "Trinket4Hud", "AnomalyHud",
             "ShowOpponentMmr", "OpponentMmrMode", "OpponentNameMode", "OpponentNameType", "ShowMmrDeltas", "TavernTierMode",
-            "ShowLastOpponent", "DimDeadPlayers", "OpponentTribeMode", "PortraitSize", "MmrPanelHud",
+            "ShowLastOpponent", "DimDeadPlayers", "OpponentTribeMode", "PortraitTextSize", "PortraitIconSize", "MmrPanelHud",
             "ShowLobbyTribes", "LobbyTribesHud", "AssemblePanels", "PanelLinks", "ShowTurnCounter", "TurnCounterHud",
             "ShowOpponentBoards", "BoardPinOnClick", "OpponentBoardsHud",
             "ShowDarkGifts", "DarkGiftMode", "DarkGiftPoolCount",
