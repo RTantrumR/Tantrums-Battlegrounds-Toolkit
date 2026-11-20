@@ -146,7 +146,7 @@
   "settings.boards.label": "Opponents' last boards",
   "settings.boards.intro": "Hover a leaderboard portrait to see the board that player last fought you with, and the turn it is from. Rest the cursor on a minion to open its card.",
   "settings.boards.pin": "Click a portrait to keep its board open",
-  "settings.boards.pinOn": "A click on a portrait keeps its board open. Click the portrait again, or the board itself, to close it.",
+  "settings.boards.pinOn": "A click on a portrait keeps its board open. Click the portrait again, or the board itself, to close it. Drag the arrow in a pinned board's corner to resize it.",
   "settings.boards.pinOff": "Boards show only while the cursor is on a portrait.",
   "settings.boards.arrangeTitle": "Position the board",
   "settings.boards.on": "Opponents' last boards on.",

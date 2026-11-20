@@ -25,9 +25,11 @@ namespace HsbgCardLookup.Ui
     /// Dark Gift as a small medallion; resting the cursor on a minion of a shown board opens its card
     /// with the board's stats, and its gifts' cards beside it.
     ///
-    /// In a match nothing here takes mouse input: the cursor and the left button are read on the poll,
-    /// so the overlay stays click-through and the game keeps every click. Only while it is being
-    /// arranged from Settings does it take the mouse: drag to move, the corner grabber to scale
+    /// In a match the board itself takes no mouse input: the cursor and the left button are read on
+    /// the poll, so the overlay stays click-through and the game keeps every click. The one exception
+    /// is the corner arrow of a PINNED board (shown while the cursor is on the board): dragging it
+    /// scales the board about the middle of its top edge. Moving the board is for arranging from
+    /// Settings, where the whole box takes the mouse: drag to move, the arrow to scale
     /// (config <c>OpponentBoardsHud</c>; unset = hugging the top edge, centred).
     /// </summary>
     public sealed class OpponentBoardPanel
@@ -58,6 +60,11 @@ namespace HsbgCardLookup.Ui
         private readonly Canvas _row;
         private readonly StackPanel _cards;       // the opened card(s), a canvas child of their own
         private readonly Grid _grip;              // takes the mouse while arranging, collapsed otherwise
+        private readonly Border _handle;          // the size arrow: while arranging, and on a pinned board
+        // What the box shows now, for drawing it again at another size.
+        private OpponentBoard _lastBoard;
+        private string _lastHero;
+        private PlayerHistory _lastHistory;
         private bool _attached;
         private const double MinScale = 0.3, MaxScale = 4.0;   // of the settled (pixel) scale
         private bool _settled;                                  // _userScale already holds the window's share
@@ -177,28 +184,29 @@ namespace HsbgCardLookup.Ui
                 Data = Geometry.Parse("M3 9 L9 3 M9 3 L9 6 M9 3 L6 3"),
                 Stroke = Brushes.White, StrokeThickness = 1.6, Stretch = Stretch.Uniform, Margin = new Thickness(4)
             };
-            var handle = new Border
+            _handle = new Border
             {
                 Width = 22, Height = 22, CornerRadius = new CornerRadius(5),
                 Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x00, 0x00, 0x00)),
                 BorderBrush = UiKit.AccentBrush, BorderThickness = new Thickness(1),
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 2, 2, 0), Cursor = Cursors.SizeNESW, Child = arrow
+                Margin = new Thickness(0, 2, 2, 0), Cursor = Cursors.SizeNESW, Child = arrow,
+                Visibility = Visibility.Collapsed
             };
             _grip = new Grid { Background = Brushes.Transparent, Visibility = Visibility.Collapsed, Cursor = Cursors.SizeAll };
-            _grip.Children.Add(handle);
-            handle.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(true, e); };
+            _handle.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(true, e); };
             _grip.MouseLeftButtonDown += (s, e) => { e.Handled = true; BeginGesture(false, e); };
             stack.IsHitTestVisible = false;
             var grid = new Grid();
             grid.Children.Add(stack);
             grid.Children.Add(_grip);
+            grid.Children.Add(_handle);          // over the grip: the arrow scales, the rest of the box moves
             _root = new Border
             {
                 Background = PanelBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8), Visibility = Visibility.Collapsed, Child = grid
             };
-            if (!preview) { try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { } }
+            if (!preview) { try { HostServices.Overlay?.SetHitTestVisible(_grip); HostServices.Overlay?.SetHitTestVisible(_handle); } catch { } }
             LoadPlacement();
             _cards = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
         }
@@ -222,6 +230,7 @@ namespace HsbgCardLookup.Ui
         {
             if (_root.Visibility != Visibility.Collapsed) _root.Visibility = Visibility.Collapsed;
             if (_cards.Visibility != Visibility.Collapsed) _cards.Visibility = Visibility.Collapsed;
+            if (!_resizing) Arrow(false);
             _opened = null;
             _shown = null;            // shown again later: drawn afresh
         }
@@ -246,6 +255,7 @@ namespace HsbgCardLookup.Ui
                     _arranging = arranging;
                     _grip.Visibility = arranging ? Visibility.Visible : Visibility.Collapsed;
                     if (!arranging) { EndGesture(false); Hide(); }
+                    Arrow(arranging);
                 }
                 if (arranging)
                 {
@@ -284,6 +294,8 @@ namespace HsbgCardLookup.Ui
                     for (int i = 0; i < slots.Count; i++)
                         if (LeaderboardOverlay.PortraitRect(canvas, i, slots[i] == next).Contains(cursor)) { hovered = slots[i]; break; }
                 }
+                // A press on the size arrow is the arrow's own: it neither pins nor lets a board go.
+                if (_resizing || (haveCursor && OverArrow(canvas, cursor))) { click = false; _clickAt = default(DateTime); }
                 if (!_config.BoardPinOnClick) { _pinned = 0; _clickAt = default(DateTime); }
                 else if (click && hovered != 0) { _pinned = _pinned == hovered ? 0 : hovered; _clickAt = default(DateTime); }
                 else if (click && _pinned != 0 && OnBoard(canvas, cursor)) { _pinned = 0; _clickAt = default(DateTime); }   // a click on the board lets it go
@@ -296,6 +308,9 @@ namespace HsbgCardLookup.Ui
                 if (board == null) { Hide(); return; }
 
                 Show(canvas, board, HeroOf(g, pid), history);
+                // The size arrow: on the pinned board, while the cursor is on it (or dragging the arrow).
+                Arrow(_resizing || (_pinned != 0 && pid == _pinned && haveCursor && OnBoard(canvas, cursor)));
+                if (_resizing) return;
                 OpenCardUnder(canvas, haveCursor ? cursor : new Point(-1, -1));
             }
             catch (Exception ex)
@@ -306,6 +321,19 @@ namespace HsbgCardLookup.Ui
             }
         }
         private bool _failed;
+
+        private void Arrow(bool show)
+        {
+            var want = show ? Visibility.Visible : Visibility.Collapsed;
+            if (_handle.Visibility != want) _handle.Visibility = want;
+        }
+
+        private bool OverArrow(Canvas canvas, Point cursor)
+        {
+            if (!_handle.IsVisible || _handle.ActualWidth <= 0) return false;
+            try { return _handle.TransformToAncestor(canvas).TransformBounds(new Rect(0, 0, _handle.ActualWidth, _handle.ActualHeight)).Contains(cursor); }
+            catch { return false; }
+        }
 
         private bool OnBoard(Canvas canvas, Point cursor)
         {
@@ -403,6 +431,7 @@ namespace HsbgCardLookup.Ui
                 }
                 catch { }
             }
+            _lastBoard = board; _lastHero = hero; _lastHistory = history;
             Fill(board, hero, history, _userScale);
             if (_root.Visibility != Visibility.Visible) _root.Visibility = Visibility.Visible;
             Place(canvas);
@@ -561,7 +590,7 @@ namespace HsbgCardLookup.Ui
                 // ways from its middle, hence twice the cursor's travel).
                 double w0 = Math.Max(80, _root.ActualWidth / (_userScale / _startScale));
                 double next = Clamp(Math.Round(_startScale * (w0 + 2 * dx) / w0, 2), MinScale, MaxScale);
-                if (next != _userScale) { _userScale = next; Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory); }
+                if (next != _userScale && _lastBoard != null) { _userScale = next; Show(canvas, _lastBoard, _lastHero, _lastHistory); }
             }
         }
 
