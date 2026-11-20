@@ -508,6 +508,19 @@ namespace HsbgCardLookup
             ReapplyFeatures();
         }
 
+        // The settings were replaced wholesale (a config import, a preset): the boxes that read their
+        // place and size once are closed, to be built again from the new values, or told to re-read.
+        private void ReloadLayout()
+        {
+            try { _bgHud?.CloseAll(); } catch { }
+            try { _bgMmr?.CloseAll(); } catch { }
+            Ui.PanelDock.Init(_config);
+            _lobbyTribes?.ReloadPlacement();
+            _turnCounter?.ReloadPlacement();
+            _boardPanel?.ReloadPlacement();
+            ApplySettings();
+        }
+
         // Re-evaluate every canvas feature against the current settings AND the current arrange
         // session. Split out of ApplySettings so entering/leaving arrange can reuse it WITHOUT
         // _config.Save() — that separation is what keeps a temporary force-on out of config.xml.
@@ -580,6 +593,7 @@ namespace HsbgCardLookup
             _settings = new SettingsWindow(_config, _store, _cardLanguage, _hotkey, ApplySettings, SetArrangeMode,
             _version.ToString(), CheckForUpdatesInteractive,
             n => OpenDownloadPage(n?.DownloadUrl), SkipVersion);
+            _settings.ReloadLayout = ReloadLayout;
             _settings.Closed += (s, e) => _settings = null;
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known

@@ -118,9 +118,7 @@ namespace HsbgCardLookup.Ui
             };
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
 
-            var p = _config.LobbyTribesHud;
-            if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = p.WF; }
-            if (p != null && p.Px > 0) { _scale = Clamp(p.Px, MinScale, MaxScale); _settled = true; }
+            LoadPlacement();
 
             PanelDock.Register(this);
             _current = this;
@@ -162,6 +160,17 @@ namespace HsbgCardLookup.Ui
         }
 
         public void OnSettingsChanged() { _shownKey = null; }
+
+        private void LoadPlacement()
+        {
+            _xf = DefaultXF; _yf = DefaultYF; _scale = 1; _settled = false;
+            var p = _config.LobbyTribesHud;
+            if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = p.WF; }
+            if (p != null && p.Px > 0) { _scale = Clamp(p.Px, MinScale, MaxScale); _settled = true; }
+        }
+
+        /// <summary>The saved place and size were replaced wholesale (a config import, a preset).</summary>
+        public void ReloadPlacement() { LoadPlacement(); _shownKey = null; if (_root.Visibility == Visibility.Visible) Layout(); }
         public void OnLanguageChanged() { _shownKey = null; }
         public void CloseAll() { _ui.Invoke(new Action(() => { Hide(); RemoveHook(); })); }
 

@@ -186,13 +186,22 @@ namespace HsbgCardLookup.Ui
                 CornerRadius = new CornerRadius(8), Visibility = Visibility.Collapsed, Child = grid
             };
             try { HostServices.Overlay?.SetHitTestVisible(_grip); } catch { }
-            var p = _config.OpponentBoardsHud;
-            if (p != null && p.Set && p.WF > 0) { _xf = p.XF; _yf = p.YF; _userScale = Math.Max(0.5, Math.Min(p.WF, 2.0)); }
-            if (p != null && p.Px > 0) { _userScale = Math.Max(MinScale, Math.Min(p.Px, MaxScale)); _settled = true; }
+            LoadPlacement();
             _cards = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
         }
 
         public void OnSettingsChanged() { _shown = null; }
+
+        private void LoadPlacement()
+        {
+            _xf = 0.5; _yf = 0; _userScale = 1; _settled = false;
+            var p = _config.OpponentBoardsHud;
+            if (p != null && p.Set && p.WF > 0) { _xf = p.XF; _yf = p.YF; _userScale = Math.Max(0.5, Math.Min(p.WF, 2.0)); }
+            if (p != null && p.Px > 0) { _userScale = Math.Max(MinScale, Math.Min(p.Px, MaxScale)); _settled = true; }
+        }
+
+        /// <summary>The saved place and size were replaced wholesale (a config import, a preset).</summary>
+        public void ReloadPlacement() { LoadPlacement(); _shown = null; }
         public void OnLanguageChanged() { _shown = null; }
         public void CloseAll() { EndGesture(false); RemoveHook(); Hide(); }
 

@@ -359,6 +359,7 @@ namespace HsbgCardLookup.Ui
             tabs.Children.Add(NavTab(Strings.T("settings.anomaly.title"), BuildAnomaly, () => _config.ShowAnomaly));
             tabs.Children.Add(NavTab(Strings.T("settings.updates.title"), BuildUpdates, null));
             tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.config.title"), BuildConfig, null));
             tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
             _navNone = new TextBlock
             {

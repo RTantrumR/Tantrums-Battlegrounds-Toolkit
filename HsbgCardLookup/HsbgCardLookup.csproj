@@ -107,6 +107,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Config\PluginConfig.cs" />
+    <Compile Include="Config\ConfigShare.cs" />
+    <Compile Include="Ui\SettingsConfig.cs" />
     <Compile Include="Data\CardStore.cs" />
     <Compile Include="Localization\Locales.cs" />
     <Compile Include="Localization\LocaleVocab.cs" />

@@ -104,9 +104,18 @@ namespace HsbgCardLookup.Ui
             };
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
 
+            LoadPlacement();
+        }
+
+        private void LoadPlacement()
+        {
+            _xf = DefaultXF; _yf = DefaultYF; _scale = 0;
             var p = _config.TurnCounterHud;
             if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = Clamp(p.WF, MinScale, MaxScale); }
         }
+
+        /// <summary>The saved place and size were replaced wholesale (a config import, a preset).</summary>
+        public void ReloadPlacement() { LoadPlacement(); _stale = true; if (_root.Visibility == Visibility.Visible) Layout(); }
 
         /// <summary>About every 100 ms, on the UI thread.</summary>
         public void Poll()
