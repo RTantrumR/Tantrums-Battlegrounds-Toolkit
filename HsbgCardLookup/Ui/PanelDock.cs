@@ -76,6 +76,9 @@ namespace HsbgCardLookup.Ui
         {
             Panels.RemoveAll(p => p.DockId == panel.DockId);
             Panels.Add(panel);
+            // A join can make a box wider than its content: the content then sits in the middle.
+            var content = panel.DockRoot.Child as FrameworkElement;
+            if (content != null) content.HorizontalAlignment = HorizontalAlignment.Center;
             panel.DockRoot.MouseMove += (s, e) => Hover(panel);
             panel.DockRoot.MouseRightButtonUp += (s, e) =>
             {
@@ -171,9 +174,37 @@ namespace HsbgCardLookup.Ui
                         if (Math.Abs(Canvas.GetLeft(p.DockRoot) - at.X) > 0.4) Canvas.SetLeft(p.DockRoot, at.X);
                         if (Math.Abs(Canvas.GetTop(p.DockRoot) - at.Y) > 0.4) Canvas.SetTop(p.DockRoot, at.Y);
                     }
+                KeepInside();
                 Decorate(true);
             }
             catch { }
+        }
+
+        // A box keeps itself on screen, but a group is moved by its root alone: without this, dragging
+        // a group by a lower box could push the box above it off the top of the screen for good.
+        private static void KeepInside()
+        {
+            var canvas = HostServices.Overlay?.Canvas;
+            if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            foreach (var root in Panels)
+            {
+                if (RootOf(root) != root) continue;
+                var group = GroupOf(root);
+                if (group.Count < 2) continue;
+                Rect b = Rect.Empty;
+                foreach (var p in group) if (Shown(p)) b.Union(RectOf(p));
+                if (b.IsEmpty) continue;
+                double dx = b.Left < 0 ? -b.Left : b.Right > canvas.ActualWidth ? Math.Max(-b.Left, canvas.ActualWidth - b.Right) : 0;
+                double dy = b.Top < 0 ? -b.Top : b.Bottom > canvas.ActualHeight ? Math.Max(-b.Top, canvas.ActualHeight - b.Bottom) : 0;
+                if (Math.Abs(dx) + Math.Abs(dy) < 0.5) continue;
+                foreach (var p in group)
+                {
+                    if (p == root || !Placed(p)) continue;
+                    Canvas.SetLeft(p.DockRoot, Canvas.GetLeft(p.DockRoot) + dx);
+                    Canvas.SetTop(p.DockRoot, Canvas.GetTop(p.DockRoot) + dy);
+                }
+                root.DockMoveTo(Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, _hook == IntPtr.Zero);
+            }
         }
 
         // Square the corners that meet on a seam; everything else keeps the box's own rounding.
