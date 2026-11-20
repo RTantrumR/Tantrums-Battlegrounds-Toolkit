@@ -48,6 +48,10 @@ namespace HsbgCardLookup.Ui
         private readonly Canvas _deity;          // the Deity's cell, left of the warband (no width without one)
         private readonly Canvas _history;        // tavern tiers: the turn each was reached, triples made on it
         private const double HistW = 78, SideGap = 12;
+        // The box never changes size with what it shows: seven minion places (the warband centred in
+        // them), a place for the Deity in a lobby that has one, three columns of tiers.
+        private const int Places = 7;
+        private double _rowShift;                // where the first minion starts inside the row
         // A player we have not fought: no warband to show, the tiers and triples all the same.
         private readonly Dictionary<int, OpponentBoard> _noBoard = new Dictionary<int, OpponentBoard>();
         private string _shownSide;
@@ -101,7 +105,39 @@ namespace HsbgCardLookup.Ui
         }
 
         private int _pinned;              // PLAYER_ID, 0 = none
-        private bool _wasDown;
+        // A click is caught by a fast timer of its own (the 100 ms poll misses a short one) and waits a
+        // moment for the game to say which portrait the mouse is on: that answer comes with the memory
+        // reader's next walk, a quarter of a second behind the mouse.
+        private bool _wasDown, _testWasDown;
+        private DateTime _clickAt;
+        private Point _clickPos;
+        private System.Windows.Threading.DispatcherTimer _clicks;
+
+        private void WatchClicks(Canvas canvas, bool on)
+        {
+            if (!on) { if (_clicks != null && _clicks.IsEnabled) _clicks.Stop(); return; }
+            if (_clicks == null)
+            {
+                _clicks = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Input, canvas.Dispatcher)
+                { Interval = TimeSpan.FromMilliseconds(20) };
+                _clicks.Tick += (s, e) =>
+                {
+                    try
+                    {
+                        short state = GetAsyncKeyState(0x01);              // VK_LBUTTON
+                        bool down = (state & 0x8000) != 0;
+                        // Down now and not before, or pressed and let go between two looks.
+                        bool pressed = (down && !_wasDown) || (!down && !_wasDown && (state & 1) != 0);
+                        _wasDown = down;
+                        Point at;
+                        var c = HostServices.Overlay?.Canvas;
+                        if (pressed && c != null && Cursor(c, out at)) { _clickAt = DateTime.UtcNow; _clickPos = at; }
+                    }
+                    catch { }
+                };
+            }
+            if (!_clicks.IsEnabled) { _wasDown = (GetAsyncKeyState(0x01) & 0x8000) != 0; _clicks.Start(); }
+        }
         private OpponentBoard _shown;     // what the row currently draws
         private int _shownCount;
         private double _shownScale;
@@ -197,14 +233,22 @@ namespace HsbgCardLookup.Ui
                 }
                 if (!_config.ShowOpponentBoards || ArrangeSession.IsActive || g == null || canvas == null || !g.IsBattlegroundsMatch
                     || canvas.ActualHeight <= 0)
-                { Hide(); _pinned = 0; return; }
+                { Hide(); _pinned = 0; WatchClicks(null, false); return; }
+                WatchClicks(canvas, _config.BoardPinOnClick && !TestCursor.HasValue);
 
                 EnsureArt(canvas); EnsureTextFace();
                 Point cursor; bool haveCursor = Cursor(canvas, out cursor);
-                bool down = (GetAsyncKeyState(0x01) & 0x8000) != 0;      // VK_LBUTTON
-                if (TestCursor.HasValue) { cursor = TestCursor.Value; haveCursor = true; down = TestDown; }
-                bool click = down && !_wasDown;
-                _wasDown = down;
+                var now = DateTime.UtcNow;
+                if (TestCursor.HasValue)
+                {
+                    cursor = TestCursor.Value; haveCursor = true;
+                    if (TestDown && !_testWasDown) { _clickAt = now; _clickPos = cursor; }
+                    _testWasDown = TestDown;
+                }
+                // A click stays good for half a second, as long as the mouse has not left the spot.
+                bool click = _clickAt != default(DateTime) && (now - _clickAt).TotalMilliseconds < 500
+                    && haveCursor && (cursor - _clickPos).Length < 40;
+                if (!click) _clickAt = default(DateTime);
 
                 // Which portrait the mouse is on: the game's own answer when the host can read it,
                 // else the solo tile geometry.
@@ -218,9 +262,9 @@ namespace HsbgCardLookup.Ui
                     for (int i = 0; i < slots.Count; i++)
                         if (LeaderboardOverlay.PortraitRect(canvas, i, slots[i] == next).Contains(cursor)) { hovered = slots[i]; break; }
                 }
-                if (!_config.BoardPinOnClick) _pinned = 0;
-                else if (click && hovered != 0) _pinned = _pinned == hovered ? 0 : hovered;
-                else if (click && _pinned != 0 && haveCursor && OnBoard(canvas, cursor)) _pinned = 0;   // a click on the board lets it go
+                if (!_config.BoardPinOnClick) { _pinned = 0; _clickAt = default(DateTime); }
+                else if (click && hovered != 0) { _pinned = _pinned == hovered ? 0 : hovered; _clickAt = default(DateTime); }
+                else if (click && _pinned != 0 && OnBoard(canvas, cursor)) { _pinned = 0; _clickAt = default(DateTime); }   // a click on the board lets it go
 
                 int pid = hovered != 0 ? hovered : _pinned;
                 var board = pid == 0 ? null : _boards.For(pid);
@@ -352,12 +396,14 @@ namespace HsbgCardLookup.Ui
                 _header.Height = HeaderH * scale;
                 _root.Padding = new Thickness(Pad * scale, 4 * scale, Pad * scale, 2 * scale);
                 _row.Children.Clear();
-                _row.Width = board.Minions.Count * CellW * scale;
+                int places = Math.Max(Places, board.Minions.Count);
+                _row.Width = places * CellW * scale;
+                _rowShift = (places - board.Minions.Count) * CellW * scale / 2;
                 _row.Height = CellH * scale;
                 for (int i = 0; i < board.Minions.Count; i++)
                 {
                     var cell = Minion(board.Minions[i], scale);
-                    Canvas.SetLeft(cell, i * CellW * scale);
+                    Canvas.SetLeft(cell, _rowShift + i * CellW * scale);
                     _row.Children.Add(cell);
                 }
             }
@@ -372,7 +418,9 @@ namespace HsbgCardLookup.Ui
         {
             _deity.Children.Clear();
             _deity.Height = CellH * s;
-            _deity.Width = board.Deity == null ? 0 : (CellW + SideGap) * s;
+            bool deityPlace = board.Deity != null || _boards.LobbyHasDeity;
+            _deity.Width = deityPlace ? (CellW + SideGap) * s : 0;
+            if (deityPlace && board.Deity == null) Add(_deity, Line(s), CellW + SideGap / 2, CellH * 0.12, s);
             if (board.Deity != null)
             {
                 _deity.Children.Add(Minion(board.Deity, s));
@@ -381,11 +429,11 @@ namespace HsbgCardLookup.Ui
 
             _history.Children.Clear();
             _history.Height = CellH * s;
-            if (history == null) { _history.Width = 0; return; }
-            int tiers = Math.Min(7, Math.Max(6, history.Tier)), cols = (tiers + 1) / 2;
+            int tiers = Math.Min(7, Math.Max(6, history?.Tier ?? 0)), cols = (tiers + 1) / 2;
             double cellH = CellH / 2;
             _history.Width = (SideGap + cols * HistW) * s;
-            if (board.Minions.Count > 0 || board.Deity != null) Add(_history, Line(s), SideGap / 2, CellH * 0.12, s);
+            Add(_history, Line(s), SideGap / 2, CellH * 0.12, s);
+            if (history == null) return;
             for (int tier = 1; tier <= tiers; tier++)
             {
                 double x = SideGap + (tier - 1) % cols * HistW, y = (tier - 1) / cols * cellH;
@@ -669,6 +717,7 @@ namespace HsbgCardLookup.Ui
                 {
                     var origin = _row.TransformToAncestor(canvas).Transform(new Point(0, 0));
                     double w = CellW * _shownScale;
+                    origin.X += _rowShift;
                     if (cursor.Y >= origin.Y && cursor.Y <= origin.Y + CellH * _shownScale && cursor.X >= origin.X)
                     {
                         index = (int)((cursor.X - origin.X) / w);

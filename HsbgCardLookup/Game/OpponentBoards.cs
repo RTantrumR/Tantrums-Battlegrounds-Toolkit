@@ -103,6 +103,12 @@ namespace HsbgCardLookup.Game
             return _boards.TryGetValue(playerId, out b) && b.Minions.Count > 0 ? b : null;
         }
 
+        /// <summary>This lobby has a Deity: Aberrations are among its minion types. (The game entity
+        /// names a Deity card in every lobby, with or without them.)</summary>
+        public bool LobbyHasDeity { get; private set; }
+        private bool _tribesRead;
+        private const int RaceAberration = 126;
+
         /// <summary>That lobby player's tavern tiers and triples so far; null before they were seen.</summary>
         public PlayerHistory HistoryOf(int playerId)
         {
@@ -149,7 +155,7 @@ namespace HsbgCardLookup.Game
         {
             try
             {
-                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _history.Clear(); _current = null; _setup = _sawSetup = _open = false; }
+                if (_reset) { _reset = false; _boards.Clear(); _seen.Clear(); _history.Clear(); _tribesRead = false; LobbyHasDeity = false; _current = null; _setup = _sawSetup = _open = false; }
                 var g = HostServices.Game;
                 if (g == null || !g.IsBattlegroundsMatch) return;
                 int seat = g.OpponentId;
@@ -197,6 +203,11 @@ namespace HsbgCardLookup.Game
                     if (e.GetTag(Tags.CONTROLLER) != seat || e.GetTag(Tags.ZONE) != ZonePlay) continue;
                     if (!_seen.Add(e.Id)) continue;
                     (found ?? (found = new List<BoardMinion>())).Add(Read(g, e));
+                }
+                if (!_tribesRead && deityCard > 0)
+                {
+                    var tribes = HostServices.Memory?.LobbyTribes();
+                    if (tribes != null && tribes.Count > 0) { _tribesRead = true; LobbyHasDeity = tribes.Contains(RaceAberration); }
                 }
                 if (heroes != null)
                     foreach (var kv in heroes) Track(kv.Key, kv.Value[0], kv.Value[1], turnNow);
