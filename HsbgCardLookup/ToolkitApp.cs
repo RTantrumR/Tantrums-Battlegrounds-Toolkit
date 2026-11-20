@@ -101,6 +101,7 @@ namespace HsbgCardLookup
             _bgMmr = new Game.BgMmr(_config, _ui, Log, HeroDisplayName);
             _darkGifts = new Game.DarkGiftWatcher(_store, _config, _ui, Log);
             Ui.PanelDock.Init(_config);
+            Ui.PanelDock.Log = Log;
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
             _turnCounter = new Ui.TurnCounterPanel(_config, _ui);
             _opponentBoards = new Game.OpponentBoards(_store, Log);

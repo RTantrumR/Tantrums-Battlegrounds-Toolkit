@@ -13,8 +13,9 @@ namespace HsbgCardLookup.Ui
     /// <summary>
     /// Tiny right-click menu for HUD cards (trinkets/anomaly). A real WPF ContextMenu would activate
     /// its popup and steal foreground from the game, so this is another no-activate/topmost window
-    /// (the FloatingCard/DarkGiftPanel pattern). Spawns under the cursor; closes on a click, on
-    /// mouse-leave, or after a timeout.
+    /// (the FloatingCard/DarkGiftPanel pattern). Spawns under the cursor and stays until an item is
+    /// picked or a mouse button goes down anywhere else: closing as the mouse slid off it made it a
+    /// target that ran away (owner, 2026-11-20).
     /// </summary>
     public sealed class HudContextMenu : Window
     {
@@ -69,9 +70,15 @@ namespace HsbgCardLookup.Ui
                 Child = stack
             };
 
-            MouseLeave += (s, e) => CloseMenu();
-            _timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
-            _timeout.Tick += (s, e) => CloseMenu();
+            // No activation means no "lost focus" to go by, so the buttons are watched instead.
+            bool wasDown = AnyButtonDown();
+            _timeout = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+            _timeout.Tick += (s, e) =>
+            {
+                bool down = AnyButtonDown();
+                if (down && !wasDown && !IsMouseOver) CloseMenu();
+                wasDown = down;
+            };
             _timeout.Start();
             Closed += (s, e) => { _timeout.Stop(); if (ReferenceEquals(_open, this)) _open = null; };
             SourceInitialized += OnSourceInitialized;
@@ -83,7 +90,11 @@ namespace HsbgCardLookup.Ui
 
         private void CloseMenu() { try { Close(); } catch { } }
 
-        // Slight overlap so the cursor starts INSIDE the menu — MouseLeave then closes it naturally.
+        private static bool AnyButtonDown() =>
+            (GetAsyncKeyState(0x01) & 0x8000) != 0 || (GetAsyncKeyState(0x02) & 0x8000) != 0 || (GetAsyncKeyState(0x04) & 0x8000) != 0;
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+
+        // Slight overlap so the cursor starts INSIDE the menu.
         private void PlaceAtCursor()
         {
             GetCursorPos(out POINT p);

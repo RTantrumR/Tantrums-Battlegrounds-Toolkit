@@ -148,7 +148,13 @@ namespace HsbgCardLookup.Ui
             {
                 if (Panels.Count == 0) return;
                 if (!Enabled) { Decorate(false); return; }
-                if (_sizing != null) return;                 // being resized as one picture: hands off
+                if (_sizing != null)
+                {
+                    // Being resized as one picture: hands off. Unless the button's release never reached
+                    // us (the game lost focus mid-drag): then the resize ends here.
+                    if ((GetAsyncKeyState(0x01) & 0x8000) != 0) return;
+                    EndSize(true);
+                }
                 // One pass at natural width, so the next can take the wider of the two; the boxes are
                 // still put in place on this one.
                 bool natural = _widthsStale;
@@ -171,21 +177,33 @@ namespace HsbgCardLookup.Ui
                             if (Math.Abs(p.DockRoot.MinWidth - wide) > 0.5 && p.DockRoot.ActualWidth < wide - 0.5) p.DockRoot.MinWidth = wide;
                         }
                         var at = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
-                        if (Math.Abs(Canvas.GetLeft(p.DockRoot) - at.X) > 0.4) Canvas.SetLeft(p.DockRoot, at.X);
-                        if (Math.Abs(Canvas.GetTop(p.DockRoot) - at.Y) > 0.4) Canvas.SetTop(p.DockRoot, at.Y);
+                        // "Not within 0.4 of it", so that a box never placed before (NaN) is placed too: the
+                        // plain "further than 0.4" is false for NaN, and such a box sat at the screen's corner.
+                        if (!(Math.Abs(Canvas.GetLeft(p.DockRoot) - at.X) <= 0.4)) Canvas.SetLeft(p.DockRoot, at.X);
+                        if (!(Math.Abs(Canvas.GetTop(p.DockRoot) - at.Y) <= 0.4)) Canvas.SetTop(p.DockRoot, at.Y);
                     }
                 KeepInside();
                 Decorate(true);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                if (_failed) return;
+                _failed = true;             // once: this runs ten times a second
+                try { Log?.Invoke("[dock] layout: " + ex); } catch { }
+            }
         }
+        private static bool _failed;
+        public static Action<string> Log;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
 
         // A box keeps itself on screen, but a group is moved by its root alone: without this, dragging
         // a group by a lower box could push the box above it off the top of the screen for good.
         private static void KeepInside()
         {
             var canvas = HostServices.Overlay?.Canvas;
-            if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
+            // Not against a window that is not really there (minimised, or still coming up).
+            if (canvas == null || canvas.ActualWidth < 600 || canvas.ActualHeight < 400) return;
             foreach (var root in Panels)
             {
                 if (RootOf(root) != root) continue;
@@ -367,10 +385,7 @@ namespace HsbgCardLookup.Ui
                 if (to != null && root == p)
                 {
                     var from = RectOf(p);
-                    Links[p.DockId] = new Link { Parent = to.DockId, Side = side };
-                    Save();
-                    _widthsStale = false;
-                    Layout();
+                    Join(p, to, side);
                     Joined(p, to, side, from);
                     return;
                 }
@@ -395,11 +410,36 @@ namespace HsbgCardLookup.Ui
             DockSide s;
             if (p == null || !Enum.TryParse(side, out s)) { TakeApart(c); return; }
             var from = RectOf(c);
-            Links[c.DockId] = new Link { Parent = p.DockId, Side = s };
+            Join(c, p, s);
+            Joined(c, p, s, from);
+        }
+
+        // Link the two, and for a stack bring the narrower side up to the wider one's width by SIZE
+        // (its text and icons grow with it), so the join reads as one panel; what little is left over
+        // (a box's width does not follow its size exactly) is evened out by centring.
+        private static void Join(IDockPanel child, IDockPanel parent, DockSide side)
+        {
+            var childSide = GroupOf(child); var parentSide = GroupOf(parent);
+            Links[child.DockId] = new Link { Parent = parent.DockId, Side = side };
             Save();
+            var canvas = HostServices.Overlay?.Canvas;
+            if (canvas != null && (side == DockSide.Top || side == DockSide.Bottom) && Shown(child) && Shown(parent)
+                && !parentSide.Contains(child))          // two groups meeting, not a group re-linked within itself
+            {
+                foreach (var q in childSide.Concat(parentSide)) q.DockRoot.MinWidth = 0;
+                for (int pass = 0; pass < 3; pass++)
+                {
+                    canvas.UpdateLayout();
+                    double wc = child.DockRoot.ActualWidth, wp = parent.DockRoot.ActualWidth;
+                    if (wc <= 0 || wp <= 0) break;
+                    double ratio = wc < wp ? wp / wc : wc / wp;
+                    if (ratio < 1.01) break;
+                    foreach (var q in wc < wp ? childSide : parentSide) q.DockScale = q.DockScale * ratio;
+                }
+                canvas.UpdateLayout();
+            }
             _widthsStale = false;
             Layout();
-            Joined(c, p, s, from);
         }
 
         /// <summary>One box of a group was scaled by <paramref name="ratio"/>: the others follow.</summary>
@@ -437,7 +477,7 @@ namespace HsbgCardLookup.Ui
                 }
                 Decorate(false);
             }
-            catch { }
+            catch (Exception ex) { try { Log?.Invoke("[dock] take apart: " + ex); } catch { } }
         }
 
         private static void Save()
