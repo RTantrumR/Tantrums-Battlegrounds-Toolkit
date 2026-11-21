@@ -79,6 +79,7 @@ namespace HsbgCardLookup.Game
 
         private readonly CardStore _store;
         private readonly Action<string> _log;
+        private bool _noSeat;
         private readonly Dictionary<int, OpponentBoard> _boards = new Dictionary<int, OpponentBoard>();
         private readonly HashSet<int> _seen = new HashSet<int>();
         private Dictionary<string, BgCard> _gifts;
@@ -127,9 +128,13 @@ namespace HsbgCardLookup.Game
             {
                 _history[pid] = h = new PlayerHistory { Tier = tier };
                 if (turn <= 1) h.TierTurn[1] = 1;
+                _log?.Invoke("[tiers] player " + pid + ": first seen at tier " + tier + ", turn " + turn);
             }
             if (tier > h.Tier)
             {
+                // One line per tier-up, with what the read looked like: the trail for "a tier's turn is
+                // missing or late" reports (a jump of two tiers leaves the skipped one without a turn).
+                _log?.Invoke("[tiers] player " + pid + ": tier " + h.Tier + " -> " + tier + " on turn " + turn + (_setup ? " (fight being set up)" : ""));
                 h.Tier = tier;
                 if (turn > 0) h.TierTurn[tier] = turn;
             }
@@ -159,7 +164,14 @@ namespace HsbgCardLookup.Game
                 var g = HostServices.Game;
                 if (g == null || !g.IsBattlegroundsMatch) return;
                 int seat = g.OpponentId;
-                if (seat <= 0) return;
+                // Nothing is read while there is no opposing seat; said once each way, since tier-ups in
+                // such a stretch would be dated late.
+                if (seat <= 0)
+                {
+                    if (!_noSeat) { _noSeat = true; _log?.Invoke("[tiers] no opposing seat on turn " + g.TurnNumber + ": not reading"); }
+                    return;
+                }
+                if (_noSeat) { _noSeat = false; _log?.Invoke("[tiers] opposing seat " + seat + " on turn " + g.TurnNumber + ": reading again"); }
 
                 List<BoardMinion> found = null;
                 int deityCard = 0, deityAttack = 0, deityHealth = 0, turnNow = g.TurnNumber;
