@@ -10,7 +10,9 @@ namespace HsbgCardLookup.Ui
 {
     /// <summary>
     /// A strip across the top of the game while a feature is being positioned: what is being
-    /// arranged, how to move it, and a Done button.
+    /// arranged, how to move it, a "Restore default" button and a Done button. For the opponents'
+    /// board, which starts at the top middle itself, the strip sits at the bottom instead; and it is
+    /// always drawn over what is being arranged, so its buttons can be reached wherever that is put.
     ///
     /// It exists because arrange now deliberately puts Hearthstone in front, and HDT hides its whole
     /// overlay the instant the game loses focus. Without a Done button ON the overlay the only way to
@@ -27,6 +29,10 @@ namespace HsbgCardLookup.Ui
         private const double RefW = 1920;   // the reference width every other placement is tuned at
 
         private readonly Action _onDone;
+        private readonly Action<ArrangeTarget> _onReset;
+        private ArrangeTarget _target;
+        private TextBlock _resetLabel;
+        private Border _reset;
 
         private Border _root;
         private TextBlock _title;
@@ -36,9 +42,10 @@ namespace HsbgCardLookup.Ui
         private StackPanel _stack;
         private bool _attached;
 
-        public ArrangeBanner(Action onDone)
+        public ArrangeBanner(Action onDone, Action<ArrangeTarget> onReset)
         {
             _onDone = onDone;
+            _onReset = onReset;
         }
 
         /// <summary>Show the banner for a feature, or hide it when the session ends.</summary>
@@ -87,8 +94,13 @@ namespace HsbgCardLookup.Ui
                 _attached = true;
             }
 
+            _target = target;
             _title.Text = Strings.F("arrange.positioning", Describe(target));
             _root.Visibility = Visibility.Visible;
+            // Over the arranged thing, whenever it was added to the canvas.
+            canvas.Children.Remove(_root);
+            canvas.Children.Add(_root);
+            Panel.SetZIndex(_root, 10000);
             Layout();
         }
 
@@ -112,6 +124,7 @@ namespace HsbgCardLookup.Ui
         {
             if (_hint != null) _hint.Text = Strings.T("arrange.hint");
             if (_doneLabel != null) _doneLabel.Text = Strings.T("arrange.done");
+            if (_resetLabel != null) _resetLabel.Text = Strings.T("arrange.reset");
         }
 
         private void Build()
@@ -146,9 +159,28 @@ namespace HsbgCardLookup.Ui
                 try { _onDone?.Invoke(); } catch { }
             };
 
+            _resetLabel = new TextBlock
+            {
+                Text = Strings.T("arrange.reset"), Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
+            _reset = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x21, 0x30)),
+                BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6), Cursor = Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center, Child = _resetLabel
+            };
+            _reset.MouseLeftButtonUp += (s, e) =>
+            {
+                e.Handled = true;
+                try { _onReset?.Invoke(_target); } catch { }
+            };
+
             _stack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             _stack.Children.Add(_title);
             _stack.Children.Add(_hint);
+            _stack.Children.Add(_reset);
             _stack.Children.Add(_done);
 
             _root = new Border
@@ -181,12 +213,16 @@ namespace HsbgCardLookup.Ui
             _hint.Margin = new Thickness(0, 0, 16 * s, 0);
             _doneLabel.FontSize = 13.5 * s;
             _done.Padding = new Thickness(16 * s, 5 * s, 16 * s, 5 * s);
+            _resetLabel.FontSize = 13.5 * s;
+            _reset.Padding = new Thickness(14 * s, 5 * s, 14 * s, 5 * s);
+            _reset.Margin = new Thickness(0, 0, 10 * s, 0);
             _root.Padding = new Thickness(16 * s, 8 * s, 16 * s, 8 * s);
 
             _root.UpdateLayout();
             double w = _root.ActualWidth;
             Canvas.SetLeft(_root, Math.Max(0, (cw - w) / 2.0));
-            Canvas.SetTop(_root, 18 * s);
+            // The opponents' board starts at the top middle: its strip goes to the bottom.
+            Canvas.SetTop(_root, _target == ArrangeTarget.Boards ? Math.Max(0, ch - _root.ActualHeight - 60 * s) : 18 * s);
         }
     }
 }

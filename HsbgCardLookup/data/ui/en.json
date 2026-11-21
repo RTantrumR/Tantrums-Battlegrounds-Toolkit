@@ -101,6 +101,7 @@
   "arrange.target.boards": "opponent's board",
   "arrange.hint": "Drag it to move  ·  drag its top-right corner to resize",
   "arrange.done": "Done",
+  "arrange.reset": "Restore default",
   "updates.updatedTo": "Updated to version {0}.",
   "updates.viewReleaseNotes": "View release notes ↗",
   "updates.couldNotCheck": "Couldn't check for updates — you may be offline, or no release has been published yet. You can check manually:",

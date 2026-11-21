@@ -560,8 +560,31 @@ namespace HsbgCardLookup
 
             // A Done button on the overlay itself: clicking back into the settings window would take
             // focus off Hearthstone, and the overlay hides the moment that happens.
-            if (_arrangeBanner == null) _arrangeBanner = new Ui.ArrangeBanner(() => _settings?.EndArrangeFromOverlay());
+            if (_arrangeBanner == null) _arrangeBanner = new Ui.ArrangeBanner(() => _settings?.EndArrangeFromOverlay(), ResetArranged);
             _arrangeBanner.Show(target);
+        }
+
+        // "Restore default" on the arrange strip: the arranged feature forgets its saved place and
+        // size and is drawn again where and as large as a first run shows it.
+        private void ResetArranged(Ui.ArrangeTarget target)
+        {
+            switch (target)
+            {
+                case Ui.ArrangeTarget.Trinkets:
+                    _config.LesserTrinketHud = new HudPlacement(); _config.GreaterTrinketHud = new HudPlacement();
+                    _config.Trinket3Hud = new HudPlacement(); _config.Trinket4Hud = new HudPlacement();
+                    break;
+                case Ui.ArrangeTarget.Anomaly: _config.AnomalyHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.MmrPanel: _config.MmrPanelHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.Boards: _config.OpponentBoardsHud = new HudPlacement(); break;
+                default: return;
+            }
+            Log("arrange: " + target + " restored to its default place");
+            ReloadLayout();
+            // ReloadLayout closed the HUD and sidebar boxes; the session is still on, so they come back.
+            _bgHud?.SetArrange(target);
+            _bgMmr?.SetArrange(target);
+            ReapplyFeatures();
         }
 
         private void OnHotkeyPressed(Key key, string foreground)
