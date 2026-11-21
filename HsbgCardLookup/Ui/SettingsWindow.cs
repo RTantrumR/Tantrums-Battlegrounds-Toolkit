@@ -884,6 +884,32 @@ namespace HsbgCardLookup.Ui
             FollowPart(typesLayout, () => _config.ShowLobbyTribes);
             stack.Children.Add(typesLayout);
 
+            var typesStyle = CycleRow(Strings.T("settings.lobbyTribes.style"),
+                new[] { "IconsText", "Icons", "Text" },
+                new[]
+                {
+                    Strings.T("settings.lobbyTribes.styleIconsText"), Strings.T("settings.lobbyTribes.styleIcons"),
+                    Strings.T("settings.lobbyTribes.styleText")
+                },
+                new[]
+                {
+                    Strings.T("settings.lobbyTribes.styleIconsTextHint"), Strings.T("settings.lobbyTribes.styleIconsHint"),
+                    Strings.T("settings.lobbyTribes.styleTextHint")
+                },
+                () => _config.LobbyTribesStyle == "Icons" || _config.LobbyTribesStyle == "Text" ? _config.LobbyTribesStyle : "IconsText",
+                v => _config.LobbyTribesStyle = v);
+            FollowPart(typesStyle, () => _config.ShowLobbyTribes);
+            stack.Children.Add(typesStyle);
+
+            var typesBanned = ToggleRow(Strings.T("settings.lobbyTribes.banned"), _config.ShowBannedTribes, v =>
+            {
+                _config.ShowBannedTribes = v;
+                _status.Text = v ? Strings.T("settings.lobbyTribes.bannedOn") : Strings.T("settings.lobbyTribes.bannedOff");
+                Changed();
+            });
+            FollowPart(typesBanned, () => _config.ShowLobbyTribes);
+            stack.Children.Add(typesBanned);
+
             stack.Children.Add(ToggleRow(Strings.T("settings.general.assemble"), _config.AssemblePanels, v =>
             {
                 _config.AssemblePanels = v;

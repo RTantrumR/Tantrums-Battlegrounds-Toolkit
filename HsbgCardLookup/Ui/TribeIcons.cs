@@ -39,6 +39,21 @@ namespace HsbgCardLookup.Ui
             return brush;
         }
 
+        // A colour of its own per type, for where the name stands in for the icon.
+        private static readonly Dictionary<string, Brush> Text = new Dictionary<string, Brush>
+        {
+            { "Beast", Frozen(Color.FromRgb(0x8F, 0xD1, 0x4F)) }, { "Demon", Frozen(Color.FromRgb(0xB6, 0x6D, 0xFF)) },
+            { "Dragon", Frozen(Color.FromRgb(0xFF, 0x7A, 0x45)) }, { "Elemental", Frozen(Color.FromRgb(0x4F, 0xC3, 0xF7)) },
+            { "Mech", Frozen(Color.FromRgb(0xB0, 0xBE, 0xC5)) }, { "Murloc", Frozen(Color.FromRgb(0x3D, 0xDB, 0xB4)) },
+            { "Naga", Frozen(Color.FromRgb(0x5C, 0x8D, 0xFF)) }, { "Pirate", Frozen(Color.FromRgb(0xFF, 0xC9, 0x4D)) },
+            { "Quilboar", Frozen(Color.FromRgb(0xFF, 0x6F, 0xA3)) }, { "Undead", Frozen(Color.FromRgb(0x9F, 0xA8, 0xDA)) },
+            { "Aberration", Frozen(Color.FromRgb(0xE2, 0x6D, 0xD6)) },
+        };
+
+        /// <summary>The type's own colour for its written name.</summary>
+        public static Brush TextBrush(string tribe) =>
+            tribe != null && Text.TryGetValue(tribe, out var b) ? b : UiKit.TextPrimary;
+
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
     }
 }

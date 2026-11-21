@@ -85,6 +85,7 @@ namespace HsbgCardLookup
             _cardLanguage.Initialize();
             Ui.DarkGiftPanel.SetKeywordHighlight(_cardLanguage.Vocab.Keyword.Values);
             Ui.LobbyTribesPanel.TribeLabel = t => _cardLanguage.Vocab.TribeLabel(t) ?? t;
+            Ui.LobbyTribesPanel.Pool = () => _store.PoolTribes();
             Ui.OpponentBoardPanel.TextLanguage = () => Localization.Locales.ByWeb(_cardLanguage.Web)?.Game ?? "enUS";
             Game.DarkGiftWatcher.TribeLabel = t => _cardLanguage.Vocab.TribeLabel(t) ?? t;   // reads the live vocabulary
 

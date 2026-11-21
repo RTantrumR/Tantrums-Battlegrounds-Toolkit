@@ -133,6 +133,11 @@ namespace HsbgCardLookup.Config
         // How the box lays its five types out, rows x columns: "1x5" (one row), "5x1" (one column),
         // "2x3" (three and two) or "3x2" (two, two and one). Anything else reads as "1x5".
         public string LobbyTribesLayout { get; set; } = "1x5";
+        // What a type is drawn as: "IconsText" (icon with its name under it), "Icons" or "Text" (the
+        // name alone, in the type's own colour). Anything else reads as "IconsText".
+        public string LobbyTribesStyle { get; set; } = "IconsText";
+        // The season's types that are NOT in this lobby, as a second, crossed-out block.
+        public bool ShowBannedTribes { get; set; }
         public HudPlacement LobbyTribesHud { get; set; } = new HudPlacement();
 
         // Floating boxes assemble into one when dragged together (lobby types, sidebar, turn counter).

@@ -54,6 +54,20 @@ namespace HsbgCardLookup.Data
         private static bool IsTavern(BgCard c) =>
             c.Categories == null || c.Categories.Count == 0 || c.Categories.Contains("tavern");
 
+        /// <summary>The minion types of the current season: every type that has a minion Bob can sell
+        /// (a tavern minion with a tier). A lobby holds five of them; the rest are that lobby's banned ones.</summary>
+        public List<string> PoolTribes()
+        {
+            try
+            {
+                return Current.Where(c => c.CardType == "minion" && c.Tier > 0 && IsTavern(c))
+                    .SelectMany(c => c.MinionTypes ?? new List<string>())
+                    .Where(t => !string.IsNullOrEmpty(t) && t != "All")
+                    .Distinct().ToList();
+            }
+            catch { return new List<string>(); }
+        }
+
         /// <summary>
         /// Default browse rank (lower = earlier): the website's section order with each section's own
         /// sub-order (the tier, or a Dark Gift's unlock turn) folded in. Sort by this, then by the

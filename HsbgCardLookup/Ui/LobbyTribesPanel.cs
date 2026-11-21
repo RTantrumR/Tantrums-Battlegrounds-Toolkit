@@ -11,13 +11,15 @@ using System.Windows.Threading;
 using HsbgCardLookup.Config;
 using HsbgCardLookup.Data;
 using HsbgCardLookup.Host;
+using HsbgCardLookup.Localization;
 
 namespace HsbgCardLookup.Ui
 {
     /// <summary>
     /// This lobby's minion types for the whole match: one small box of round type icons with the
     /// type's name under each, in one row, one column, or two or three rows (config
-    /// <c>LobbyTribesLayout</c>). Lives on the overlay canvas; moved by dragging it and scaled by its
+    /// <c>LobbyTribesLayout</c>); icons alone or names alone by <c>LobbyTribesStyle</c>, and with
+    /// <c>ShowBannedTribes</c> the season's other types crossed out in a second block. Lives on the overlay canvas; moved by dragging it and scaled by its
     /// top-right grabber, the way <see cref="MmrSidePanel"/> is (same LL-hook gesture, same
     /// canvas-fraction placement, config <c>LobbyTribesHud</c>).
     /// </summary>
@@ -51,6 +53,8 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>English tribe name → the label to draw (the card language's vocabulary).</summary>
         public static Func<string, string> TribeLabel;
+        /// <summary>The season's minion types (English names): what is not in the lobby is banned.</summary>
+        public static Func<IEnumerable<string>> Pool;
 
         private readonly PluginConfig _config;
         private readonly Dispatcher _ui;
@@ -58,8 +62,15 @@ namespace HsbgCardLookup.Ui
         private readonly StackPanel _rows;        // one horizontal panel of types per row of the layout
         private readonly Border _handle;
         private readonly DispatcherTimer _handleHide;
-        private readonly List<Ellipse> _icons = new List<Ellipse>();
-        private readonly List<TextBlock> _labels = new List<TextBlock>();
+        private sealed class Cell
+        {
+            public FrameworkElement Root; public Ellipse Icon; public Path Cross; public TextBlock Label;
+            public bool Marked, TextOnly;
+        }
+        private readonly List<Cell> _cells = new List<Cell>();
+        private readonly List<FrameworkElement> _lines = new List<FrameworkElement>();   // every line but a block's first
+        private Border _divider;
+        private List<string> _banned;     // null = not worked out for this lobby yet
 
         private bool _attached;
         // _scale is the box's own scale in pixels terms once settled: at the first showing it takes the
@@ -79,6 +90,9 @@ namespace HsbgCardLookup.Ui
         private static bool _hooked;
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
+        private static readonly Brush InRing = Frozen(Color.FromRgb(0x4C, 0xC8, 0x5A));
+        private static readonly Brush OutRing = Frozen(Color.FromRgb(0xB8, 0x3A, 0x3A));
+        private static readonly Brush CrossBrush = Frozen(Color.FromRgb(0xE5, 0x2B, 0x2B));
 
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
@@ -147,6 +161,7 @@ namespace HsbgCardLookup.Ui
         {
             _active = started;
             _tribes = new List<string>();
+            _banned = null;
             _nextRead = DateTime.MinValue;
         }
 
@@ -163,7 +178,7 @@ namespace HsbgCardLookup.Ui
                     var names = new List<string>();
                     if (races != null)
                         foreach (int r in races) { string n = TribeTally.RaceName(r); if (n != null) names.Add(n); }
-                    if (names.Count > 0) _tribes = names;
+                    if (names.Count > 0) { _tribes = names; _banned = null; }
                 }
                 if (_tribes.Count == 0) { Hide(); return; }
                 Show();
@@ -171,7 +186,7 @@ namespace HsbgCardLookup.Ui
             catch { }
         }
 
-        public void OnSettingsChanged() { _shownKey = null; }
+        public void OnSettingsChanged() { _shownKey = null; _banned = null; }
 
         private void LoadPlacement()
         {
@@ -183,7 +198,7 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>The saved place and size were replaced wholesale (a config import, a preset).</summary>
         public void ReloadPlacement() { LoadPlacement(); _shownKey = null; if (_root.Visibility == Visibility.Visible) Layout(); }
-        public void OnLanguageChanged() { _shownKey = null; }
+        public void OnLanguageChanged() { _shownKey = null; _banned = null; }
         public void CloseAll() { _ui.Invoke(new Action(() => { Hide(); RemoveHook(); })); }
 
         private void Hide()
@@ -202,53 +217,141 @@ namespace HsbgCardLookup.Ui
                 _attached = true;
             }
             int perRow = PerRow(_config.LobbyTribesLayout);
-            string key = string.Join(",", _tribes) + "|" + perRow;
+            string style = Style(_config.LobbyTribesStyle);
+            var banned = Banned();
+            string key = string.Join(",", _tribes) + "|" + perRow + "|" + style + "|" + string.Join(",", banned);
             if (key != _shownKey)
             {
                 _shownKey = key;
-                _rows.Children.Clear(); _icons.Clear(); _labels.Clear();
-                StackPanel line = null;
-                foreach (string tribe in _tribes)
+                _rows.Children.Clear(); _cells.Clear(); _lines.Clear(); _divider = null;
+                // One column: the banned types stand beside it as a second column. Otherwise below.
+                _rows.Orientation = perRow == 1 ? Orientation.Horizontal : Orientation.Vertical;
+                bool marked = banned.Count > 0;
+                _rows.Children.Add(Block(ByLabel(_tribes), perRow, style, false, marked));
+                if (marked)
                 {
-                    if (line == null || line.Children.Count >= perRow)
-                        _rows.Children.Add(line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center });
-                    var icon = new Ellipse { Fill = TribeIcons.BrushFor(tribe), Stroke = TribeIcons.Ring, HorizontalAlignment = HorizontalAlignment.Center };
-                    string text = tribe;
-                    try { text = TribeLabel?.Invoke(tribe) ?? tribe; } catch { }
-                    var label = new TextBlock
-                    {
-                        Text = text, Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold,
-                        TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
-                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-                    };
-                    var cell = new StackPanel();
-                    cell.Children.Add(icon);
-                    cell.Children.Add(new Grid { Children = { label } });   // a row of one height, the name centred in it
-                    line.Children.Add(cell);
-                    _icons.Add(icon); _labels.Add(label);
+                    _rows.Children.Add(_divider = new Border { Background = UiKit.StrokeBrush });
+                    // In one row the banned types take one row too, however many they are.
+                    _rows.Children.Add(Block(banned, perRow == 5 ? banned.Count : perRow, style, true, true));
                 }
                 Layout();
             }
             if (_root.Visibility != Visibility.Visible) { _root.Visibility = Visibility.Visible; Layout(); }
         }
 
-        // The four layouts as a menu under the cursor, the one in use ticked. Rows x columns, written
-        // the same in every language (as in Settings).
+        private static string Style(string style) => style == "Icons" || style == "Text" ? style : "IconsText";
+
+        private static string LabelOf(string tribe)
+        {
+            try { return TribeLabel?.Invoke(tribe) ?? tribe; } catch { return tribe; }
+        }
+
+        private static List<string> ByLabel(IEnumerable<string> tribes)
+        {
+            var list = new List<string>(tribes);
+            list.Sort((x, y) => string.Compare(LabelOf(x), LabelOf(y), StringComparison.CurrentCultureIgnoreCase));
+            return list;
+        }
+
+        // The season's types that this lobby does not have; none while the setting is off, the lobby
+        // is not read in full yet, or the card data names no pool.
+        private List<string> Banned()
+        {
+            var banned = new List<string>();
+            if (!_config.ShowBannedTribes || _tribes.Count < 5) return banned;
+            // Asked on every poll: the pool is worked out once per lobby, language and settings change.
+            if (_banned != null) return _banned;
+            try
+            {
+                var pool = Pool?.Invoke();
+                if (pool != null)
+                    foreach (string t in pool)
+                        if (!_tribes.Contains(t) && !banned.Contains(t) && TribeIcons.BrushFor(t) != null) banned.Add(t);
+            }
+            catch { }
+            return _banned = ByLabel(banned);
+        }
+
+        private FrameworkElement Block(List<string> tribes, int perRow, string style, bool banned, bool marked)
+        {
+            var block = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top };
+            StackPanel line = null;
+            foreach (string tribe in tribes)
+            {
+                if (line == null || line.Children.Count >= perRow)
+                {
+                    bool first = line == null;
+                    block.Children.Add(line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center });
+                    if (!first) _lines.Add(line);
+                }
+                var c = new Cell { Marked = marked, TextOnly = style == "Text" };
+                var cell = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                if (style != "Text")
+                {
+                    c.Icon = new Ellipse
+                    {
+                        Fill = TribeIcons.BrushFor(tribe), Stroke = !marked ? TribeIcons.Ring : (banned ? OutRing : InRing),
+                        HorizontalAlignment = HorizontalAlignment.Center, Opacity = banned ? 0.5 : 1
+                    };
+                    var art = new Grid { HorizontalAlignment = HorizontalAlignment.Center };
+                    art.Children.Add(c.Icon);
+                    if (banned)
+                    {
+                        c.Cross = new Path
+                        {
+                            Data = Geometry.Parse("M0 0 L10 10 M10 0 L0 10"), Stroke = CrossBrush, Stretch = Stretch.Uniform,
+                            StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+                            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                        };
+                        art.Children.Add(c.Cross);
+                    }
+                    cell.Children.Add(art);
+                }
+                if (style != "Icons")
+                {
+                    c.Label = new TextBlock
+                    {
+                        Text = LabelOf(tribe), FontWeight = FontWeights.SemiBold,
+                        Foreground = c.TextOnly ? TribeIcons.TextBrush(tribe) : UiKit.TextPrimary,
+                        TextAlignment = TextAlignment.Center, Opacity = banned ? 0.55 : 1,
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                    };
+                    if (c.TextOnly && banned) c.Label.TextDecorations = TextDecorations.Strikethrough;
+                    if (!c.TextOnly) c.Label.TextTrimming = TextTrimming.CharacterEllipsis;
+                    cell.Children.Add(new Grid { Children = { c.Label } });   // a row of one height, the name centred in it
+                }
+                c.Root = cell;
+                line.Children.Add(cell);
+                _cells.Add(c);
+            }
+            return block;
+        }
+
+        // The four layouts as a menu under the cursor, the one in use ticked (rows x columns, written
+        // the same in every language, as in Settings); under them what a type is drawn as, and the
+        // banned types.
         private void LayoutMenu()
         {
             string now = PerRow(_config.LobbyTribesLayout) == 5 ? "1x5" : _config.LobbyTribesLayout;
+            string style = Style(_config.LobbyTribesStyle);
             var items = new List<KeyValuePair<string, Action>>();
-            foreach (string layout in new[] { "1x5", "5x1", "2x3", "3x2" })
-            {
-                string pick = layout;
-                items.Add(new KeyValuePair<string, Action>((pick == now ? "✓  " : "     ") + pick.Replace("x", " × "), () =>
+            Action<bool, string, Action> add = (ticked, text, pick) =>
+                items.Add(new KeyValuePair<string, Action>((ticked ? "✓  " : "     ") + text, () =>
                 {
-                    _config.LobbyTribesLayout = pick;
+                    pick();
                     try { _config.Save(); } catch { }
                     _shownKey = null;
                     PanelDock.Invalidate();
                 }));
+            foreach (string layout in new[] { "1x5", "5x1", "2x3", "3x2" })
+            {
+                string pick = layout;
+                add(pick == now, pick.Replace("x", " × "), () => _config.LobbyTribesLayout = pick);
             }
+            add(style == "IconsText", Strings.T("settings.lobbyTribes.styleIconsText"), () => _config.LobbyTribesStyle = "IconsText");
+            add(style == "Icons", Strings.T("settings.lobbyTribes.styleIcons"), () => _config.LobbyTribesStyle = "Icons");
+            add(style == "Text", Strings.T("settings.lobbyTribes.styleText"), () => _config.LobbyTribesStyle = "Text");
+            add(_config.ShowBannedTribes, Strings.T("settings.lobbyTribes.banned"), () => _config.ShowBannedTribes = !_config.ShowBannedTribes);
             HudContextMenu.ShowMenu(items, 0);
         }
 
@@ -281,14 +384,34 @@ namespace HsbgCardLookup.Ui
             _root.Padding = new Thickness(5 * s, 5 * s, 5 * s, 4 * s);
             // The arrow sits in the box's own top-right corner whatever the padding has grown to.
             _handle.Margin = new Thickness(0, 2 - 5 * s, 2 - 5 * s, 0);
-            for (int i = 1; i < _rows.Children.Count; i++)
-                ((FrameworkElement)_rows.Children[i]).Margin = new Thickness(0, 3 * s, 0, 0);
-            for (int i = 0; i < _icons.Count; i++)
+            foreach (var line in _lines) line.Margin = new Thickness(0, 3 * s, 0, 0);
+            if (_divider != null)
             {
-                _icons[i].Width = _icons[i].Height = 34 * s;
-                _icons[i].StrokeThickness = 1.4 * s;
+                bool beside = _rows.Orientation == Orientation.Horizontal;
+                double thick = Math.Max(1, s);
+                _divider.Width = beside ? thick : double.NaN;
+                _divider.Height = beside ? double.NaN : thick;
+                _divider.Margin = beside ? new Thickness(5 * s, 0, 5 * s, 0) : new Thickness(0, 4 * s, 0, 4 * s);
+            }
+            foreach (var c in _cells)
+            {
+                if (c.Icon != null)
+                {
+                    c.Icon.Width = c.Icon.Height = 34 * s;
+                    c.Icon.StrokeThickness = (c.Marked ? 2.0 : 1.4) * s;
+                    if (c.Cross != null) { c.Cross.Width = c.Cross.Height = 20 * s; c.Cross.StrokeThickness = 3.4 * s; }
+                    // Without names the icons stand a little apart; with them the name's column does that.
+                    c.Root.Margin = c.Label == null ? new Thickness(3 * s, 0, 3 * s, 0) : new Thickness(0);
+                }
+                var label = c.Label;
+                if (label == null) continue;
+                if (c.TextOnly)
+                {
+                    label.FontSize = 12.5 * s;
+                    c.Root.Margin = new Thickness(6 * s, 1 * s, 6 * s, 1 * s);
+                    continue;
+                }
                 // A name too long for its column is set smaller until it fits, never cut.
-                var label = _labels[i];
                 double room = (RefCellW - 5) * s;
                 label.Width = double.NaN;
                 label.FontSize = LabelSize * s;
