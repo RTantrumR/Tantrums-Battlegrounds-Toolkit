@@ -857,6 +857,8 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
+            if (!_indexing) stack.Children.Add(SettingsDemos.TurnCounter());
+
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
             {
@@ -904,6 +906,13 @@ namespace HsbgCardLookup.Ui
             FollowPart(typesBanned, () => _config.ShowLobbyTribes);
             stack.Children.Add(typesBanned);
 
+            if (!_indexing)
+            {
+                Action redrawTypes;
+                stack.Children.Add(SettingsDemos.LobbyTypes(_config, out redrawTypes));
+                _modeRefresh.Add(redrawTypes);
+            }
+
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.assembleHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.general.assemble"), _config.AssemblePanels, v =>
             {
@@ -926,7 +935,21 @@ namespace HsbgCardLookup.Ui
             _currentPage = BuildCardSearch;
             var stack = NewPage(Strings.T("settings.cardSearch.title"), sub: true);
 
-            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.keysHeader"), first: true));
+            if (!_indexing)
+            {
+                Func<string> state = () => _config.BrowserKey + "|" + _config.DragFromDetail + "|" + _config.DragFromGrid + "|" + _config.HideDraggedWithApp;
+                string shown = state();
+                var flow = new ContentControl { Content = SettingsDemos.SearchFlow(_config), Focusable = false };
+                stack.Children.Add(flow);
+                _modeRefresh.Add(() =>
+                {
+                    if (shown == state()) return;
+                    shown = state();
+                    flow.Content = SettingsDemos.SearchFlow(_config);
+                });
+            }
+
+            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.keysHeader")));
             stack.Children.Add(new TextBlock
             {
                 Text = Strings.T("settings.cardSearch.intro"),
@@ -1045,6 +1068,20 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.boards.pinOn") : Strings.T("settings.boards.pinOff");
                 Changed();
             }));
+
+            // What hovering and clicking a portrait do, by the switch above; redrawn when it flips.
+            if (!_indexing)
+            {
+                bool shownPin = _config.BoardPinOnClick;
+                var hover = new ContentControl { Content = SettingsDemos.BoardsHover(shownPin), Focusable = false };
+                stack.Children.Add(hover);
+                _modeRefresh.Add(() =>
+                {
+                    if (shownPin == _config.BoardPinOnClick) return;
+                    shownPin = _config.BoardPinOnClick;
+                    hover.Content = SettingsDemos.BoardsHover(shownPin);
+                });
+            }
 
             // What a board looks like: the sample one, as it is drawn over the game.
             if (!_indexing)
@@ -1327,8 +1364,9 @@ namespace HsbgCardLookup.Ui
                 stack.Children.Add(new TextBlock
                 {
                     Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
-                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4)
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
+                if (!_indexing) stack.Children.Add(SettingsDemos.Autostart());
             }
 
             stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));

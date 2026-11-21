@@ -59,7 +59,6 @@ namespace HsbgCardLookup.Ui
         private readonly PluginConfig _config;
         private readonly Dispatcher _ui;
         private readonly Border _root;
-        private readonly StackPanel _rows;        // one horizontal panel of types per row of the layout
         private readonly Border _handle;
         private readonly DispatcherTimer _handleHide;
         private sealed class Cell
@@ -67,9 +66,16 @@ namespace HsbgCardLookup.Ui
             public FrameworkElement Root; public Ellipse Icon; public Path Cross; public TextBlock Label;
             public bool Marked, TextOnly;
         }
-        private readonly List<Cell> _cells = new List<Cell>();
-        private readonly List<FrameworkElement> _lines = new List<FrameworkElement>();   // every line but a block's first
-        private Border _divider;
+        // What the box holds, apart from the box: built and sized the same for the live panel and for
+        // Settings' picture of it.
+        private sealed class Face
+        {
+            public readonly StackPanel Rows = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            public readonly List<Cell> Cells = new List<Cell>();
+            public readonly List<FrameworkElement> Lines = new List<FrameworkElement>();   // every line but a block's first
+            public Border Divider;
+        }
+        private readonly Face _face = new Face();
         private List<string> _banned;     // null = not worked out for this lobby yet
 
         private bool _attached;
@@ -97,7 +103,6 @@ namespace HsbgCardLookup.Ui
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
             _config = config; _ui = ui;
-            _rows = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 
             var arrow = new Path
             {
@@ -114,7 +119,7 @@ namespace HsbgCardLookup.Ui
                 Cursor = Cursors.SizeNESW, Child = arrow
             };
             var grid = new Grid();
-            grid.Children.Add(_rows);
+            grid.Children.Add(_face.Rows);
             grid.Children.Add(_handle);
             _root = new Border
             {
@@ -223,17 +228,7 @@ namespace HsbgCardLookup.Ui
             if (key != _shownKey)
             {
                 _shownKey = key;
-                _rows.Children.Clear(); _cells.Clear(); _lines.Clear(); _divider = null;
-                // One column: the banned types stand beside it as a second column. Otherwise below.
-                _rows.Orientation = perRow == 1 ? Orientation.Horizontal : Orientation.Vertical;
-                bool marked = banned.Count > 0;
-                _rows.Children.Add(Block(ByLabel(_tribes), perRow, style, false, marked));
-                if (marked)
-                {
-                    _rows.Children.Add(_divider = new Border { Background = UiKit.StrokeBrush });
-                    // In one row the banned types take one row too, however many they are.
-                    _rows.Children.Add(Block(banned, perRow == 5 ? banned.Count : perRow, style, true, true));
-                }
+                Build(_face, ByLabel(_tribes), banned, perRow, style);
                 Layout();
             }
             if (_root.Visibility != Visibility.Visible) { _root.Visibility = Visibility.Visible; Layout(); }
@@ -272,7 +267,55 @@ namespace HsbgCardLookup.Ui
             return _banned = ByLabel(banned);
         }
 
-        private FrameworkElement Block(List<string> tribes, int perRow, string style, bool banned, bool marked)
+        private static void Build(Face f, List<string> present, List<string> banned, int perRow, string style)
+        {
+            f.Rows.Children.Clear(); f.Cells.Clear(); f.Lines.Clear(); f.Divider = null;
+            // One column: the banned types stand beside it as a second column. Otherwise below.
+            f.Rows.Orientation = perRow == 1 ? Orientation.Horizontal : Orientation.Vertical;
+            bool marked = banned.Count > 0;
+            f.Rows.Children.Add(Block(f, present, perRow, style, false, marked));
+            if (!marked) return;
+            f.Rows.Children.Add(f.Divider = new Border { Background = UiKit.StrokeBrush });
+            // In one row the banned types take one row too, however many they are.
+            f.Rows.Children.Add(Block(f, banned, perRow == 5 ? banned.Count : perRow, style, true, true));
+        }
+
+        /// <summary>Settings' picture of the box: five sample types drawn by the current layout, look
+        /// and banned-types settings. <paramref name="refresh"/> redraws it after a change.</summary>
+        public static FrameworkElement Preview(PluginConfig config, out Action refresh)
+        {
+            var face = new Face();
+            var box = new Border
+            {
+                Background = PanelBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(7), Padding = new Thickness(5, 5, 5, 4), Child = face.Rows,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
+            Action paint = () =>
+            {
+                try
+                {
+                    var sample = new List<string> { "Beast", "Dragon", "Mech", "Murloc", "Undead" };
+                    var banned = new List<string>();
+                    if (config.ShowBannedTribes)
+                    {
+                        IEnumerable<string> pool = null;
+                        try { pool = Pool?.Invoke(); } catch { }
+                        foreach (string t in pool ?? new[] { "Demon", "Elemental", "Naga", "Pirate", "Quilboar" })
+                            if (!sample.Contains(t) && !banned.Contains(t) && TribeIcons.BrushFor(t) != null) banned.Add(t);
+                    }
+                    Build(face, ByLabel(sample), ByLabel(banned), PerRow(config.LobbyTribesLayout), Style(config.LobbyTribesStyle));
+                    Size(face, 1);
+                    box.Opacity = config.ShowLobbyTribes ? 1 : 0.4;
+                }
+                catch { }
+            };
+            paint();
+            refresh = paint;
+            return box;
+        }
+
+        private static FrameworkElement Block(Face f, List<string> tribes, int perRow, string style, bool banned, bool marked)
         {
             var block = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top };
             StackPanel line = null;
@@ -282,7 +325,7 @@ namespace HsbgCardLookup.Ui
                 {
                     bool first = line == null;
                     block.Children.Add(line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center });
-                    if (!first) _lines.Add(line);
+                    if (!first) f.Lines.Add(line);
                 }
                 var c = new Cell { Marked = marked, TextOnly = style == "Text" };
                 var cell = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
@@ -322,7 +365,7 @@ namespace HsbgCardLookup.Ui
                 }
                 c.Root = cell;
                 line.Children.Add(cell);
-                _cells.Add(c);
+                f.Cells.Add(c);
             }
             return block;
         }
@@ -384,16 +427,22 @@ namespace HsbgCardLookup.Ui
             _root.Padding = new Thickness(5 * s, 5 * s, 5 * s, 4 * s);
             // The arrow sits in the box's own top-right corner whatever the padding has grown to.
             _handle.Margin = new Thickness(0, 2 - 5 * s, 2 - 5 * s, 0);
-            foreach (var line in _lines) line.Margin = new Thickness(0, 3 * s, 0, 0);
-            if (_divider != null)
+            Size(_face, s);
+            ClampPosition();
+        }
+
+        private static void Size(Face f, double s)
+        {
+            foreach (var line in f.Lines) line.Margin = new Thickness(0, 3 * s, 0, 0);
+            if (f.Divider != null)
             {
-                bool beside = _rows.Orientation == Orientation.Horizontal;
+                bool beside = f.Rows.Orientation == Orientation.Horizontal;
                 double thick = Math.Max(1, s);
-                _divider.Width = beside ? thick : double.NaN;
-                _divider.Height = beside ? double.NaN : thick;
-                _divider.Margin = beside ? new Thickness(5 * s, 0, 5 * s, 0) : new Thickness(0, 4 * s, 0, 4 * s);
+                f.Divider.Width = beside ? thick : double.NaN;
+                f.Divider.Height = beside ? double.NaN : thick;
+                f.Divider.Margin = beside ? new Thickness(5 * s, 0, 5 * s, 0) : new Thickness(0, 4 * s, 0, 4 * s);
             }
-            foreach (var c in _cells)
+            foreach (var c in f.Cells)
             {
                 if (c.Icon != null)
                 {
@@ -423,7 +472,6 @@ namespace HsbgCardLookup.Ui
                 row.Height = 15 * s;
                 row.Margin = new Thickness(0, 1 * s, 0, 0);
             }
-            ClampPosition();
         }
 
         private void ClampPosition()

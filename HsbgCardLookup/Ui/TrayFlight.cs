@@ -52,6 +52,9 @@ namespace HsbgCardLookup.Ui
             catch { }
         }
 
+        /// <summary>The toolkit's logo, or null where the host has none to show.</summary>
+        public static ImageSource LogoImage => LogoPath == null ? null : Logo();
+
         private static ImageSource Logo()
         {
             if (_logo != null) return _logo;

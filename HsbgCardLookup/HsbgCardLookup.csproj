@@ -145,6 +145,7 @@
     <Compile Include="Ui\MmrPanelPreview.cs" />
     <Compile Include="Ui\PortraitsPreview.cs" />
     <Compile Include="Ui\TrayFlight.cs" />
+    <Compile Include="Ui\SettingsDemos.cs" />
     <Compile Include="Ui\PreviewStage.cs" />
     <Compile Include="Ui\HudPreview.cs" />
     <Compile Include="Ui\DarkGiftPreview.cs" />
