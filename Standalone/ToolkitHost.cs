@@ -57,7 +57,12 @@ namespace Toolkit.Standalone
                     ContextMenuStrip = new Forms.ContextMenuStrip()
                 };
                 HsbgCardLookup.Ui.TrayFlight.LogoPath = Path.Combine(Shared.ExeDir, "toolkit.ico");
-                HsbgCardLookup.Ui.TrayFlight.Target = () => TrayPlace.Of(tray);
+                HsbgCardLookup.Ui.TrayFlight.Target = () =>
+                {
+                    var place = TrayPlace.Of(tray);
+                    Shared.Log("settings closing: tray icon at " + (place.HasValue ? place.Value.ToString() : "unknown") + " (" + TrayPlace.Found + ")");
+                    return place;
+                };
                 Forms.ToolStripItem searchItem = null, settingsItem = null, exitItem = null;
                 Action relabel = () =>
                 {

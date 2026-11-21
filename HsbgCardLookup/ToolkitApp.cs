@@ -588,9 +588,10 @@ namespace HsbgCardLookup
 
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
-        /// "snap general|mmr|boards" opens that page instead and saves it as settings.png beside the program.
+        /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window.
         public void OpenSettings(string search)
         {
+            if (search == "close") { try { _settings?.Close(); } catch { } return; }
             OpenSettings();
             try
             {

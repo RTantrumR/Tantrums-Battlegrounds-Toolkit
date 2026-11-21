@@ -15,12 +15,16 @@ namespace Toolkit.Standalone
     /// </summary>
     internal static class TrayPlace
     {
+        /// <summary>How the last answer was found: for the log.</summary>
+        public static string Found = "";
+
         public static Rect? Of(Forms.NotifyIcon tray)
         {
             try
             {
                 Rect? area = NotifyArea();
                 Rect? icon = IconRect(tray);
+                Found = "icon " + (icon.HasValue ? icon.Value.ToString() : "none") + ", area " + (area.HasValue ? area.Value.ToString() : "none");
                 if (icon != null && (area == null || area.Value.Contains(Centre(icon.Value)))) return icon;
                 if (area != null)
                 {
