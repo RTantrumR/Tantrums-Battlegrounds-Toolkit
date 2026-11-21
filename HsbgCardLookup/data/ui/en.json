@@ -171,6 +171,7 @@
   "settings.lobbyTribes.style": "Lobby minion types look",
   "settings.lobbyTribes.styleIconsText": "Icons + names",
   "settings.lobbyTribes.styleIcons": "Icons",
+  "settings.lobbyTribes.styleBoth": "Both",
   "settings.lobbyTribes.styleText": "Names",
   "settings.lobbyTribes.styleIconsTextHint": "Each type's icon with its name under it.",
   "settings.lobbyTribes.styleIconsHint": "The icons alone.",

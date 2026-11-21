@@ -17,7 +17,7 @@ namespace HsbgCardLookup.Ui
     /// </summary>
     internal static class SettingsDemos
     {
-        public const double StageW = 480;
+        public const double StageW = 474;     // with its border, the page's width while the scrollbar shows
         private static readonly Brush StageBg = Frozen(Color.FromRgb(0x1B, 0x22, 0x2E));
         private static readonly Brush BoxBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
         private static readonly Brush Felt = Frozen(Color.FromRgb(0x2A, 0x3B, 0x52));
@@ -298,9 +298,9 @@ namespace HsbgCardLookup.Ui
             var logo = TrayFlight.LogoImage;
             if (logo != null) icon = new Image { Source = logo, Width = 20, Height = 20 };
             else icon = new Ellipse { Width = 18, Height = 18, Fill = UiKit.AccentBrush };
-            Put(stage, icon, 440, 100);
+            Put(stage, icon, 436, 100);
             var lit = new Ellipse { Width = 34, Height = 34, Fill = UiKit.AccentBrush, Opacity = 0, Effect = new BlurEffect { Radius = 14 } };
-            Put(stage, lit, 433, 93);
+            Put(stage, lit, 429, 93);
             stage.Children.Remove(lit); stage.Children.Insert(2, lit);
             loop.Keys(icon, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.4, 0.4, 1, 1, 0.4, 0.4 });
             loop.Keys(lit, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.0, 0, 0.5, 0.5, 0, 0 });

@@ -884,7 +884,7 @@ namespace HsbgCardLookup.Ui
                 new[] { "IconsText", "Icons", "Text" },
                 new[]
                 {
-                    Strings.T("settings.lobbyTribes.styleIconsText"), Strings.T("settings.lobbyTribes.styleIcons"),
+                    Strings.T("settings.lobbyTribes.styleBoth"), Strings.T("settings.lobbyTribes.styleIcons"),
                     Strings.T("settings.lobbyTribes.styleText")
                 },
                 new[]

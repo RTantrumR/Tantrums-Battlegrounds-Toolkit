@@ -46,12 +46,28 @@ namespace HsbgCardLookup.Ui
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
 
         /// <summary>Test aid: open a page by name ("panels", "mmr", "boards", "gifts", "search", "app") and save all of it, the
-        /// part below the window's edge too, as a PNG.</summary>
+        /// part below the window's edge too, as a PNG. "name@2.5" waits that many seconds first, so a
+        /// looping picture is caught mid-pass.</summary>
         public void TestSnap(string page, string path)
         {
+            double wait = 0;
+            int at = page.IndexOf('@');
+            if (at > 0)
+            {
+                double.TryParse(page.Substring(at + 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out wait);
+                page = page.Substring(0, at);
+            }
             if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
             else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else BuildPanels();
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
+            Action shoot = null;
+            if (wait > 0)
+            {
+                var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(wait) };
+                timer.Tick += (s, e) => { timer.Stop(); shoot(); };
+                timer.Start();
+            }
+            else Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() => shoot()));
+            shoot = () =>
             {
                 try
                 {
@@ -70,7 +86,7 @@ namespace HsbgCardLookup.Ui
                     using (var fs = System.IO.File.Create(path)) png.Save(fs);
                 }
                 catch { }
-            }));
+            };
         }
 
         private void OnSearchChanged()
