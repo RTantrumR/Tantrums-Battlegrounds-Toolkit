@@ -1600,6 +1600,14 @@ var
   ConfigDir: String;
 begin
   if CurStep <> ssPostInstall then Exit;
+  // A standalone that never ran here (no config.xml of its own; a former plugin user counts too):
+  // the toolkit opens its settings once at its next start, then deletes the marker.
+  if IsStandaloneMode and not FileExists(StandaloneDataDir + '\config.xml') then
+  begin
+    ForceDirectories(StandaloneDataDir);
+    if SaveStringToFile(StandaloneDataDir + '\setup-welcome.txt', '1', False) then
+      Log('Fresh standalone install: the toolkit will open its settings once');
+  end;
   HandOverLanguage;
   if IsStandaloneMode then
   begin

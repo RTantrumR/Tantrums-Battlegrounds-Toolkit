@@ -128,6 +128,10 @@ namespace HsbgCardLookup
             Task.Run(async () => { await RefreshDataAsync(); await _cardLanguage.EnsureDataAsync(launch: true); await RefreshArtPackAsync(); });
             Task.Run(() => CheckForUpdateAsync());
             Task.Run(() => CheckNoticesAsync());
+
+            // The start after a fresh install shows the settings once, unasked: that they exist is
+            // the first thing a new user should learn.
+            if (_config.Welcome) { Log("fresh install: opening the settings once"); OpenSettings(); }
         }
 
         /// <summary>About every 100 ms, on the UI thread.</summary>
@@ -596,6 +600,9 @@ namespace HsbgCardLookup
             catch { }
         }
 
+        /// <summary>The settings window has closed. UI thread.</summary>
+        public event Action SettingsClosed;
+
         public void OpenSettings()
         {
             // Show(), not just Activate(): the window hides itself while a HUD is being arranged, and
@@ -605,7 +612,7 @@ namespace HsbgCardLookup
             _version.ToString(), CheckForUpdatesInteractive,
             n => OpenDownloadPage(n?.DownloadUrl), SkipVersion);
             _settings.ReloadLayout = ReloadLayout;
-            _settings.Closed += (s, e) => _settings = null;
+            _settings.Closed += (s, e) => { _settings = null; SettingsClosed?.Invoke(); };
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known
         }

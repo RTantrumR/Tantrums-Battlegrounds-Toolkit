@@ -44,6 +44,15 @@ namespace Toolkit.Standalone
                 tray.ContextMenuStrip.Items.Add(text["standalone.tray.startNow"], null, (s, e) => launch());
                 tray.ContextMenuStrip.Items.Add(text["standalone.tray.exit"], null, (s, e) => Forms.Application.Exit());
 
+                // Straight after a fresh install (Setup leaves the marker) the toolkit comes up once without
+                // Hearthstone, to show its settings; it leaves again when they close.
+                try
+                {
+                    if (System.IO.File.Exists(System.IO.Path.Combine(Shared.DataDir, "setup-welcome.txt")))
+                    { Process.Start(Shared.ExePath, "--with-hs --welcome"); Shared.Log("fresh install: started the toolkit to show its settings"); }
+                }
+                catch (Exception ex) { Shared.Log("could not start the toolkit: " + ex.Message); }
+
                 var timer = new Forms.Timer { Interval = 3000 };
                 timer.Tick += (s, e) =>
                 {

@@ -27,6 +27,7 @@ namespace Toolkit.Standalone
                 if (!fresh) { Shared.Log("=== refused: another instance is running (args: " + string.Join(" ", args) + ")"); return 1; }
                 bool ignoreFocus = Array.IndexOf(args, "--ignore-focus") >= 0;
                 bool withHs = Array.IndexOf(args, "--with-hs") >= 0;
+                bool welcome = Array.IndexOf(args, "--welcome") >= 0;
                 Shared.Log("=== start" + (withHs ? " (with Hearthstone)" : "") + (ignoreFocus ? " (TEST MODE: --ignore-focus)" : ""));
                 Action<string> log = Shared.Log;
 
@@ -210,6 +211,14 @@ namespace Toolkit.Standalone
                     }
                 };
 
+                // Started only to show the settings (--welcome): with them closed and no Hearthstone there
+                // is nothing to stay for, and the watcher that started us goes on waiting.
+                if (welcome)
+                    toolkit.SettingsClosed += () =>
+                    {
+                        if (Shared.HearthstoneRunning()) return;
+                        Shared.Log("settings closed, no Hearthstone: closing"); app.Shutdown();
+                    };
                 app.Startup += (s, e) => { toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start(); };
                 app.Exit += (s, e) =>
                 {

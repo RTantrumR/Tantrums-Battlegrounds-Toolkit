@@ -263,7 +263,24 @@ namespace HsbgCardLookup.Config
                 config.Migrate();
             }
             config.ApplySetupLanguage();
+            config.Welcome = TakeWelcome();
             return config;
+        }
+
+        /// <summary>True for the one start that follows a fresh install: Setup leaves setup-welcome.txt
+        /// next to where config.xml will be, and the toolkit then opens its settings once.</summary>
+        [XmlIgnore] public bool Welcome { get; private set; }
+
+        private static bool TakeWelcome()
+        {
+            try
+            {
+                var file = Path.Combine(Dir, "setup-welcome.txt");
+                if (!File.Exists(file)) return false;
+                File.Delete(file);
+                return true;
+            }
+            catch { return false; }
         }
 
         /// <summary>The Setup wizard's "Toolkit language" page hands its choice over in
