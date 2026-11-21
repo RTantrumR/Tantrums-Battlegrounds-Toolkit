@@ -135,6 +135,8 @@ namespace HsbgCardLookup.Ui
             // Closing the window leaves arrange mode so placeholder boxes never strand. (We do NOT exit
             // on Deactivated — the boxes are topmost/no-activate, so you can alt-tab to the game and keep
             // arranging them over it.)
+            // Seen closing, it folds into the logo and flies to the tray icon (a host that has one).
+            Closing += (s, e) => TrayFlight.From(this);
             Closed += (s, e) =>
             {
                 FlushPending();

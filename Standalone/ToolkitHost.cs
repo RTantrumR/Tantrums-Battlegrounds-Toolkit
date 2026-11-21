@@ -56,6 +56,8 @@ namespace Toolkit.Standalone
                     Visible = true,
                     ContextMenuStrip = new Forms.ContextMenuStrip()
                 };
+                HsbgCardLookup.Ui.TrayFlight.LogoPath = Path.Combine(Shared.ExeDir, "toolkit.ico");
+                HsbgCardLookup.Ui.TrayFlight.Target = () => TrayPlace.Of(tray);
                 Forms.ToolStripItem searchItem = null, settingsItem = null, exitItem = null;
                 Action relabel = () =>
                 {
@@ -217,7 +219,11 @@ namespace Toolkit.Standalone
                     toolkit.SettingsClosed += () =>
                     {
                         if (Shared.HearthstoneRunning()) return;
-                        Shared.Log("settings closed, no Hearthstone: closing"); app.Shutdown();
+                        Shared.Log("settings closed, no Hearthstone: closing");
+                        // After the settings' own flight to the tray has played.
+                        var leave = new DispatcherTimer(DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(900) };
+                        leave.Tick += (s, e) => { leave.Stop(); app.Shutdown(); };
+                        leave.Start();
                     };
                 app.Startup += (s, e) => { toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start(); };
                 app.Exit += (s, e) =>
