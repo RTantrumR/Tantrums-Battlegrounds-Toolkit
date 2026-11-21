@@ -119,7 +119,6 @@
   "settings.windowTitle": "{0} - Paramètres",
   "settings.search.placeholder": "Rechercher un paramètre",
   "settings.search.none": "Aucun résultat.",
-  "settings.general.title": "Général",
   "settings.general.turnCounter": "Compteur de tours",
   "settings.general.turnCounterOn": "Le numéro du tour s’affiche en haut à droite pendant la partie. Glissez la case pour la déplacer, son coin pour la redimensionner.",
   "settings.general.turnCounterOff": "Compteur de tours désactivé.",

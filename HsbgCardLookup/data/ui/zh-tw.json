@@ -119,7 +119,6 @@
   "settings.windowTitle": "{0} - 設定",
   "settings.search.placeholder": "搜尋設定",
   "settings.search.none": "找不到結果。",
-  "settings.general.title": "一般",
   "settings.general.turnCounter": "回合計數器",
   "settings.general.turnCounterOn": "對戰中，回合數會顯示在右上角。拖動方框可移動，拖動其右上角可調整大小。",
   "settings.general.turnCounterOff": "回合計數器已關閉。",

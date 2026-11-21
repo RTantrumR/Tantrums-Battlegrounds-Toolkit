@@ -348,7 +348,7 @@ namespace HsbgCardLookup.Ui
         }
 
         /// <summary>The page the window opens on.</summary>
-        private void BuildMain() { BuildCardSearch(); }
+        private void BuildMain() { BuildPanels(); }
 
         // The tab column: one entry per page, the one on screen marked; a feature's entry carries a dot
         // for on/off (the switch itself heads its page). Website and Support sit at its foot.
@@ -357,15 +357,16 @@ namespace HsbgCardLookup.Ui
             var tabs = new StackPanel();
             _navTabs.Clear();
             tabs.Children.Add(SearchBox());
-            tabs.Children.Add(NavTab(Strings.T("settings.general.title"), BuildCardSearch, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.panels.title"), BuildPanels, null));
             tabs.Children.Add(NavTab(Strings.T("settings.mmr.title"), BuildMmr, () => _config.ShowOpponentMmr));
             tabs.Children.Add(NavTab(Strings.T("settings.boards.label"), BuildBoards, () => _config.ShowOpponentBoards));
             tabs.Children.Add(NavTab(Strings.T("settings.darkGifts.title"), BuildDarkGifts, () => _config.ShowDarkGifts));
+            tabs.Children.Add(NavTab(Strings.T("settings.cardSearch.title"), BuildCardSearch, null));
             tabs.Children.Add(NavTab(Strings.T("settings.trinkets.title"), BuildTrinkets, () => _config.ShowTrinkets));
             tabs.Children.Add(NavTab(Strings.T("settings.anomaly.title"), BuildAnomaly, () => _config.ShowAnomaly));
-            tabs.Children.Add(NavTab(Strings.T("settings.updates.title"), BuildUpdates, null));
             tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
             tabs.Children.Add(NavTab(Strings.T("settings.config.title"), BuildConfig, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.app.title"), BuildUpdates, null));
             tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
             _navNone = new TextBlock
             {
@@ -839,24 +840,14 @@ namespace HsbgCardLookup.Ui
             BuildTools();
         }
 
-        private void BuildCardSearch()
+        // What stays on screen during a match besides the leaderboard's own things: the turn counter,
+        // the lobby's minion types, and how those boxes join one another.
+        private void BuildPanels()
         {
-            _currentPage = BuildCardSearch;
-            var stack = NewPage(Strings.T("settings.general.title"), sub: true);
+            _currentPage = BuildPanels;
+            var stack = NewPage(Strings.T("settings.panels.title"), sub: true);
 
-            stack.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.cardSearch.intro"),
-                Foreground = UiKit.TextMuted, FontSize = 13, Margin = new Thickness(0, 0, 0, 12),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            stack.Children.Add(KeyRow("browser", Strings.T("settings.cardSearch.keyOpenOverlay")));
-            stack.Children.Add(KeyRow("golden", Strings.T("settings.cardSearch.keyToggleGolden")));
-            stack.Children.Add(KeyRow("focus", Strings.T("settings.cardSearch.keyFocusSearch")));
-
-            stack.Children.Add(Separator());
-
+            stack.Children.Add(GroupHeader(Strings.T("settings.general.turnCounter"), first: true));
             stack.Children.Add(ToggleRow(Strings.T("settings.general.turnCounter"), _config.ShowTurnCounter, v =>
             {
                 _config.ShowTurnCounter = v;
@@ -864,6 +855,7 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
+            stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
             {
                 _config.ShowLobbyTribes = v;
@@ -910,6 +902,7 @@ namespace HsbgCardLookup.Ui
             FollowPart(typesBanned, () => _config.ShowLobbyTribes);
             stack.Children.Add(typesBanned);
 
+            stack.Children.Add(GroupHeader(Strings.T("settings.panels.assembleHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.general.assemble"), _config.AssemblePanels, v =>
             {
                 _config.AssemblePanels = v;
@@ -923,6 +916,27 @@ namespace HsbgCardLookup.Ui
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, -6, 0, 12)
             });
 
+            ShowPage();
+        }
+
+        private void BuildCardSearch()
+        {
+            _currentPage = BuildCardSearch;
+            var stack = NewPage(Strings.T("settings.cardSearch.title"), sub: true);
+
+            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.keysHeader"), first: true));
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.cardSearch.intro"),
+                Foreground = UiKit.TextMuted, FontSize = 13, Margin = new Thickness(0, 0, 0, 12),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            stack.Children.Add(KeyRow("browser", Strings.T("settings.cardSearch.keyOpenOverlay")));
+            stack.Children.Add(KeyRow("golden", Strings.T("settings.cardSearch.keyToggleGolden")));
+            stack.Children.Add(KeyRow("focus", Strings.T("settings.cardSearch.keyFocusSearch")));
+
+            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.gameHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {
                 _config.ShowSearchButton = v;
@@ -939,6 +953,7 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
+            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.floatingHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.dragFromDetail"), _config.DragFromDetail, v =>
             {
                 _config.DragFromDetail = v;
@@ -966,25 +981,7 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
-            // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
-            bool? autostart = null;
-            try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
-            if (autostart.HasValue)
-            {
-                stack.Children.Add(Separator());
-                stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
-                {
-                    try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
-                    _status.Text = v ? Strings.T("settings.autostart.on") : Strings.T("settings.autostart.off");
-                }));
-                stack.Children.Add(new TextBlock
-                {
-                    Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
-                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10)
-                });
-            }
-
-            stack.Children.Add(Separator());
+            stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.artHeader")));
             stack.Children.Add(ArtFolderRow());
 
             ShowPage();
@@ -1311,8 +1308,28 @@ namespace HsbgCardLookup.Ui
         private void BuildUpdates()
         {
             _currentPage = BuildUpdates;
-            var stack = NewPage(Strings.T("settings.updates.title"), sub: true);
+            var stack = NewPage(Strings.T("settings.app.title"), sub: true);
             _onUpdatesPage = true;
+
+            // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
+            bool? autostart = null;
+            try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
+            if (autostart.HasValue)
+            {
+                stack.Children.Add(GroupHeader(Strings.T("settings.app.startHeader"), first: true));
+                stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
+                {
+                    try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
+                    _status.Text = v ? Strings.T("settings.autostart.on") : Strings.T("settings.autostart.off");
+                }));
+                stack.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4)
+                });
+            }
+
+            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));
 
             stack.Children.Add(new TextBlock
             {

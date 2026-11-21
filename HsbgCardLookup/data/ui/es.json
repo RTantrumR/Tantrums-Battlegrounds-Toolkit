@@ -119,7 +119,6 @@
   "settings.windowTitle": "{0} - Ajustes",
   "settings.search.placeholder": "Buscar ajustes",
   "settings.search.none": "No se ha encontrado nada.",
-  "settings.general.title": "General",
   "settings.general.turnCounter": "Contador de turnos",
   "settings.general.turnCounterOn": "El número de turno aparece arriba a la derecha durante la partida. Arrastra el cuadro para moverlo y su esquina para cambiar el tamaño.",
   "settings.general.turnCounterOff": "Contador de turnos desactivado.",

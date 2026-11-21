@@ -119,7 +119,6 @@
   "settings.windowTitle": "{0} - การตั้งค่า",
   "settings.search.placeholder": "ค้นหาในการตั้งค่า",
   "settings.search.none": "ไม่พบผลลัพธ์",
-  "settings.general.title": "ทั่วไป",
   "settings.general.turnCounter": "ตัวนับเทิร์น",
   "settings.general.turnCounterOn": "เลขเทิร์นแสดงที่มุมขวาบนระหว่างแมตช์ ลากกล่องเพื่อย้าย ลากมุมเพื่อปรับขนาด",
   "settings.general.turnCounterOff": "ตัวนับเทิร์นปิดอยู่",

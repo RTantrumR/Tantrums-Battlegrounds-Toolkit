@@ -45,11 +45,12 @@ namespace HsbgCardLookup.Ui
         /// <summary>Test aid: as if typed into the search box.</summary>
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
 
-        /// <summary>Test aid: open a page by name ("general", "mmr", "boards") and save all of it, the
+        /// <summary>Test aid: open a page by name ("panels", "mmr", "boards", "gifts", "search", "app") and save all of it, the
         /// part below the window's edge too, as a PNG.</summary>
         public void TestSnap(string page, string path)
         {
-            if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else BuildCardSearch();
+            if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
+            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else BuildPanels();
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, new Action(() =>
             {
                 try

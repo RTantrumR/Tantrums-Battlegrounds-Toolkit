@@ -119,7 +119,6 @@
   "settings.windowTitle": "{0} - 設定",
   "settings.search.placeholder": "設定を検索",
   "settings.search.none": "見つかりませんでした。",
-  "settings.general.title": "一般",
   "settings.general.turnCounter": "ターンカウンター",
   "settings.general.turnCounterOn": "試合中、右上にターン数を表示します。ボックスをドラッグで移動、右上の角をドラッグでサイズ変更。",
   "settings.general.turnCounterOff": "ターンカウンターはオフです。",
