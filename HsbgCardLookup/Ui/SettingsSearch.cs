@@ -58,7 +58,7 @@ namespace HsbgCardLookup.Ui
                 page = page.Substring(0, at);
             }
             if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
-            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else BuildPanels();
+            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig(); else BuildPanels();
             Action shoot = null;
             if (wait > 0)
             {

@@ -624,10 +624,13 @@ namespace HsbgCardLookup
                 try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
                 return;
             }
-            OpenSettings();
+            // A snap renders off the window's own visuals, so it never needs the focus.
+            bool snap = search.StartsWith("snap ", StringComparison.Ordinal);
+            _quietOpen = snap;
+            try { OpenSettings(); } finally { _quietOpen = false; }
             try
             {
-                if (search.StartsWith("snap ", StringComparison.Ordinal))
+                if (snap)
                     _settings?.TestSnap(search.Substring(5).Trim(), System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png"));
                 else _settings?.TestSearch(search);
             }
