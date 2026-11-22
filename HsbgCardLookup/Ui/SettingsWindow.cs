@@ -939,13 +939,13 @@ namespace HsbgCardLookup.Ui
             {
                 Func<string> state = () => _config.BrowserKey + "|" + _config.DragFromDetail + "|" + _config.DragFromGrid + "|" + _config.HideDraggedWithApp;
                 string shown = state();
-                var flow = new ContentControl { Content = SettingsDemos.SearchFlow(_config), Focusable = false };
+                var flow = new ContentControl { Content = SettingsDemos.SearchFlow(_config, _store), Focusable = false };
                 stack.Children.Add(flow);
                 _modeRefresh.Add(() =>
                 {
                     if (shown == state()) return;
                     shown = state();
-                    flow.Content = SettingsDemos.SearchFlow(_config);
+                    flow.Content = SettingsDemos.SearchFlow(_config, _store);
                 });
             }
 
@@ -1069,33 +1069,21 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }));
 
-            // What hovering and clicking a portrait do, by the switch above; redrawn when it flips.
+            // What hovering and clicking a portrait do, by the switch above, over a real game frame with
+            // the real sample board and card render (it replaces the separate sample-board picture this
+            // page had); redrawn when the switch flips.
             if (!_indexing)
             {
+                Func<bool, object> make = pin => { try { return SettingsDemos.BoardsHover(pin, _config, _store); } catch { return null; } };
                 bool shownPin = _config.BoardPinOnClick;
-                var hover = new ContentControl { Content = SettingsDemos.BoardsHover(shownPin), Focusable = false };
+                var hover = new ContentControl { Content = make(shownPin), Focusable = false };
                 stack.Children.Add(hover);
                 _modeRefresh.Add(() =>
                 {
                     if (shownPin == _config.BoardPinOnClick) return;
                     shownPin = _config.BoardPinOnClick;
-                    hover.Content = SettingsDemos.BoardsHover(shownPin);
+                    hover.Content = make(shownPin);
                 });
-            }
-
-            // What a board looks like: the sample one, as it is drawn over the game.
-            if (!_indexing)
-            {
-                try
-                {
-                    stack.Children.Add(new Border
-                    {
-                        Background = UiKit.Br(UiKit.FieldBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                        CornerRadius = new CornerRadius(8), Padding = new Thickness(10), Margin = new Thickness(0, 8, 0, 10),
-                        Child = OpponentBoardPanel.Preview(_config, _store)
-                    });
-                }
-                catch { }
             }
 
             stack.Children.Add(ArrangeHudRow(ArrangeTarget.Boards, Strings.T("settings.boards.arrangeTitle")));

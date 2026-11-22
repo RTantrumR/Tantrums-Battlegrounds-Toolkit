@@ -152,16 +152,32 @@ namespace HsbgCardLookup.Ui
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xD8, 0x0A, 0x0D, 0x14));
 
-        /// <summary>The sample board as a picture for the settings page: a panel of its own that is
-        /// never put on the overlay, drawn at its natural size and scaled down to the room it is given.</summary>
-        public static FrameworkElement Preview(PluginConfig config, CardStore store)
+        /// <summary>The pieces of the settings demonstration, at the size they have over a 1080-high game:
+        /// the sample board as the panel draws it, the big card that opens over one of its minions, that
+        /// minion's centre in the board and the top edge the card opens at (both in board coordinates,
+        /// the same rule as <see cref="OpenCardUnder"/>).</summary>
+        internal static FrameworkElement DemoBoard(PluginConfig config, CardStore store, int minion,
+            out FrameworkElement card, out Point minionCentre, out double cardTop)
         {
             var p = new OpponentBoardPanel(config, store, null, null, preview: true);
             p.EnsureArt(System.Windows.Threading.Dispatcher.CurrentDispatcher);
             p.EnsureTextFace();
-            p.Fill(p.Sample(), Strings.T("boards.sample"), p._sampleHistory, 1);
+            var board = p.Sample();
+            p.Fill(board, Strings.T("boards.sample"), p._sampleHistory, 1);
             p._root.Visibility = Visibility.Visible;
-            return new Viewbox { Child = p._root, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly, IsHitTestVisible = false };
+            p._root.IsHitTestVisible = false;
+            // Hanging from the top edge, as Place draws it there: no top border, no top corners.
+            p._root.CornerRadius = new CornerRadius(0, 0, 8, 8);
+            p._root.BorderThickness = new Thickness(1, 0, 1, 1);
+            p._root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            p._root.Arrange(new Rect(p._root.DesiredSize));
+            minion = Math.Max(0, Math.Min(minion, board.Minions.Count - 1));
+            Point origin = p._row.TranslatePoint(new Point(0, 0), p._root);
+            minionCentre = new Point(origin.X + p._rowShift + (minion + 0.5) * CellW, origin.Y + CellH / 2);
+            cardTop = origin.Y + CellH + HeaderH + 6;
+            var m = board.Minions.Count > 0 ? board.Minions[minion] : null;
+            card = m == null ? (FrameworkElement)new Canvas() : Card(m.Card, m.Golden, m, 1);
+            return p._root;
         }
 
         public OpponentBoardPanel(PluginConfig config, CardStore store, OpponentBoards boards, Action<string> log, bool preview = false)

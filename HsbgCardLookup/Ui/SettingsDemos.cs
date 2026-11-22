@@ -6,14 +6,20 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using HsbgCardLookup.Config;
+using HsbgCardLookup.Data;
 using HsbgCardLookup.Localization;
 
 namespace HsbgCardLookup.Ui
 {
     /// <summary>
-    /// Settings' small pictures of what a switch does, in the manner of <see cref="AssembleDemo"/>:
-    /// drawn shapes on a stage, most of them one looping storyboard that runs only while the picture
-    /// is on screen. Each follows the settings it stands next to (the page rebuilds or refreshes it).
+    /// Settings' small pictures of what a switch does: one looping storyboard each, running only while
+    /// the picture is on screen, and each follows the settings it stands next to (the page rebuilds or
+    /// refreshes it).
+    ///
+    /// Owner's rules (2026-11-22): a picture shows the game as the player will see it — a real frame
+    /// captured from a replay (data/demos), the toolkit's real panels and card renders over it, never a
+    /// stand-in shape — and the whole interaction the setting changes. It takes only the room it needs:
+    /// a picture that fits beside its label sits in the row (the turn counter), the rest get a stage.
     /// </summary>
     internal static class SettingsDemos
     {
@@ -95,12 +101,6 @@ namespace HsbgCardLookup.Ui
             return ring;
         }
 
-        private static Border Box(double w, double h, double corner = 7) => new Border
-        {
-            Width = w, Height = h, Background = BoxBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(corner)
-        };
-
         private static void Put(Canvas stage, UIElement el, double x, double y)
         {
             Canvas.SetLeft(el, x); Canvas.SetTop(el, y);
@@ -125,6 +125,27 @@ namespace HsbgCardLookup.Ui
             return Stage(stage);
         }
 
+        // ── A real game frame ──────────────────────────────────────────────────────────────────
+
+        // Captured from a replay at 1920×1080 (the game's own render: no overlay, no replay controls),
+        // cropped to game pixels x 200..1620, y 0..760: the leaderboard column on the left, the tavern
+        // under the top edge where the board hangs.
+        private const double FrameX = 200, FrameW = 1420, FrameH = 760;
+        // The third leaderboard portrait's centre in that capture, in game pixels.
+        private static readonly Point PortraitThree = new Point(295, 395);
+
+        private static Image GameFrame(double width)
+        {
+            var img = new Image { Width = width, Height = width * FrameH / FrameW, Stretch = Stretch.Fill, IsHitTestVisible = false };
+            try
+            {
+                string path = CardStore.DemoAssetPath("game-leaderboard");
+                if (path != null) img.Source = ImageCache.Load(path, (int)Math.Min(FrameW, Math.Ceiling(width * 2)));
+            }
+            catch { }
+            return img;
+        }
+
         // ── Lobby types: the box itself, by the layout, look and banned-types settings ──────────
 
         public static FrameworkElement LobbyTypes(PluginConfig config, out Action refresh)
@@ -133,72 +154,74 @@ namespace HsbgCardLookup.Ui
             return Stage(new Grid { MinHeight = 76, Children = { new Border { Padding = new Thickness(12), Child = box } } });
         }
 
-        // ── Opponents' boards: hover shows, a click keeps (or, with pinning off, leaving hides) ─
+        // ── Opponents' boards: the game's own leaderboard, the toolkit's real board and card ─────
+        //
+        // Over the replay frame, at the scale they have over a 1080-high game: the cursor rests on the
+        // third portrait and that player's board hangs from the top edge. With pinning on, a click keeps
+        // it open, the cursor moves onto a minion and its big card opens under it, and a click on the
+        // board lets it go. With pinning off the board goes when the cursor leaves the portrait (and a
+        // minion can't be reached), so that loop stops there.
 
-        public static FrameworkElement BoardsHover(bool pin)
+        public static FrameworkElement BoardsHover(bool pin, PluginConfig config, CardStore store)
         {
-            double len = pin ? 6.4 : 4.6;
-            var stage = new Canvas { Width = StageW, Height = 150 };
+            double k = StageW / FrameW;
+            double len = pin ? 7.2 : 4.8;
+            var stage = new Canvas { Width = StageW, Height = Math.Round(FrameH * k) };
             var loop = new Loop(len);
 
-            double[] tops = { 12, 58, 104 };
-            Ellipse hovered = null;
-            for (int i = 0; i < tops.Length; i++)
-            {
-                var portrait = new Ellipse
-                {
-                    Width = 36, Height = 36, StrokeThickness = 2, Stroke = Frozen(Color.FromRgb(0x8A, 0x6A, 0x2C)),
-                    Fill = new RadialGradientBrush(Color.FromRgb(0x6B, 0x55, 0x3A), Color.FromRgb(0x2B, 0x22, 0x18))
-                };
-                Put(stage, portrait, 22, tops[i]);
-                if (i == 1) hovered = portrait;
-            }
+            // Everything in game pixels, scaled down as one.
+            var game = new Canvas { Width = FrameW, Height = FrameH, RenderTransform = new ScaleTransform(k, k) };
+            game.Children.Add(GameFrame(FrameW));
+            stage.Children.Add(game);
 
-            // The board that portrait's player last fought with: five minions in a row.
-            var minions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            foreach (string tribe in new[] { "Beast", "Mech", "Dragon", "Murloc", "Undead" })
-                minions.Children.Add(new Ellipse { Width = 38, Height = 50, Margin = new Thickness(5, 0, 5, 0), Fill = TribeIcons.BrushFor(tribe), Stroke = TribeIcons.Ring, StrokeThickness = 1.5 });
-            var board = Box(270, 84);
-            board.Child = minions;
-            Put(stage, board, 84, 34);
-            var kept = new Rectangle { Width = 274, Height = 88, RadiusX = 9, RadiusY = 9, Stroke = UiKit.AccentBrush, StrokeThickness = 2, Opacity = 0 };
-            Put(stage, kept, 82, 32);
-            var ring = new Ellipse { Width = 42, Height = 42, Stroke = UiKit.AccentBrush, StrokeThickness = 2.5, Opacity = 0 };
-            Put(stage, ring, 19, 55);
+            FrameworkElement card; Point centre; double cardTop;
+            // The fourth minion: its card opens over the middle of the tavern, clear of the portraits.
+            var board = OpponentBoardPanel.DemoBoard(config, store, 3, out card, out centre, out cardTop);
+            double boardLeft = 960 - FrameX - board.DesiredSize.Width / 2;   // hangs from the top edge, centred
+            Put(game, board, boardLeft, 0);
+            double cardW = double.IsNaN(card.Width) ? 250 : card.Width;
+            Put(game, card, Math.Max(0, Math.Min(boardLeft + centre.X - cardW / 2, FrameW - cardW)), cardTop);
 
+            // Cursor and click rings stay at the stage's own size, so they read at this scale.
+            var portrait = new Point((PortraitThree.X - FrameX) * k, PortraitThree.Y * k);
+            var minion = new Point((boardLeft + centre.X) * k, (centre.Y + 18) * k);
+            var rest = new Point(StageW * 0.62, stage.Height * 0.82);
             var cursor = Cursor();
-            Put(stage, cursor, 250, 128);
-            const double px = 40, py = 78, awayX = 330, awayY = 128;      // the cursor's tip on the portrait, and off it
             if (pin)
             {
-                loop.Move(cursor, new[] { 0, 0.3, 1.0, 2.2, 3.0, 4.3, 5.0, len },
-                    new[] { 250.0, 250, px, px, awayX, awayX, px, px }, new[] { 128.0, 128, py, py, awayY, awayY, py, py });
-                loop.Show(board, 1.0, 5.4);
-                Click(stage, loop, px, py, 1.9);
-                loop.Show(kept, 1.95, 5.3);
-                loop.Show(ring, 1.95, 5.3);
-                Click(stage, loop, px, py, 5.3);
+                loop.Move(cursor, new[] { 0, 0.3, 1.0, 1.6, 2.4, 5.0, 5.7, len },
+                    new[] { rest.X, rest.X, portrait.X, portrait.X, minion.X, minion.X, rest.X, rest.X },
+                    new[] { rest.Y, rest.Y, portrait.Y, portrait.Y, minion.Y, minion.Y, rest.Y, rest.Y });
+                Click(stage, loop, portrait.X, portrait.Y, 1.15);
+                loop.Show(board, 1.2, 4.95);
+                loop.Show(card, 2.5, 4.95);
+                Click(stage, loop, minion.X, minion.Y, 4.9);
             }
             else
             {
-                loop.Move(cursor, new[] { 0, 0.3, 1.0, 2.6, 3.4, len },
-                    new[] { 250.0, 250, px, px, awayX, awayX }, new[] { 128.0, 128, py, py, awayY, awayY });
-                loop.Show(board, 1.0, 2.7);
+                loop.Move(cursor, new[] { 0, 0.3, 1.0, 2.8, 3.4, len },
+                    new[] { rest.X, rest.X, portrait.X, portrait.X, rest.X, rest.X },
+                    new[] { rest.Y, rest.Y, portrait.Y, portrait.Y, rest.Y, rest.Y });
+                loop.Show(board, 1.0, 2.8);
+                card.Visibility = Visibility.Collapsed;
             }
             // The cursor goes last so it passes over everything.
-            stage.Children.Remove(cursor); stage.Children.Add(cursor);
+            Put(stage, cursor, rest.X, rest.Y);
             loop.Run(stage);
             return Stage(stage);
         }
 
-        // ── Card search: the key opens it, a card is dragged out, the key closes it again ───────
+        // ── Card search: the key opens it over the game, a card is dragged out, the key closes it ─
 
-        public static FrameworkElement SearchFlow(PluginConfig config)
+        public static FrameworkElement SearchFlow(PluginConfig config, CardStore store)
         {
             const double len = 6.6;
-            var stage = new Canvas { Width = StageW, Height = 168 };
+            var stage = new Canvas { Width = StageW, Height = 176 };
             var loop = new Loop(len);
             bool drag = config.DragFromGrid || config.DragFromDetail;
+
+            // The game it opens over: the replay frame from its top edge.
+            Put(stage, GameFrame(StageW), 0, 0);
 
             string key = string.IsNullOrEmpty(config.BrowserKey) || config.BrowserKey == "None" ? "—" : config.BrowserKey;
             var cap = new Border
@@ -207,61 +230,74 @@ namespace HsbgCardLookup.Ui
                 Background = Frozen(Color.FromRgb(0x2A, 0x33, 0x45)), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1, 1, 1, 3),
                 Child = new TextBlock { Text = key, Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
             };
-            Put(stage, cap, 22, 112);
+            Put(stage, cap, 22, 128);
             double closeAt = drag ? 4.4 : 3.2;
             // A press: the cap sinks two pixels and lights up.
             loop.Keys(cap, Canvas.TopProperty,
                 new[] { 0, 0.5, 0.6, 0.85, 0.95, closeAt, closeAt + 0.1, closeAt + 0.35, closeAt + 0.45, len },
-                new[] { 112.0, 112, 114, 114, 112, 112, 114, 114, 112, 112 });
+                new[] { 128.0, 128, 130, 130, 128, 128, 130, 130, 128, 128 });
             var glow = new Rectangle { Width = 60, Height = 44, RadiusX = 9, RadiusY = 9, Fill = UiKit.AccentBrush, Opacity = 0, Effect = new BlurEffect { Radius = 12 } };
-            Put(stage, glow, 14, 107);
-            stage.Children.Remove(glow); stage.Children.Insert(0, glow);
+            Put(stage, glow, 14, 123);
+            stage.Children.Remove(glow); stage.Children.Insert(1, glow);
             loop.Keys(glow, UIElement.OpacityProperty,
                 new[] { 0, 0.5, 0.65, 1.0, closeAt, closeAt + 0.15, closeAt + 0.5, len }, new[] { 0.0, 0, 0.55, 0, 0, 0.55, 0, 0 });
 
-            // The search overlay: a bar and two rows of cards.
-            var overlay = Box(230, 140, 10);
-            var inside = new StackPanel { Margin = new Thickness(10, 9, 10, 8) };
-            inside.Children.Add(new Border { Height = 16, CornerRadius = new CornerRadius(8), Background = Frozen(Color.FromRgb(0x24, 0x2E, 0x42)), Margin = new Thickness(0, 0, 0, 8) });
-            const double cardW = 34, cardH = 42;
-            for (int r = 0; r < 2; r++)
+            // The search as it is laid out: the search box, three columns of cards, the chosen card on
+            // the right. Real card renders from the art pack.
+            string[] ids = { "BG36_364", "BG25_001", "BG29_813", "BG27_005", "BG33_822", "BG36_369" };
+            const double ow = 252, oh = 152, ox = 104, oy = 10, artW = 40, cellW = 46, cellH = 58, detailW = 78;
+            var overlay = new Border
             {
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-                for (int c = 0; c < 5; c++)
-                    row.Children.Add(Card(cardW, cardH, r == 0 && c == 4 && drag ? 0.25 : 1));
-                inside.Children.Add(row);
-            }
+                Width = ow, Height = oh, Background = Frozen(UiKit.PanelBg), BorderBrush = UiKit.StrokeBrush,
+                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), ClipToBounds = true
+            };
+            var inside = new Canvas();
             overlay.Child = inside;
-            Put(stage, overlay, 112, 14);
+            Put(inside, new Border
+            {
+                Width = ow - 20, Height = 18, Background = Frozen(UiKit.FieldBg), BorderBrush = UiKit.AccentBrush, BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(5),
+                Child = new TextBlock { Text = "🔍", FontSize = 8, Foreground = UiKit.TextMuted, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) }
+            }, 9, 8);
+            for (int i = 0; i < ids.Length; i++)
+                Put(inside, Art(store, ids[i], artW), 9 + i % 3 * cellW, 34 + i / 3 * cellH);
+            Put(inside, Art(store, ids[0], detailW), ow - detailW - 14, 34);
+            Put(stage, overlay, ox, oy);
             loop.Show(overlay, 0.75, closeAt + 0.15);
 
             if (drag)
             {
-                // Its fifth card is pulled out and left on the screen.
-                double fromX = 112 + 11 + 4 * (cardW + 4) + 2, fromY = 14 + 10 + 24;
-                const double toX = 392, toY = 58;
-                var card = Card(cardW, cardH, 1);
-                card.Margin = new Thickness(0);
-                card.BorderBrush = UiKit.AccentBrush;
+                // The chosen card is pulled out of the detail column (or out of the grid) and left on the screen.
+                bool fromDetail = config.DragFromDetail;
+                double fromX = ox + (fromDetail ? ow - detailW - 14 : 9), fromY = oy + 34, fromW = fromDetail ? detailW : artW;
+                const double toX = 380, toY = 44;
+                var card = Art(store, ids[0], detailW);
                 Put(stage, card, fromX, fromY);
                 loop.Move(card, new[] { 0, 2.0, 3.2, len }, new[] { fromX, fromX, toX, toX }, new[] { fromY, fromY, toY, toY });
                 // "Hide dragged cards with app": it goes with the overlay, or it stays a while longer.
                 loop.Show(card, 1.9, config.HideDraggedWithApp ? closeAt + 0.15 : len - 0.6);
                 var cursor = Cursor();
-                Put(stage, cursor, 300, 150);
+                Put(stage, cursor, 300, 160);
+                double grabX = fromX + fromW / 2, grabY = fromY + fromW * 0.6;
                 loop.Move(cursor, new[] { 0, 1.2, 2.0, 3.2, 3.9, len },
-                    new[] { 300.0, 300, fromX + 14, toX + 14, 330, 330 }, new[] { 150.0, 150, fromY + 20, toY + 20, 150, 150 });
+                    new[] { 300.0, 300, grabX, toX + detailW / 2, 330, 330 }, new[] { 160.0, 160, grabY, toY + detailW * 0.6, 160, 160 });
             }
             loop.Run(stage);
             return Stage(stage);
         }
 
-        private static Border Card(double w, double h, double opacity) => new Border
+        // A card render as the search shows it (the art pack's WebP, or the CDN's), at a width.
+        private static Image Art(CardStore store, string id, double width)
         {
-            Width = w, Height = h, CornerRadius = new CornerRadius(4), Margin = new Thickness(2, 0, 2, 0), Opacity = opacity,
-            Background = new LinearGradientBrush(Color.FromRgb(0x4A, 0x3B, 0x6B), Color.FromRgb(0x2A, 0x24, 0x40), 90),
-            BorderBrush = Frozen(Color.FromRgb(0x6C, 0x5A, 0x96)), BorderThickness = new Thickness(1)
-        };
+            var img = new Image { Width = width, Height = width * 672.0 / 512.0, Stretch = Stretch.Uniform, IsHitTestVisible = false };
+            try
+            {
+                var c = store?.Lookup(id);
+                if (c != null) { ArtImage.SetDecode(img, (int)Math.Ceiling(width * 2)); ArtImage.SetCard(img, c); }
+            }
+            catch { }
+            return img;
+        }
 
         // ── Start with Windows: the icon waits in the tray, comes alive with the game, rests again ─
 
@@ -275,23 +311,18 @@ namespace HsbgCardLookup.Ui
             Put(stage, new Rectangle { Width = StageW, Height = 28, Fill = Frozen(Color.FromRgb(0x10, 0x14, 0x1C)) }, 0, 96);
             Put(stage, new Rectangle { Width = StageW, Height = 1, Fill = UiKit.StrokeBrush }, 0, 96);
 
-            // The game: a window, and its button on the taskbar.
+            // The game: its window (the replay frame), and its button on the taskbar.
+            const double gameW = 160;
             var game = new Border
             {
-                Width = 210, Height = 78, CornerRadius = new CornerRadius(6), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                Background = new LinearGradientBrush(Color.FromRgb(0x2B, 0x3F, 0x5C), Color.FromRgb(0x16, 0x20, 0x32), 90),
-                Child = new Ellipse { Width = 150, Height = 46, Fill = Felt, Opacity = 0.9, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
+                CornerRadius = new CornerRadius(4), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                Background = Brushes.Black, ClipToBounds = true, Child = GameFrame(gameW)
             };
-            Put(stage, game, 135, 9);
+            Put(stage, game, 150, 4);
             var button = new Rectangle { Width = 34, Height = 16, RadiusX = 3, RadiusY = 3, Fill = Frozen(Color.FromRgb(0x2B, 0x3F, 0x5C)), Stroke = UiKit.StrokeBrush };
             Put(stage, button, 20, 102);
             loop.Show(game, 1.3, 4.4);
             loop.Show(button, 1.3, 4.4);
-
-            // The toolkit's own boxes over the game, once it has come up.
-            var boxA = Box(46, 14, 4); var boxB = Box(30, 40, 4);
-            Put(stage, boxA, 143, 16); Put(stage, boxB, 306, 38);
-            loop.Show(boxA, 2.2, 4.4); loop.Show(boxB, 2.2, 4.4);
 
             // The tray icon: dim while it waits, lit while the toolkit runs.
             FrameworkElement icon;
