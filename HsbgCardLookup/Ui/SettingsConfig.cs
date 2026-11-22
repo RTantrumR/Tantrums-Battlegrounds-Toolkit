@@ -173,6 +173,19 @@ namespace HsbgCardLookup.Ui
                     Part("settings.boards.label", c => c.ShowOpponentBoards = false),
                 }
             },
+            // HDT's Battlegrounds overlay: its panel greys and the tier buttons' orange.
+            new ReadyConfig
+            {
+                Name = "Hearthstone Deck Tracker", ForKey = "settings.config.ready.hdt", Pinned = true,
+                Fill = Color.FromRgb(0x2C, 0x31, 0x35), FillDark = Color.FromRgb(0x14, 0x16, 0x17), Rim = Color.FromRgb(0x3F, 0x43, 0x46),
+                Accent = Color.FromRgb(0xFF, 0x9F, 0x1C), Text = Color.FromRgb(0xCF, 0xD3, 0xD6),
+                Off = new[]
+                {
+                    Part("settings.general.turnCounter", c => c.ShowTurnCounter = false),
+                    Part("settings.lobbyTribes.label", c => c.ShowLobbyTribes = false),
+                    Part("settings.boards.label", c => c.ShowOpponentBoards = false),
+                }
+            },
         };
 
         private UIElement ReadyCard(ReadyConfig r)
