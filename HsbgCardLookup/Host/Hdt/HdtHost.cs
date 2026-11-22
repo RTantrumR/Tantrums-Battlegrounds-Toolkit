@@ -125,6 +125,10 @@ namespace HsbgCardLookup.Host.Hdt
         public IRaceReader CreateRaceReader(Action<string> log) => new LeaderboardRaceScry(log);
         public int HoveredLeaderboardHero() => -1;
         public CardTextRecord CardText(string cardId) => null;
+        public IList<HsbgCardLookup.Game.SeasonEvent> SeasonEvents() => null;
+        public int[] MatchRatingChange() => null;
+        public bool IsSpectating => false;
+        public int GameType => 0;
     }
 
     internal sealed class HdtOverlay : IOverlaySurface

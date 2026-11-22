@@ -18,16 +18,22 @@ namespace MemSpike
     /// </summary>
     internal static class ClientEvents
     {
-        /// <summary>Every event whose name starts with <paramref name="prefix"/>; null when the client can't be read.</summary>
-        public static List<ClientEvent> Read(Mono main, string prefix)
+        /// <summary>One of the client's services (EventTimingManager, GameMgr, NetCache, ...) by class name; 0 when absent.</summary>
+        public static long Service(Mono main, string className)
         {
             long services = main.Obj(main.StaticObj(main.ClassIn("Blizzard.T5.ServiceLocator", "Blizzard.T5.Services.ServiceManager"), "s_runtimeServices"), "m_services");
-            long manager = 0;
             foreach (long info in Values(main, services))
             {
                 long svc = main.Obj(info, "<Service>k__BackingField");
-                if (svc != 0 && main.ClassName(main.ClassOf(svc)) == "EventTimingManager") { manager = svc; break; }
+                if (svc != 0 && main.ClassName(main.ClassOf(svc)) == className) return svc;
             }
+            return 0;
+        }
+
+        /// <summary>Every event whose name starts with <paramref name="prefix"/>; null when the client can't be read.</summary>
+        public static List<ClientEvent> Read(Mono main, string prefix)
+        {
+            long manager = Service(main, "EventTimingManager");
             if (manager == 0) return null;
 
             var list = new List<ClientEvent>();

@@ -136,6 +136,18 @@ namespace Toolkit.Standalone
         public IRaceReader CreateRaceReader(Action<string> log) => new Races(_game);
         public int HoveredLeaderboardHero() => _game.Current?.HoveredHeroEntityId ?? 0;
 
+        public IList<HsbgCardLookup.Game.SeasonEvent> SeasonEvents() =>
+            GameReader.Seasons?.Select(e => new HsbgCardLookup.Game.SeasonEvent { Name = e.Name, Start = e.Start, End = e.End }).ToList();
+
+        public int[] MatchRatingChange()
+        {
+            var s = _game.Current;
+            return s != null && s.GameStateAddr != 0 && s.HasRating ? new[] { s.RatingNew, s.RatingChange } : null;
+        }
+
+        public bool IsSpectating => _game.Current?.Spectating ?? false;
+        public int GameType => _game.Current?.GameType ?? 0;
+
         public CardTextRecord CardText(string cardId)
         {
             if (string.IsNullOrEmpty(cardId)) return null;

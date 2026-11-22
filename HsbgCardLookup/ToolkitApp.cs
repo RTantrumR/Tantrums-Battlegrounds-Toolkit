@@ -42,6 +42,8 @@ namespace HsbgCardLookup
         private FloatingCardManager _floating;
         private Game.BgHud _bgHud;                               // always-on trinkets/anomaly HUD
         private Game.BgMmr _bgMmr;                                // opt-in in-match opponent-MMR reader
+        private Game.MatchRecorder _matchRecorder;                // one JSON record per match, for the stats pages
+        private Game.SeasonCalendar _seasons;
         private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
         private Ui.OpponentBoardPanel _boardPanel;                // …shown from the leaderboard portraits
         private Ui.TurnCounterPanel _turnCounter;                 // the match's turn number, top right
@@ -67,6 +69,39 @@ namespace HsbgCardLookup
         public CardStore Store => _store;
 
         private void Log(string message) => _log(message);
+
+        // The season a match belongs to, from the game's own calendar: read from the client when the host
+        // can, and kept in seasons.json so it is there before the client has been read.
+        private int[] SeasonOf(DateTime utc)
+        {
+            string file = Path.Combine(PluginConfig.DataDir, "seasons.json");
+            if (_seasons == null || _seasons.Seasons.Count == 0)
+            {
+                var events = HostServices.Memory?.SeasonEvents();
+                if (events != null && events.Count > 0)
+                {
+                    _seasons = Game.SeasonCalendar.From(events);
+                    try { Directory.CreateDirectory(PluginConfig.DataDir); File.WriteAllText(file, JsonConvert.SerializeObject(events, Formatting.Indented)); }
+                    catch (Exception e) { Log("[seasons] not saved: " + e.Message); }
+                }
+                else _seasons = Game.SeasonCalendar.Load(file);
+            }
+            return _seasons?.Of(utc);
+        }
+
+        // The installed client's build ("37.0.2.256589"), from the product file Battle.net keeps in the game's
+        // folder (the exe's own version is Unity's). A server-side hotfix doesn't change it: a match's patch is
+        // told by its date.
+        private static string GameBuild()
+        {
+            string data = HostServices.Shell?.HearthstoneDataDirectory();           // <game>\Data\Win
+            if (string.IsNullOrEmpty(data)) return null;
+            string root = Path.GetDirectoryName(Path.GetDirectoryName(data.TrimEnd('\\', '/')) ?? "");
+            string file = root == null ? null : Path.Combine(root, ".product.db");
+            if (file == null || !File.Exists(file)) return null;
+            var m = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(file)), @"\d+\.\d+\.\d+\.\d+");
+            return m.Success ? m.Value : null;
+        }
 
         /// <summary>Once, on the host's WPF UI thread, after the seams are installed.</summary>
         public void Start(Dispatcher ui)
@@ -106,6 +141,12 @@ namespace HsbgCardLookup
             _lobbyTribes = new Ui.LobbyTribesPanel(_config, _ui);
             _turnCounter = new Ui.TurnCounterPanel(_config, _ui);
             _opponentBoards = new Game.OpponentBoards(_store, Log);
+            if (_config.RecordMatches && HostServices.Game != null)
+                _matchRecorder = new Game.MatchRecorder(HostServices.Game, HostServices.Memory, System.IO.Path.Combine(PluginConfig.DataDir, Game.MatchRecorder.FolderName), Log)
+                {
+                    SeasonOf = SeasonOf, BuildSource = GameBuild,
+                    RecordSpectated = Environment.GetEnvironmentVariable("TOOLKIT_RECORD_SPECTATED") == "1",
+                };
             _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards, Log);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
             _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
@@ -141,6 +182,7 @@ namespace HsbgCardLookup
             _bgHud?.Poll();      // throttled read of trinkets/anomaly → always-on HUD
             _bgMmr?.Poll();      // opt-in in-match opponent-MMR reader
             _opponentBoards?.Poll(); // remembers each opponent's board as a fight begins
+            _matchRecorder?.Poll();  // the match record
             _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
             _turnCounter?.Poll(); // the turn number

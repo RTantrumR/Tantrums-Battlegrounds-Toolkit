@@ -80,6 +80,14 @@ namespace HsbgCardLookup.Host
         /// <summary>The client's own record of a card's text; null when the host has none (yet: a first
         /// ask may be answered a moment later).</summary>
         CardTextRecord CardText(string cardId);
+        /// <summary>The game's own Battlegrounds season events; null when the host can't read them (yet).</summary>
+        IList<HsbgCardLookup.Game.SeasonEvent> SeasonEvents();
+        /// <summary>{ new rating, change } the game reported for the match on screen; null until it does.</summary>
+        int[] MatchRatingChange();
+        /// <summary>Someone else's game, or a replay, is on screen.</summary>
+        bool IsSpectating { get; }
+        /// <summary>The client's game type number (PegasusShared.GameType); 0 when unknown.</summary>
+        int GameType { get; }
     }
 
     /// <summary>A card's text template as the client holds it, and which of its text builders fills it.</summary>

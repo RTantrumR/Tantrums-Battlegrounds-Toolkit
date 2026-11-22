@@ -152,6 +152,10 @@ namespace HsbgCardLookup.Config
 
         // Opponents' last boards: hover a leaderboard portrait to see one; a click pins it only when
         // BoardPinOnClick is on (off by default, owner 2026-11-23).
+        // One JSON record per Battlegrounds match in the data folder's match-records\ (Game\MatchRecorder.cs).
+        // Local only; the stats pages read them.
+        public bool RecordMatches { get; set; } = true;
+
         public bool ShowOpponentBoards { get; set; } = true;
         public bool BoardPinOnClick { get; set; }
         // XF = the board's middle, YF = its top (canvas fractions), WF = its scale against a

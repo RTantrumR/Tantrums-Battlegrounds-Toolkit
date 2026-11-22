@@ -48,7 +48,7 @@ namespace HsbgCardLookup.Game
         [JsonProperty("me", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Me;
     }
 
-    /// <summary>One match as the recorder saw it: <c>matches\&lt;yyyyMMdd_HHmmss&gt;.json</c> in the data folder.</summary>
+    /// <summary>One match as the recorder saw it: <c>match-records\&lt;yyyyMMdd_HHmmss&gt;.json</c> in the data folder.</summary>
     public sealed class MatchRecord
     {
         public const int CurrentVersion = 1;
@@ -61,6 +61,8 @@ namespace HsbgCardLookup.Game
         [JsonProperty("build", NullValueHandling = NullValueHandling.Ignore)] public string Build;
         [JsonProperty("region", NullValueHandling = NullValueHandling.Ignore)] public string Region;
         [JsonProperty("duos", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Duos;
+        /// <summary>The client's game type number (ranked, custom lobby, ...); 0 = the host didn't say.</summary>
+        [JsonProperty("gameType", DefaultValueHandling = DefaultValueHandling.Ignore)] public int GameType;
         /// <summary>The numbered season (the client's battlegrounds_reward_track_season_N) and the rating
         /// period (battlegrounds_ranked_season_N) the match began in; 0 = unknown.</summary>
         [JsonProperty("season", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Season;
@@ -91,6 +93,10 @@ namespace HsbgCardLookup.Game
     /// </summary>
     public sealed class MatchRecorder
     {
+        /// <summary>Under the data folder. Not "matches": that one holds the removed match recap's files
+        /// (v0.7-v0.8.0, another shape), which players who had it still have.</summary>
+        public const string FolderName = "match-records";
+
         private const int TagHeroEntity = 27, TagArmor = 292, TagAnomalyDbId = 2897;
         private const int CardTypeGame = 1, CardTypeHero = 3, CardTypeHeroPower = 10;
 
@@ -101,8 +107,11 @@ namespace HsbgCardLookup.Game
 
         /// <summary>The clock (the replay feed supplies the recording's own).</summary>
         public Func<DateTime> UtcNow = () => DateTime.UtcNow;
-        /// <summary>The game build to stamp records with.</summary>
-        public string Build;
+        /// <summary>The game build to stamp records with (asked as a match begins).</summary>
+        public Func<string> BuildSource;
+        /// <summary>Dev: record watched games (replays) as if they were played.</summary>
+        public bool RecordSpectated;
+        private int[] _ratingSeen;         // what the game last reported, so one report is taken once
         /// <summary>Match start → { season, rating season }; null when the host has no season calendar.</summary>
         public Func<DateTime, int[]> SeasonOf;
 
@@ -129,13 +138,19 @@ namespace HsbgCardLookup.Game
             {
                 if (_started)
                 {
-                    _started = false; _armed = true;
+                    _started = false; _armed = true; _ratingSeen = null;
                     // A rejoin raises the start again; which it is shows once the board is readable.
                     _rejoinCheck = _rec != null;
                 }
                 // The game object outlives the match (the end screen): nothing more is recorded from it.
                 if (_ended) { _ended = false; _armed = false; if (_rec != null) { if (!_rejoinCheck) Observe(); Close(true); } return; }
                 if (_armed) Observe();
+                var rating = _memory?.MatchRatingChange();
+                if (rating != null && rating.Length == 2 && (_ratingSeen == null || _ratingSeen[0] != rating[0] || _ratingSeen[1] != rating[1]))
+                {
+                    _ratingSeen = rating;
+                    RatingChanged(rating[0], rating[1]);
+                }
             }
             catch (Exception e) { _log?.Invoke("[recorder] " + e.GetType().Name + ": " + e.Message); }
         }
@@ -152,6 +167,7 @@ namespace HsbgCardLookup.Game
         private void Observe()
         {
             if (!_game.IsBattlegroundsMatch) return;
+            if (!RecordSpectated && _memory != null && _memory.IsSpectating) return;
             var me = _game.PlayerEntity;
             int pid = _game.PlayerId;
             if (me == null || pid == 0) return;
@@ -174,7 +190,9 @@ namespace HsbgCardLookup.Game
             if (_rec == null)
             {
                 var now = UtcNow();
-                _rec = new MatchRecord { StartUtc = now, Id = now.ToLocalTime().ToString("yyyyMMdd_HHmmss"), Build = Build };
+                string build = null;
+                try { build = BuildSource?.Invoke(); } catch { }
+                _rec = new MatchRecord { StartUtc = now, Id = now.ToLocalTime().ToString("yyyyMMdd_HHmmss"), Build = build, GameType = _memory?.GameType ?? 0 };
                 var s = SeasonOf?.Invoke(now);
                 if (s != null && s.Length == 2) { _rec.Season = s[0]; _rec.RatingSeason = s[1]; }
                 _path = Path.Combine(_folder, _rec.Id + ".json");

@@ -59,7 +59,8 @@ namespace Toolkit.Standalone
                         {
                             start = DateTime.ParseExact((string)o["startLocal"], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal).ToUniversalTime();
                             friendly = (int)o["friendly"];
-                            recorder.Build = (string)o["build"];
+                            string build = (string)o["build"];
+                            recorder.BuildSource = () => build;
                             continue;
                         }
                         int ms = (int)o["ms"]; lastMs = ms;

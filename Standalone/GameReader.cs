@@ -36,6 +36,10 @@ namespace Toolkit.Standalone
         public Dictionary<int, List<string>> Enchantments = new Dictionary<int, List<string>>();
         public bool FriendsListOpen;                             // the client's friends list is on screen
         public bool GameMenuOpen;                                // the Esc game menu is on screen
+        public bool Spectating;                                  // GameMgr.m_spectator: someone else's game, or a replay
+        public int GameType;                                     // GameMgr.m_gameType (PegasusShared.GameType)
+        public bool HasRating;                                   // the game sent this match's rating change
+        public int RatingNew, RatingChange;
         public long ReadMs;
         public long Reads;                                       // ReadProcessMemory calls this walk took
 
@@ -86,11 +90,17 @@ namespace Toolkit.Standalone
 
         public GameReader(Action<string> log) { _log = log; }
 
+        private long _gameMgr;
+        private DateTime _seasonsTried;
+        /// <summary>The client's Battlegrounds season events, once read (the server's calendar: it doesn't change in a session).</summary>
+        public static volatile List<ClientEvent> Seasons;
+
         public void Dispose() { Detach(); }
 
         private void Detach()
         {
             _mem?.Dispose(); _mem = null; _mono = null; _pid = 0; _statics = false; _entities.Clear(); _offCardId = -1;
+            _gameMgr = 0;
             _cardRecords = null; CardTexts.Clear();
         }
 
@@ -216,6 +226,21 @@ namespace Toolkit.Standalone
             long menuShown = m.FieldAddr(m.StaticObj("GameMenu", "s_instance"), "m_isShown");
             s.GameMenuOpen = menuShown != 0 && (m.M.I32(menuShown) & 0xFF) != 0;
 
+            // GameMgr is a service: found once per attach. The season calendar is read once, too.
+            if (_gameMgr == 0) _gameMgr = ClientEvents.Service(m, "GameMgr");
+            if (_gameMgr != 0)
+            {
+                long spectator = m.FieldAddr(_gameMgr, "m_spectator");
+                s.Spectating = spectator != 0 && (m.M.I32(spectator) & 0xFF) != 0;
+                s.GameType = m.Int(_gameMgr, "m_gameType");
+            }
+            if (Seasons == null && (DateTime.UtcNow - _seasonsTried).TotalSeconds > 30)
+            {
+                _seasonsTried = DateTime.UtcNow;
+                try { var events = ClientEvents.Read(m, "battlegrounds_r"); if (events != null && events.Count > 0) { Seasons = events; _log("season calendar: " + events.Count + " events"); } }
+                catch (Exception e) { _log("season calendar: " + e.Message); }
+            }
+
             long gs = m.StaticObj("GameState", "s_instance");
             s.GameStateAddr = gs;
             if (gs == 0) return s;
@@ -276,6 +301,9 @@ namespace Toolkit.Standalone
             {
                 int id;
                 if (TagsOf(gameEntity).TryGetValue(53, out id)) s.GameEntityId = id;      // ENTITY_ID
+                // TB_BaconShop keeps the BattlegroundsRatingChange packet the server sends as the match ends.
+                long rating = m.Obj(gameEntity, "<RatingChangeData>k__BackingField");
+                if (rating != 0) { s.HasRating = true; s.RatingNew = m.Int(rating, "_NewRating"); s.RatingChange = m.Int(rating, "_RatingChange"); }
             }
 
             // The two Player objects: the local one, and whoever it faces now.
