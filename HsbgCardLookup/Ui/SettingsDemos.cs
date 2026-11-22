@@ -321,17 +321,18 @@ namespace HsbgCardLookup.Ui
 
         // ── Assemble panels: the real lobby types box dragged onto the real sidebar, and joined ────
         //
-        // The game's left edge (data/demos/game-left.jpg: game pixels x 0..760 of the same capture,
+        // The game's left edge (data/demos/game-left.jpg: game pixels x 0..960 of the same capture,
         // full height, Replay Watcher's bar patched out) with the sidebar just right of the leaderboard.
         // Two passes, as the owner asked (2026-11-22): a one-row box with the lobby's types joins the
         // sidebar's top, then a one-column box with the banned types too joins its side. Each time the
         // cursor carries the box within reach, the two edges that will meet light up and an outline
         // shows the place, as PanelDock offers a join; on the drop the join plays as PanelDock plays it:
-        // the box pulled the last stretch in (BackEase 0.55, 260 ms), both sized to fit along the seam
-        // (the sidebar always stretches; the types box along its own shape), the meeting corners
-        // squared, the sidebar nudged, a line of light run along the seam and sparks off it.
+        // the smaller of the two is brought up to the other's width (on top) or height (at the side) by
+        // SIZE, its text and icons growing with it (PanelDock.Join), so the two read as one panel with
+        // no band left over; the box is pulled the last stretch in (BackEase 0.55, 260 ms), the meeting
+        // corners square off, the sidebar is nudged, a line of light runs along the seam, sparks fly.
 
-        private const double LeftW = 760, LeftH = 1080;
+        private const double LeftW = 960, LeftH = 1080;
         private static readonly Color Spark = Color.FromRgb(0x7F, 0xE3, 0xFF);
         private const double PassLen = 5.8;
 
@@ -343,26 +344,28 @@ namespace HsbgCardLookup.Ui
             public Border Ghost;
             public Rectangle BarA, BarB, Seam;
             public readonly List<Rectangle> Sparks = new List<Rectangle>();
+            public ScaleTransform Grow;   // the box's size, when it is the smaller one
         }
 
         public static FrameworkElement Assemble(PluginConfig config)
         {
-            double k = StageW / LeftW;
+            double k = StageW / 760;
             var stage = new Canvas { Width = StageW, Height = Math.Round(330 * k) };
 
-            // Game pixels: a 1920×1080 canvas (the panels size and place themselves by it), shifted to
-            // the part in view once the panels are laid out, and scaled down as one.
+            // Game pixels: a 1920×1080 canvas (the panels size and place themselves by it), shifted and
+            // scaled to the part in view once the panels are laid out.
             var shift = new TranslateTransform();
+            var zoom = new ScaleTransform(k, k);
             var game = new Canvas
             {
                 Width = 1920, Height = 1080, IsHitTestVisible = false,
-                RenderTransform = new TransformGroup { Children = { shift, new ScaleTransform(k, k) } }
+                RenderTransform = new TransformGroup { Children = { shift, zoom } }
             };
             var frame = new Image { Width = LeftW, Height = LeftH, Stretch = Stretch.Fill };
             try
             {
                 string path = CardStore.DemoAssetPath("game-left");
-                if (path != null) frame.Source = ImageCache.Load(path, (int)Math.Min(LeftW, Math.Ceiling(StageW * 2)));
+                if (path != null) frame.Source = ImageCache.Load(path, (int)Math.Min(LeftW, Math.Ceiling(StageW * 2.5)));
             }
             catch { }
             Put(game, frame, 0, 0);
@@ -400,6 +403,8 @@ namespace HsbgCardLookup.Ui
             foreach (var p in passes)
             {
                 p.Box.Opacity = 0;
+                p.Grow = new ScaleTransform(1, 1);
+                p.Box.RenderTransform = p.Grow;
                 game.Children.Add(p.Box);
                 // PanelDock's offer and join pieces, one set per pass.
                 p.Ghost = new Border
@@ -433,7 +438,7 @@ namespace HsbgCardLookup.Ui
                 built = true;
                 stage.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    try { Choreograph(stage, shift, side, passes, cursor, k); }
+                    try { Choreograph(stage, shift, zoom, side, passes, cursor); }
                     catch { }
                 }), System.Windows.Threading.DispatcherPriority.ContextIdle);
             };
@@ -446,13 +451,13 @@ namespace HsbgCardLookup.Ui
             Effect = new DropShadowEffect { Color = Spark, BlurRadius = 14, ShadowDepth = 0, Opacity = 1 }
         };
 
-        private static void Choreograph(Canvas stage, TranslateTransform shift, MmrSidePanel side, List<JoinPass> passes,
-            UIElement cursor, double k)
+        private static void Choreograph(Canvas stage, TranslateTransform shift, ScaleTransform zoom, MmrSidePanel side,
+            List<JoinPass> passes, UIElement cursor)
         {
             double len = PassLen * passes.Count;
             var loop = new Loop(len);
             var sb = side.Bounds;
-            if (sb.Width <= 0 || sb.Height <= 0) sb = new Rect(10, 324, 220, 210);
+            if (sb.Width <= 0 || sb.Height <= 0) sb = new Rect(392, 324, 210, 210);
             var root = side.DockRoot;
             var r = root.CornerRadius;
             var snap = new BackEase { Amplitude = 0.55, EasingMode = EasingMode.EaseOut };
@@ -460,30 +465,38 @@ namespace HsbgCardLookup.Ui
             // Within a pass: show, grab, carry, offer, drop, pulled in, rest, fade, put back unseen.
             const double grab = 0.8, carried = 1.9, drop = 2.6, pulled = 2.86, fade = 5.0, back = 5.4;
 
-            // Where everything goes, pass by pass, in game pixels.
-            var geo = new List<double[]>();      // startX, startY, nearX, nearY, landX, landY, bw, bh, joinedW, joinedH
-            double top = sb.Y - 30, bottom = sb.Bottom + 20;
+            // Where everything goes, pass by pass, in game pixels. At the drop the smaller of the two is
+            // scaled up to the other's width (on top) or height (at the side), from its top-left corner.
+            var geo = new List<double[]>();  // startX, startY, nearX, nearY, landX, landY, bw, bh, boxScale, sideScale
+            double top = sb.Y - 30, bottom = sb.Bottom + 20, right = sb.Right + 20;
             foreach (var p in passes)
             {
                 double bw = p.Box.ActualWidth > 0 ? p.Box.ActualWidth : 260, bh = p.Box.ActualHeight > 0 ? p.Box.ActualHeight : 60;
-                double joinedW = p.Stacked ? Math.Max(bw, sb.Width) : bw, joinedH = p.Stacked ? bh : Math.Max(bh, sb.Height);
-                double landX = p.Stacked ? sb.X : sb.Right, landY = p.Stacked ? sb.Y - bh : sb.Y;
-                double nearX = p.Stacked ? landX + 14 : landX + 18, nearY = p.Stacked ? landY - 18 : landY + 14;
-                double startX = Math.Min(p.Stacked ? sb.X + 80 : sb.Right + 60, LeftW - bw - 6), startY = p.Stacked ? landY - 110 : sb.Y - 40;
-                geo.Add(new[] { startX, startY, nearX, nearY, landX, landY, bw, bh, joinedW, joinedH });
+                double mine = p.Stacked ? bw : bh, its = p.Stacked ? sb.Width : sb.Height;
+                double boxScale = mine < its ? its / mine : 1, sideScale = its < mine ? mine / its : 1;
+                double landX = p.Stacked ? sb.X : sb.X + sb.Width * sideScale;
+                double landY = p.Stacked ? sb.Y - bh * boxScale : sb.Y;
+                double nearX = p.Stacked ? sb.X + 14 : sb.Right + 18, nearY = p.Stacked ? sb.Y - bh - 18 : sb.Y + 14;
+                double startX = p.Stacked ? sb.X + 80 : sb.Right + 70, startY = p.Stacked ? nearY - 92 : sb.Y - 40;
+                geo.Add(new[] { startX, startY, nearX, nearY, landX, landY, bw, bh, boxScale, sideScale });
                 top = Math.Min(top, Math.Min(startY, landY) - 24);
-                bottom = Math.Max(bottom, Math.Max(startY + bh, Math.Max(nearY + bh, sb.Y + joinedH)) + 20);
+                bottom = Math.Max(bottom, Math.Max(startY + bh, Math.Max(nearY + bh, Math.Max(sb.Y + sb.Height * sideScale, landY + bh * boxScale))) + 20);
+                right = Math.Max(right, Math.Max(startX + bw, Math.Max(landX + bw * boxScale, sb.X + sb.Width * sideScale)) + 24);
             }
+            // The view: from the screen's left edge to whatever the joined panels need, no narrower than
+            // the leaderboard and the sidebar want to be readable.
+            double viewW = Math.Max(760, Math.Min(LeftW, right));
+            double k = StageW / viewW;
             top = Math.Max(0, top); bottom = Math.Min(LeftH, bottom);
+            zoom.ScaleX = k; zoom.ScaleY = k;
             shift.Y = -top;
             stage.Height = Math.Round((bottom - top) * k);
             Func<double, double, Point> onStage = (x, y) => new Point(x * k, (y - top) * k);
             var rest = new Point(StageW * 0.8, stage.Height * 0.85);
 
-            // The sidebar: shown for each pass, squared and stretched where the box joins it, nudged on the join.
+            // The sidebar: shown for each pass, sized and squared where the box joins it, nudged on the join.
             var sideOpacity = new List<double[]> { new[] { 0.0, 0 } };
-            var sideMinW = new List<double[]> { new[] { 0.0, 0 } };
-            var sideMinH = new List<double[]> { new[] { 0.0, 0 } };
+            var sideSize = new List<double[]> { new[] { 0.0, 1 } };
             var nudgeKeys = new List<double[]> { new[] { 0.0, 1 } };
             var cornerTimes = new List<double> { 0 };
             var cornerValues = new List<object> { r };
@@ -493,39 +506,42 @@ namespace HsbgCardLookup.Ui
             {
                 var p = passes[n]; var g = geo[n]; double t = p.T0;
                 double startX = g[0], startY = g[1], nearX = g[2], nearY = g[3], landX = g[4], landY = g[5];
-                double bw = g[6], bh = g[7], joinedW = g[8], joinedH = g[9];
+                double bw = g[6], bh = g[7], boxScale = g[8], sideScale = g[9];
 
-                // The box: carried in, pulled into place with the overshoot, sized to fit, corners squared.
+                // The box: carried in, pulled into place with the overshoot, brought up to size, corners squared.
                 double[] times = { 0, t + 0.9, t + carried, t + drop, t + pulled, t + back, t + back + 0.01, len };
                 loop.Keys(p.Box, Canvas.LeftProperty, times, new[] { startX, startX, nearX, nearX, landX, landX, startX, startX }, new[] { none, none, none, none, snap });
                 loop.Keys(p.Box, Canvas.TopProperty, times, new[] { startY, startY, nearY, nearY, landY, landY, startY, startY }, new[] { none, none, none, none, snap });
-                double[] stretchTimes = { 0, t + drop, t + drop + 0.01, t + back, t + back + 0.01, len };
-                if (p.Stacked) loop.Keys(p.Box, FrameworkElement.MinWidthProperty, stretchTimes, new[] { 0, 0, joinedW, joinedW, 0, 0 });
-                else loop.Keys(p.Box, FrameworkElement.MinHeightProperty, stretchTimes, new[] { 0, 0, joinedH, joinedH, 0, 0 });
+                double[] sizeTimes = { 0, t + drop, t + drop + 0.16, t + back, t + back + 0.01, len };
+                var sizeValues = new[] { 1, 1, boxScale, boxScale, 1, 1 };
+                // Through the element: a storyboard aimed at the transform object itself does nothing.
+                loop.Keys(p.Box, new PropertyPath("RenderTransform.ScaleX"), sizeTimes, sizeValues);
+                loop.Keys(p.Box, new PropertyPath("RenderTransform.ScaleY"), sizeTimes, sizeValues);
                 loop.Show(p.Box, t + 0.05, t + fade);
                 loop.Steps(p.Box, Border.CornerRadiusProperty, new[] { 0, t + drop, t + back },
                     new object[] { new CornerRadius(7), p.Stacked ? new CornerRadius(7, 7, 0, 0) : new CornerRadius(0, 7, 7, 0), new CornerRadius(7) });
 
                 sideOpacity.Add(new[] { t + 0.05, 0 }); sideOpacity.Add(new[] { t + 0.35, 1 });
                 sideOpacity.Add(new[] { t + fade, 1 }); sideOpacity.Add(new[] { t + fade + 0.3, 0 });
-                var stretch = p.Stacked ? sideMinW : sideMinH;
-                stretch.Add(new[] { t + drop, 0 }); stretch.Add(new[] { t + drop + 0.01, p.Stacked ? joinedW : joinedH });
-                stretch.Add(new[] { t + back, p.Stacked ? joinedW : joinedH }); stretch.Add(new[] { t + back + 0.01, 0 });
+                sideSize.Add(new[] { t + drop, 1 }); sideSize.Add(new[] { t + drop + 0.16, sideScale });
+                sideSize.Add(new[] { t + back, sideScale }); sideSize.Add(new[] { t + back + 0.01, 1 });
                 nudgeKeys.Add(new[] { t + drop + 0.18, 1 }); nudgeKeys.Add(new[] { t + drop + 0.29, 1.03 }); nudgeKeys.Add(new[] { t + drop + 0.40, 1 });
                 cornerTimes.Add(t + drop);
                 cornerValues.Add(p.Stacked ? new CornerRadius(0, 0, r.BottomRight, r.BottomLeft) : new CornerRadius(r.TopLeft, 0, 0, r.BottomLeft));
                 cornerTimes.Add(t + back); cornerValues.Add(r);
 
-                // The offer, while the box is held within reach: the outline of its place (already the
-                // size it will be given) and the two edges that will meet, pulsing.
-                Edge(p.Ghost, landX, landY, joinedW, joinedH);
+                // The offer, while the box is held within reach (PanelDock.PlaceOffer): the outline of its
+                // place beside the sidebar as it is now, as wide (or tall) as the larger of the two, and the
+                // two edges that will meet, pulsing.
                 if (p.Stacked)
                 {
+                    Edge(p.Ghost, sb.X, sb.Y - bh, Math.Max(bw, sb.Width), bh);
                     Edge(p.BarA, nearX, nearY + bh - 1.5, bw, 3);
                     Edge(p.BarB, sb.X, sb.Y - 1.5, sb.Width, 3);
                 }
                 else
                 {
+                    Edge(p.Ghost, sb.Right, sb.Y, bw, Math.Max(bh, sb.Height));
                     Edge(p.BarA, nearX - 1.5, nearY, 3, bh);
                     Edge(p.BarB, sb.Right - 1.5, sb.Y, 3, sb.Height);
                 }
@@ -535,10 +551,10 @@ namespace HsbgCardLookup.Ui
                     loop.Keys(b, UIElement.OpacityProperty, new[] { 0, on, on + 0.01, on + 0.21, on + 0.42, on + 0.63, t + drop, t + drop + 0.01, len },
                         new[] { 0.0, 0, 1, 0.45, 1, 0.45, 1, 0, 0 });
 
-                // The seam lit from its middle out, then faded; sparks jump off it.
+                // The seam of the joined panel lit from its middle out, then faded; sparks jump off it.
                 double sx, sy, sl;
-                if (p.Stacked) { sx = Math.Min(landX, sb.X); sl = Math.Max(landX + joinedW, sb.Right) - sx; sy = sb.Y; Edge(p.Seam, sx, sy - 2, sl, 4); }
-                else { sx = sb.Right; sy = sb.Y; sl = joinedH; Edge(p.Seam, sx - 2, sy, 4, sl); }
+                if (p.Stacked) { sx = sb.X; sy = sb.Y; sl = Math.Max(bw * boxScale, sb.Width * sideScale); Edge(p.Seam, sx, sy - 2, sl, 4); }
+                else { sx = landX; sy = sb.Y; sl = Math.Max(bh * boxScale, sb.Height * sideScale); Edge(p.Seam, sx - 2, sy, 4, sl); }
                 loop.Keys(p.Seam, new PropertyPath(p.Stacked ? "RenderTransform.ScaleX" : "RenderTransform.ScaleY"),
                     new[] { 0, t + drop + 0.14, t + drop + 0.32, t + drop + 0.8, t + drop + 0.81, len }, new[] { 0.0, 0, 1, 1, 0, 0 });
                 loop.Keys(p.Seam, UIElement.OpacityProperty, new[] { 0, t + drop + 0.13, t + drop + 0.14, t + drop + 0.33, t + drop + 0.75, len },
@@ -576,13 +592,15 @@ namespace HsbgCardLookup.Ui
             };
             root.Opacity = 0;
             keys(root, UIElement.OpacityProperty, sideOpacity);
-            keys(root, FrameworkElement.MinWidthProperty, sideMinW);
-            keys(root, FrameworkElement.MinHeightProperty, sideMinH);
-            root.RenderTransformOrigin = new Point(0.5, 0.5);
-            var nudge = new ScaleTransform(1, 1);
-            root.RenderTransform = nudge;
-            keys(nudge, ScaleTransform.ScaleYProperty, new List<double[]>(nudgeKeys));
-            keys(nudge, ScaleTransform.ScaleXProperty, nudgeKeys);
+            // Its size from its top-left corner (where it stays), then the nudge about its middle.
+            var grow = new ScaleTransform(1, 1);
+            var nudge = new ScaleTransform(1, 1, sb.Width / 2, sb.Height / 2);
+            root.RenderTransformOrigin = new Point(0, 0);
+            root.RenderTransform = new TransformGroup { Children = { nudge, grow } };
+            keys(root, new PropertyPath("RenderTransform.Children[1].ScaleY"), new List<double[]>(sideSize));
+            keys(root, new PropertyPath("RenderTransform.Children[1].ScaleX"), sideSize);
+            keys(root, new PropertyPath("RenderTransform.Children[0].ScaleY"), new List<double[]>(nudgeKeys));
+            keys(root, new PropertyPath("RenderTransform.Children[0].ScaleX"), nudgeKeys);
             loop.Steps(root, Border.CornerRadiusProperty, cornerTimes.ToArray(), cornerValues.ToArray());
             cursorKeys.Add(new[] { len, rest.X, rest.Y });
             loop.Move(cursor, cursorKeys.Select(a => a[0]).ToArray(), cursorKeys.Select(a => a[1]).ToArray(), cursorKeys.Select(a => a[2]).ToArray());
