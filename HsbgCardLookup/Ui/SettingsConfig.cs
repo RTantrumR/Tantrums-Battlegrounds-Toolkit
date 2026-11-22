@@ -64,6 +64,17 @@ namespace HsbgCardLookup.Ui
                 Text = Strings.T("settings.config.shareHint"), Foreground = UiKit.TextMuted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap
             });
 
+            // ── Ready-made configs for players who also run another tracker ──
+            stack.Children.Add(GroupHeader(Strings.T("settings.config.compatHeader")));
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.config.compatHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+            });
+            var compat = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+            compat.Children.Add(FirestoneButton());
+            stack.Children.Add(compat);
+
             // ── Presets ──
             stack.Children.Add(GroupHeader(Strings.T("settings.config.presetsHeader")));
             var nameBox = new TextBox
@@ -126,6 +137,47 @@ namespace HsbgCardLookup.Ui
             }
 
             ShowPage();
+        }
+
+        // ── Firestone config: its button in Firestone's own colours (its stylesheet's common palette) ──
+
+        private static readonly Color FsBg = Color.FromRgb(0x47, 0x24, 0x06);
+        private static readonly Color FsBgDark = Color.FromRgb(0x19, 0x05, 0x05);
+        private static readonly Color FsRim = Color.FromRgb(0x88, 0x26, 0x09);
+        private static readonly Color FsGold = Color.FromRgb(0xFF, 0xB9, 0x48);
+        private static readonly Color FsText = Color.FromRgb(0xD9, 0xC3, 0xAB);
+
+        private Border FirestoneButton()
+        {
+            var text = new TextBlock { FontSize = 14, VerticalAlignment = VerticalAlignment.Center };
+            text.Inlines.Add(new System.Windows.Documents.Run("Firestone ") { Foreground = new SolidColorBrush(FsGold), FontWeight = FontWeights.Bold });
+            text.Inlines.Add(new System.Windows.Documents.Run(Strings.T("settings.config.compatFirestone")) { Foreground = new SolidColorBrush(FsText) });
+            var b = new Border
+            {
+                Background = new LinearGradientBrush(FsBg, FsBgDark, 90),
+                BorderBrush = new SolidColorBrush(FsRim), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 0, 8, 0), Child = text
+            };
+            b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(FsGold);
+            b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(FsRim);
+            b.MouseLeftButtonUp += (s, e) => ApplyFirestoneConfig();
+            return b;
+        }
+
+        // What a fresh Firestone (19.4.7) already draws itself, read from its settings defaults
+        // (docs/research/compat-firestone-hdt.md): its Dark Gift overlay, turn counter, banned tribes,
+        // last-opponent icon and the board on a leaderboard hover. Only those switches change.
+        private void ApplyFirestoneConfig()
+        {
+            FlushPending();
+            _config.ShowDarkGifts = false;
+            _config.ShowTurnCounter = false;
+            _config.ShowLobbyTribes = false;
+            _config.ShowLastOpponent = false;
+            _config.ShowOpponentBoards = false;
+            Changed();
+            _status.Text = Strings.T("settings.config.compatFirestoneDone");
         }
 
         private void ExportConfig()
