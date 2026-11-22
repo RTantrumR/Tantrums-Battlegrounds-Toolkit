@@ -855,9 +855,7 @@ namespace HsbgCardLookup.Ui
                 _config.ShowTurnCounter = v;
                 _status.Text = v ? Strings.T("settings.general.turnCounterOn") : Strings.T("settings.general.turnCounterOff");
                 Changed();
-            }));
-
-            if (!_indexing) stack.Children.Add(SettingsDemos.TurnCounter());
+            }, demo: _indexing ? null : SettingsDemos.TurnCounter()));
 
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
@@ -1955,13 +1953,20 @@ namespace HsbgCardLookup.Ui
             return dock;
         }
 
-        private UIElement ToggleRow(string label, bool initial, Action<bool> onToggle, Func<bool> get = null)
+        // `demo` (optional): a small picture of what the switch does, between the label and the pill —
+        // for a picture that fits the row's height; a bigger one goes on a stage under the row.
+        private UIElement ToggleRow(string label, bool initial, Action<bool> onToggle, Func<bool> get = null, UIElement demo = null)
         {
             var dock = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 4) };
 
             var pill = TogglePill(initial, onToggle, width: ControlW, get: get);
             DockPanel.SetDock(pill, Dock.Right);
             dock.Children.Add(pill);
+            if (demo != null)
+            {
+                DockPanel.SetDock(demo, Dock.Right);
+                dock.Children.Add(demo);
+            }
 
             dock.Children.Add(new TextBlock
             {

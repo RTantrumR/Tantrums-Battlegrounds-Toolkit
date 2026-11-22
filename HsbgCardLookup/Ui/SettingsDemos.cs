@@ -26,7 +26,6 @@ namespace HsbgCardLookup.Ui
         public const double StageW = 474;     // with its border, the page's width while the scrollbar shows
         private static readonly Brush StageBg = Frozen(Color.FromRgb(0x1B, 0x22, 0x2E));
         private static readonly Brush BoxBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
-        private static readonly Brush Felt = Frozen(Color.FromRgb(0x2A, 0x3B, 0x52));
 
         // ── The pieces every picture is made of ─────────────────────────────────────────────────
 
@@ -107,23 +106,15 @@ namespace HsbgCardLookup.Ui
             stage.Children.Add(el);
         }
 
-        // ── Turn counter: the box as it is drawn, in the corner it starts in ────────────────────
+        // ── Turn counter: the box itself, at its real size, in the row beside the switch ─────────
 
-        public static FrameworkElement TurnCounter()
+        public static FrameworkElement TurnCounter() => new Border
         {
-            var stage = new Canvas { Width = StageW, Height = 62 };
-            // The game's top edge, hinted: where the box sits by default.
-            Put(stage, new Rectangle { Width = StageW, Height = 62, Fill = Felt, Opacity = 0.35 }, 0, 0);
-            var box = new Border
-            {
-                Background = BoxBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7),
-                Padding = new Thickness(10, 4, 10, 5),
-                Child = new TextBlock { Text = Strings.F("turnCounter.text", 7), Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold, FontSize = 17 }
-            };
-            box.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            Put(stage, box, StageW - box.DesiredSize.Width - 12, 12);
-            return Stage(stage);
-        }
+            Background = BoxBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(10, 4, 10, 5), Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+            Child = new TextBlock { Text = Strings.F("turnCounter.text", 7), Foreground = UiKit.TextPrimary, FontWeight = FontWeights.SemiBold, FontSize = 17 }
+        };
 
         // ── A real game frame ──────────────────────────────────────────────────────────────────
 
