@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -64,16 +66,14 @@ namespace HsbgCardLookup.Ui
                 Text = Strings.T("settings.config.shareHint"), Foreground = UiKit.TextMuted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap
             });
 
-            // ── Ready-made configs for players who also run another tracker ──
-            stack.Children.Add(GroupHeader(Strings.T("settings.config.compatHeader")));
+            // ── Ready-made configs: a list like the mods page, the other trackers pinned first ──
+            stack.Children.Add(GroupHeader(Strings.T("settings.config.readyHeader")));
             stack.Children.Add(new TextBlock
             {
-                Text = Strings.T("settings.config.compatHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                Text = Strings.T("settings.config.readyHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
-            var compat = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
-            compat.Children.Add(FirestoneButton());
-            stack.Children.Add(compat);
+            foreach (var r in ReadyConfigs.OrderByDescending(r => r.Pinned)) stack.Children.Add(ReadyCard(r));
 
             // ── Presets ──
             stack.Children.Add(GroupHeader(Strings.T("settings.config.presetsHeader")));
@@ -139,45 +139,103 @@ namespace HsbgCardLookup.Ui
             ShowPage();
         }
 
-        // ── Firestone config: its button in Firestone's own colours (its stylesheet's common palette) ──
+        // ── Ready-made configs ──
+        // Each one changes only the switches it lists. The other trackers' entries turn off what that
+        // app draws itself out of the box (docs/research/compat-firestone-hdt.md): Firestone 19.4.7's
+        // settings defaults, HDT 1.60.7's overlay code.
 
-        private static readonly Color FsBg = Color.FromRgb(0x47, 0x24, 0x06);
-        private static readonly Color FsBgDark = Color.FromRgb(0x19, 0x05, 0x05);
-        private static readonly Color FsRim = Color.FromRgb(0x88, 0x26, 0x09);
-        private static readonly Color FsGold = Color.FromRgb(0xFF, 0xB9, 0x48);
-        private static readonly Color FsText = Color.FromRgb(0xD9, 0xC3, 0xAB);
-
-        private Border FirestoneButton()
+        private sealed class ReadyConfig
         {
-            var text = new TextBlock { FontSize = 14, VerticalAlignment = VerticalAlignment.Center };
-            text.Inlines.Add(new System.Windows.Documents.Run("Firestone ") { Foreground = new SolidColorBrush(FsGold), FontWeight = FontWeights.Bold });
-            text.Inlines.Add(new System.Windows.Documents.Run(Strings.T("settings.config.compatFirestone")) { Foreground = new SolidColorBrush(FsText) });
-            var b = new Border
-            {
-                Background = new LinearGradientBrush(FsBg, FsBgDark, 90),
-                BorderBrush = new SolidColorBrush(FsRim), BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 8, 16, 8), Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 0, 8, 0), Child = text
-            };
-            b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(FsGold);
-            b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(FsRim);
-            b.MouseLeftButtonUp += (s, e) => ApplyFirestoneConfig();
-            return b;
+            public string Name;        // a product name, shown as it is
+            public string ForKey;      // who it is for, one line
+            public bool Pinned;
+            public Color Fill, FillDark, Rim, Accent, Text;   // the card in that app's own colours
+            public KeyValuePair<string, Action<PluginConfig>>[] Off;   // label key → the switch it turns off
         }
 
-        // What a fresh Firestone (19.4.7) already draws itself, read from its settings defaults
-        // (docs/research/compat-firestone-hdt.md): its Dark Gift overlay, turn counter, banned tribes,
-        // last-opponent icon and the board on a leaderboard hover. Only those switches change.
-        private void ApplyFirestoneConfig()
+        private static KeyValuePair<string, Action<PluginConfig>> Part(string key, Action<PluginConfig> off) =>
+            new KeyValuePair<string, Action<PluginConfig>>(key, off);
+
+        private static readonly ReadyConfig[] ReadyConfigs =
+        {
+            // Firestone's stylesheet, its common palette.
+            new ReadyConfig
+            {
+                Name = "Firestone", ForKey = "settings.config.ready.firestone", Pinned = true,
+                Fill = Color.FromRgb(0x47, 0x24, 0x06), FillDark = Color.FromRgb(0x19, 0x05, 0x05), Rim = Color.FromRgb(0x88, 0x26, 0x09),
+                Accent = Color.FromRgb(0xFF, 0xB9, 0x48), Text = Color.FromRgb(0xD9, 0xC3, 0xAB),
+                Off = new[]
+                {
+                    Part("settings.darkGifts.title", c => c.ShowDarkGifts = false),
+                    Part("settings.general.turnCounter", c => c.ShowTurnCounter = false),
+                    Part("settings.lobbyTribes.label", c => c.ShowLobbyTribes = false),
+                    Part("settings.config.ready.lastOpponent", c => c.ShowLastOpponent = false),
+                    Part("settings.boards.label", c => c.ShowOpponentBoards = false),
+                }
+            },
+        };
+
+        private UIElement ReadyCard(ReadyConfig r)
+        {
+            var col = new StackPanel();
+            var name = new StackPanel { Orientation = Orientation.Horizontal };
+            if (r.Pinned)
+                name.Children.Add(new TextBlock
+                {
+                    Text = "", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 13, Foreground = new SolidColorBrush(r.Accent),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1, 7, 0)
+                });
+            name.Children.Add(new TextBlock { Text = r.Name, FontSize = 15, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush(r.Accent) });
+            col.Children.Add(name);
+            col.Children.Add(new TextBlock
+            {
+                Text = Strings.T(r.ForKey), FontSize = 12.5, Foreground = new SolidColorBrush(r.Text), TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+
+            var chips = new WrapPanel { Margin = new Thickness(0, 7, 0, 0) };
+            chips.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.config.ready.turnsOff"), FontSize = 12, Foreground = new SolidColorBrush(r.Text), Opacity = 0.8,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 4)
+            });
+            foreach (var part in r.Off)
+                chips.Children.Add(new Border
+                {
+                    BorderBrush = new SolidColorBrush(r.Rim), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(5),
+                    Padding = new Thickness(7, 2, 7, 2), Margin = new Thickness(0, 0, 5, 4),
+                    Child = new TextBlock { Text = Strings.T(part.Key), FontSize = 12, Foreground = new SolidColorBrush(r.Text) }
+                });
+            col.Children.Add(chips);
+
+            Func<byte, Brush> tint = a => new SolidColorBrush(Color.FromArgb(a, r.Accent.R, r.Accent.G, r.Accent.B));
+            var apply = new Border
+            {
+                Background = tint(0x26), BorderBrush = new SolidColorBrush(r.Accent), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(14, 6, 14, 6), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(12, 0, 0, 0),
+                Child = new TextBlock { Text = Strings.T("settings.config.ready.apply"), FontSize = 13.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(r.Accent) }
+            };
+            apply.MouseEnter += (s, e) => apply.Background = tint(0x4D);
+            apply.MouseLeave += (s, e) => apply.Background = tint(0x26);
+            apply.MouseLeftButtonUp += (s, e) => { e.Handled = true; ApplyReady(r); };
+
+            var dock = new DockPanel();
+            DockPanel.SetDock(apply, Dock.Right);
+            dock.Children.Add(apply);
+            dock.Children.Add(col);
+            return new Border
+            {
+                Background = new LinearGradientBrush(r.Fill, r.FillDark, 90), BorderBrush = new SolidColorBrush(r.Rim), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 11, 12, 11), Margin = new Thickness(0, 0, 0, 8), Child = dock
+            };
+        }
+
+        private void ApplyReady(ReadyConfig r)
         {
             FlushPending();
-            _config.ShowDarkGifts = false;
-            _config.ShowTurnCounter = false;
-            _config.ShowLobbyTribes = false;
-            _config.ShowLastOpponent = false;
-            _config.ShowOpponentBoards = false;
+            foreach (var part in r.Off) part.Value(_config);
             Changed();
-            _status.Text = Strings.T("settings.config.compatFirestoneDone");
+            _status.Text = Strings.F("settings.config.readyApplied", r.Name);
         }
 
         private void ExportConfig()
