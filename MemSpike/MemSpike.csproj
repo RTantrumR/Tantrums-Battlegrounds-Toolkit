@@ -19,6 +19,7 @@
   <ItemGroup>
     <Compile Include="Mem.cs" />
     <Compile Include="Mono.cs" />
+    <Compile Include="ClientEvents.cs" />
     <Compile Include="Program.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

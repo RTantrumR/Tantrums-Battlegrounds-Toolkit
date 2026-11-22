@@ -218,6 +218,39 @@ namespace MemSpike
             if (_classes.TryGetValue(name, out k)) return k;
             return RefreshClasses() && _classes.TryGetValue(name, out k) ? k : 0;
         }
+        /// <summary>A class of ANOTHER loaded assembly, by full name ("Blizzard.T5.Services.ServiceManager"); 0 when
+        /// absent. Walks that image's class cache with the layout found on the main image (a small image has
+        /// too few classes to find it by itself). Not indexed: ask rarely.</summary>
+        public long ClassIn(string assembly, string fullName)
+        {
+            long asm = FindAssembly(assembly);
+            long img = asm == 0 ? 0 : FindImage(asm, assembly);
+            if (img == 0 || OffClassCache == 0) return 0;
+            int size = M.I32(img + OffClassCache + 0x18);
+            long table = M.Ptr(img + OffClassCache + 0x20);
+            if (size <= 0 || size > (1 << 22) || table == 0) return 0;
+            var raw = M.Bytes(table, size * 8);
+            if (raw == null) return 0;
+            for (int i = 0; i < size; i++)
+            {
+                int guard = 0;
+                for (long k = BitConverter.ToInt64(raw, i * 8); k != 0 && guard++ < 5000; k = M.Ptr(k + OffNextClass))
+                {
+                    string name = M.CStr(M.Ptr(k + OffName)), ns = M.CStr(M.Ptr(k + OffName + 8));
+                    if (name != null && (string.IsNullOrEmpty(ns) ? name : ns + "." + name) == fullName) return k;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>The object in a static field of a class given by its MonoClass.</summary>
+        public long StaticObj(long k, string field)
+        {
+            long sd = k == 0 ? 0 : StaticData(k); if (sd == 0) return 0;
+            foreach (var f in Fields(k)) if (f.Static && f.Name == field) return M.Ptr(sd + f.Offset);
+            return 0;
+        }
+
         public string ClassName(long k) { return M.CStr(M.Ptr(k + OffName)); }
         public long Parent(long k) { return M.Ptr(k + OffName - 0x18); }
 

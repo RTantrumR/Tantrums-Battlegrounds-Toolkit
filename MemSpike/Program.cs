@@ -98,6 +98,15 @@ namespace MemSpike
                             if (!statics) { Console.WriteLine("statics not calibrated"); return 3; }
                             Board(mono);
                             break;
+                        case "events":      // events [prefix]: the client's timed events (BG seasons: battlegrounds_)
+                        {
+                            var evs = ClientEvents.Read(mono, args.Length > 1 ? args[1] : "battlegrounds_");
+                            if (evs == null) { Console.WriteLine("EventTimingManager not found"); break; }
+                            evs.Sort((x, y) => Nullable.Compare(x.Start, y.Start));
+                            foreach (var e in evs) Console.WriteLine((e.Start?.ToString("yyyy-MM-dd HH:mm") ?? "-") + "  " + (e.End?.ToString("yyyy-MM-dd HH:mm") ?? "-") + "  " + e.Name);
+                            Console.WriteLine(evs.Count + " events");
+                            break;
+                        }
                         case "recent":
                             if (!statics) { Console.WriteLine("statics not calibrated"); return 3; }
                             Recent(mono);
