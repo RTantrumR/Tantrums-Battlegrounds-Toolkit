@@ -617,6 +617,13 @@ namespace HsbgCardLookup
         {
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
+            if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search == "f3quiet")
+            {
+                // The card search on screen without taking the focus (to film it while the PC is in use).
+                try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
+                return;
+            }
             OpenSettings();
             try
             {
