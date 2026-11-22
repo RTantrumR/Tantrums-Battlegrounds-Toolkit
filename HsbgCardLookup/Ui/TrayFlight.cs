@@ -25,6 +25,10 @@ namespace HsbgCardLookup.Ui
         public static Func<Rect?> Target;
         /// <summary>The logo's file (an .ico: its largest picture is used).</summary>
         public static string LogoPath;
+        /// <summary>The flight window's <see cref="FrameworkElement.Tag"/>: a host that copies the
+        /// toolkit's windows somewhere (the standalone's overlay mirrors them for OBS) leaves this one
+        /// out, like the settings window it comes from.</summary>
+        public const string NoMirror = "toolkit:no-mirror";
 
         private const double LogoSize = 72;
         private static ImageSource _logo;
@@ -102,7 +106,7 @@ namespace HsbgCardLookup.Ui
             var window = new Window
             {
                 WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent,
-                Topmost = true, ShowInTaskbar = false, ShowActivated = false, ResizeMode = ResizeMode.NoResize,
+                Topmost = true, ShowInTaskbar = false, ShowActivated = false, ResizeMode = ResizeMode.NoResize, Tag = NoMirror,
                 IsHitTestVisible = false, Focusable = false,
                 WindowStartupLocation = WindowStartupLocation.Manual,
                 Left = area.Left, Top = area.Top, Width = area.Width, Height = area.Height,

@@ -277,6 +277,10 @@ namespace Toolkit.Standalone
                 if (win == this || !win.IsVisible || win.WindowState == WindowState.Minimized) continue;
                 string type = win.GetType().Name;
                 if (type == "SettingsWindow") continue;
+                // The settings' closing flight: its copy lagged behind it and, aligned by its content's
+                // bounds, was drawn at the window's corner: a second flight from the wrong place (owner,
+                // 2026-11-22). Off stream like the settings it comes from.
+                if (Equals(win.Tag, HsbgCardLookup.Ui.TrayFlight.NoMirror)) continue;
                 var visual = win.Content as Visual;
                 if (visual == null) continue;
                 Point at;
