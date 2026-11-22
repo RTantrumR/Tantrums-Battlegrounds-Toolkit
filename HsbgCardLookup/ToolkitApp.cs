@@ -611,10 +611,12 @@ namespace HsbgCardLookup
 
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
-        /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window.
+        /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window;
+        /// "quiet" opens it without taking the focus (to film it while the PC is in use).
         public void OpenSettings(string search)
         {
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
+            if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             OpenSettings();
             try
             {
@@ -627,6 +629,7 @@ namespace HsbgCardLookup
 
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
+        private bool _quietOpen;
 
         public void OpenSettings()
         {
@@ -638,6 +641,7 @@ namespace HsbgCardLookup
             n => OpenDownloadPage(n?.DownloadUrl), SkipVersion);
             _settings.ReloadLayout = ReloadLayout;
             _settings.Closed += (s, e) => { _settings = null; SettingsClosed?.Invoke(); };
+            if (_quietOpen) _settings.ShowActivated = false;
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known
         }
