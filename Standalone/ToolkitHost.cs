@@ -193,6 +193,15 @@ namespace Toolkit.Standalone
                         if (term.Length > 0) toolkit.OpenSettings(term); else toolkit.OpenSettings();
                     }
 
+                    // Test aid: set.trigger holds "Name=value" lines; they are set and applied as in the settings.
+                    string setFile = Path.Combine(Shared.ExeDir, "set.trigger");
+                    if (File.Exists(setFile))
+                    {
+                        string lines = ""; try { lines = File.ReadAllText(setFile); } catch { }
+                        try { File.Delete(setFile); } catch { }
+                        Shared.Log("set: " + toolkit.TestSet(lines));
+                    }
+
                     // Test aid: tribesmenu.trigger opens the lobby types box's layout menu under the cursor.
                     string menuFile = Path.Combine(Shared.ExeDir, "tribesmenu.trigger");
                     if (File.Exists(menuFile))
