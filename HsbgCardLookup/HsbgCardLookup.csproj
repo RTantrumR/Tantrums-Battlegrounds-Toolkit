@@ -136,7 +136,6 @@
     <Compile Include="Ui\TurnCounterPanel.cs" />
     <Compile Include="Ui\PanelDock.cs" />
     <Compile Include="Ui\PanelDockHandle.cs" />
-    <Compile Include="Ui\AssembleDemo.cs" />
     <Compile Include="Ui\MmrSidePanel.cs" />
     <Compile Include="Ui\HudContextMenu.cs" />
     <Compile Include="Ui\HudCanvasCard.cs" />

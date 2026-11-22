@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -45,15 +47,34 @@ namespace HsbgCardLookup.Ui
             public double Seconds => _seconds;
             public Loop(double seconds) { _seconds = seconds; }
 
-            public void Keys(DependencyObject target, object property, double[] times, double[] values)
+            public void Keys(DependencyObject target, object property, double[] times, double[] values) =>
+                Keys(target, property, times, values, null);
+
+            /// <summary>As above; <paramref name="eases"/>[i], when given, is how key i is reached
+            /// (null = the usual ease in and out).</summary>
+            public void Keys(DependencyObject target, object property, double[] times, double[] values, IEasingFunction[] eases)
             {
                 var k = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(_seconds) };
                 for (int i = 0; i < times.Length; i++)
                     k.KeyFrames.Add(new EasingDoubleKeyFrame(values[i], KeyTime.FromTimeSpan(TimeSpan.FromSeconds(times[i])),
-                        new CubicEase { EasingMode = EasingMode.EaseInOut }));
-                Storyboard.SetTarget(k, target);
-                Storyboard.SetTargetProperty(k, property as PropertyPath ?? new PropertyPath((DependencyProperty)property));
-                _story.Children.Add(k);
+                        (eases != null && i < eases.Length ? eases[i] : null) ?? new CubicEase { EasingMode = EasingMode.EaseInOut }));
+                Add(k, target, property);
+            }
+
+            /// <summary>A value that jumps at the given times (a corner radius, say): values[i] from times[i] on.</summary>
+            public void Steps(DependencyObject target, object property, double[] times, object[] values)
+            {
+                var k = new ObjectAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(_seconds) };
+                for (int i = 0; i < times.Length; i++)
+                    k.KeyFrames.Add(new DiscreteObjectKeyFrame(values[i], KeyTime.FromTimeSpan(TimeSpan.FromSeconds(times[i]))));
+                Add(k, target, property);
+            }
+
+            private void Add(Timeline line, DependencyObject target, object property)
+            {
+                Storyboard.SetTarget(line, target);
+                Storyboard.SetTargetProperty(line, property as PropertyPath ?? new PropertyPath((DependencyProperty)property));
+                _story.Children.Add(line);
             }
 
             /// <summary>Opacity 0 → 1 at <paramref name="on"/>, back to 0 at <paramref name="off"/> (0.3 s each way).</summary>
@@ -74,6 +95,14 @@ namespace HsbgCardLookup.Ui
             {
                 stage.Loaded += (s, e) => { try { _story.Begin(stage, true); } catch { } };
                 stage.Unloaded += (s, e) => { try { _story.Stop(stage); } catch { } };
+            }
+
+            /// <summary>For a loop put together once the stage is on screen: begin now, and again
+            /// whenever it comes back.</summary>
+            public void RunNow(FrameworkElement stage)
+            {
+                try { _story.Begin(stage, true); } catch { }
+                Run(stage);
             }
         }
 
@@ -288,6 +317,282 @@ namespace HsbgCardLookup.Ui
             }
             catch { }
             return img;
+        }
+
+        // ── Assemble panels: the real lobby types box dragged onto the real sidebar, and joined ────
+        //
+        // The game's left edge (data/demos/game-left.jpg: game pixels x 0..760 of the same capture,
+        // full height, Replay Watcher's bar patched out) with the sidebar just right of the leaderboard.
+        // Two passes, as the owner asked (2026-11-22): a one-row box with the lobby's types joins the
+        // sidebar's top, then a one-column box with the banned types too joins its side. Each time the
+        // cursor carries the box within reach, the two edges that will meet light up and an outline
+        // shows the place, as PanelDock offers a join; on the drop the join plays as PanelDock plays it:
+        // the box pulled the last stretch in (BackEase 0.55, 260 ms), both sized to fit along the seam
+        // (the sidebar always stretches; the types box along its own shape), the meeting corners
+        // squared, the sidebar nudged, a line of light run along the seam and sparks off it.
+
+        private const double LeftW = 760, LeftH = 1080;
+        private static readonly Color Spark = Color.FromRgb(0x7F, 0xE3, 0xFF);
+        private const double PassLen = 5.8;
+
+        private sealed class JoinPass
+        {
+            public Border Box;
+            public bool Stacked;          // true: on the sidebar's top; false: at its right side
+            public double T0;             // when the pass starts in the loop
+            public Border Ghost;
+            public Rectangle BarA, BarB, Seam;
+            public readonly List<Rectangle> Sparks = new List<Rectangle>();
+        }
+
+        public static FrameworkElement Assemble(PluginConfig config)
+        {
+            double k = StageW / LeftW;
+            var stage = new Canvas { Width = StageW, Height = Math.Round(330 * k) };
+
+            // Game pixels: a 1920×1080 canvas (the panels size and place themselves by it), shifted to
+            // the part in view once the panels are laid out, and scaled down as one.
+            var shift = new TranslateTransform();
+            var game = new Canvas
+            {
+                Width = 1920, Height = 1080, IsHitTestVisible = false,
+                RenderTransform = new TransformGroup { Children = { shift, new ScaleTransform(k, k) } }
+            };
+            var frame = new Image { Width = LeftW, Height = LeftH, Stretch = Stretch.Fill };
+            try
+            {
+                string path = CardStore.DemoAssetPath("game-left");
+                if (path != null) frame.Source = ImageCache.Load(path, (int)Math.Min(LeftW, Math.Ceiling(StageW * 2)));
+            }
+            catch { }
+            Put(game, frame, 0, 0);
+            stage.Children.Add(game);
+
+            // The sidebar, the real one, with its sample standings and the settings' content switches
+            // (the rating shown when nothing else is assigned to it, as its own preview does).
+            var side = new MmrSidePanel(game);
+            // Just right of the leaderboard, over the tavern, at its default size: there is room there
+            // for a box on its top and one at its side (at its default spot by the screen's left edge, a
+            // box at its side would land on the leaderboard portraits).
+            side.Place(392 / 1920.0, 0.30, 210 / 1920.0);
+            bool rating = config.MmrInPanel || !config.PanelInUse;
+            side.NameMode = config.PanelNameMode;
+            side.ShowRating = rating;
+            side.ShowDeltas = rating && config.ShowMmrDeltas;
+            side.ShowTiers = Game.BgMmr.TiersInPanelFor(config);
+            side.ShowTribes = Game.BgMmr.TribesInPanelFor(config);
+            side.DimDead = config.DimDeadPlayers;
+            side.SetStandings(MmrSidePanel.SampleRows(false));
+
+            // The types boxes, the real ones, in the user's look.
+            Func<string, bool, Border> types = (layout, banned) =>
+            {
+                Action unused;
+                var demo = new PluginConfig { LobbyTribesLayout = layout, LobbyTribesStyle = config.LobbyTribesStyle, ShowLobbyTribes = true, ShowBannedTribes = banned };
+                return LobbyTribesPanel.Preview(demo, out unused) as Border;
+            };
+            var passes = new List<JoinPass>
+            {
+                new JoinPass { Box = types("1x5", false), Stacked = true, T0 = 0 },
+                new JoinPass { Box = types("5x1", true), Stacked = false, T0 = PassLen },
+            };
+            if (passes.Any(p => p.Box == null)) return Stage(stage);
+            foreach (var p in passes)
+            {
+                p.Box.Opacity = 0;
+                game.Children.Add(p.Box);
+                // PanelDock's offer and join pieces, one set per pass.
+                p.Ghost = new Border
+                {
+                    BorderBrush = new SolidColorBrush(Spark), BorderThickness = new Thickness(1.5), CornerRadius = new CornerRadius(7),
+                    Background = new SolidColorBrush(Color.FromArgb(0x22, Spark.R, Spark.G, Spark.B)), Opacity = 0
+                };
+                p.BarA = SparkBar(); p.BarB = SparkBar();
+                p.Seam = new Rectangle
+                {
+                    Fill = Brushes.White, RadiusX = 2, RadiusY = 2, Opacity = 0,
+                    Effect = new DropShadowEffect { Color = Spark, BlurRadius = 22, ShadowDepth = 0, Opacity = 1 },
+                    RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = new ScaleTransform(p.Stacked ? 0 : 1, p.Stacked ? 1 : 0)
+                };
+                foreach (UIElement el in new UIElement[] { p.Ghost, p.BarA, p.BarB, p.Seam }) game.Children.Add(el);
+                for (int i = 0; i < 9; i++)
+                {
+                    var spark = new Rectangle { Fill = new SolidColorBrush(i % 3 == 0 ? Colors.White : Spark), Opacity = 0 };
+                    p.Sparks.Add(spark);
+                    game.Children.Add(spark);
+                }
+            }
+            var cursor = Cursor();
+            Put(stage, cursor, StageW * 0.78, stage.Height * 0.8);
+
+            // The panels' sizes and the sidebar's place are only known once laid out on screen.
+            bool built = false;
+            stage.Loaded += (s, e) =>
+            {
+                if (built) return;
+                built = true;
+                stage.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try { Choreograph(stage, shift, side, passes, cursor, k); }
+                    catch { }
+                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+            };
+            return Stage(stage);
+        }
+
+        private static Rectangle SparkBar() => new Rectangle
+        {
+            Fill = new SolidColorBrush(Spark), RadiusX = 2, RadiusY = 2, Opacity = 0,
+            Effect = new DropShadowEffect { Color = Spark, BlurRadius = 14, ShadowDepth = 0, Opacity = 1 }
+        };
+
+        private static void Choreograph(Canvas stage, TranslateTransform shift, MmrSidePanel side, List<JoinPass> passes,
+            UIElement cursor, double k)
+        {
+            double len = PassLen * passes.Count;
+            var loop = new Loop(len);
+            var sb = side.Bounds;
+            if (sb.Width <= 0 || sb.Height <= 0) sb = new Rect(10, 324, 220, 210);
+            var root = side.DockRoot;
+            var r = root.CornerRadius;
+            var snap = new BackEase { Amplitude = 0.55, EasingMode = EasingMode.EaseOut };
+            IEasingFunction none = null;
+            // Within a pass: show, grab, carry, offer, drop, pulled in, rest, fade, put back unseen.
+            const double grab = 0.8, carried = 1.9, drop = 2.6, pulled = 2.86, fade = 5.0, back = 5.4;
+
+            // Where everything goes, pass by pass, in game pixels.
+            var geo = new List<double[]>();      // startX, startY, nearX, nearY, landX, landY, bw, bh, joinedW, joinedH
+            double top = sb.Y - 30, bottom = sb.Bottom + 20;
+            foreach (var p in passes)
+            {
+                double bw = p.Box.ActualWidth > 0 ? p.Box.ActualWidth : 260, bh = p.Box.ActualHeight > 0 ? p.Box.ActualHeight : 60;
+                double joinedW = p.Stacked ? Math.Max(bw, sb.Width) : bw, joinedH = p.Stacked ? bh : Math.Max(bh, sb.Height);
+                double landX = p.Stacked ? sb.X : sb.Right, landY = p.Stacked ? sb.Y - bh : sb.Y;
+                double nearX = p.Stacked ? landX + 14 : landX + 18, nearY = p.Stacked ? landY - 18 : landY + 14;
+                double startX = Math.Min(p.Stacked ? sb.X + 80 : sb.Right + 60, LeftW - bw - 6), startY = p.Stacked ? landY - 110 : sb.Y - 40;
+                geo.Add(new[] { startX, startY, nearX, nearY, landX, landY, bw, bh, joinedW, joinedH });
+                top = Math.Min(top, Math.Min(startY, landY) - 24);
+                bottom = Math.Max(bottom, Math.Max(startY + bh, Math.Max(nearY + bh, sb.Y + joinedH)) + 20);
+            }
+            top = Math.Max(0, top); bottom = Math.Min(LeftH, bottom);
+            shift.Y = -top;
+            stage.Height = Math.Round((bottom - top) * k);
+            Func<double, double, Point> onStage = (x, y) => new Point(x * k, (y - top) * k);
+            var rest = new Point(StageW * 0.8, stage.Height * 0.85);
+
+            // The sidebar: shown for each pass, squared and stretched where the box joins it, nudged on the join.
+            var sideOpacity = new List<double[]> { new[] { 0.0, 0 } };
+            var sideMinW = new List<double[]> { new[] { 0.0, 0 } };
+            var sideMinH = new List<double[]> { new[] { 0.0, 0 } };
+            var nudgeKeys = new List<double[]> { new[] { 0.0, 1 } };
+            var cornerTimes = new List<double> { 0 };
+            var cornerValues = new List<object> { r };
+            var cursorKeys = new List<double[]> { new[] { 0.0, rest.X, rest.Y } };
+
+            for (int n = 0; n < passes.Count; n++)
+            {
+                var p = passes[n]; var g = geo[n]; double t = p.T0;
+                double startX = g[0], startY = g[1], nearX = g[2], nearY = g[3], landX = g[4], landY = g[5];
+                double bw = g[6], bh = g[7], joinedW = g[8], joinedH = g[9];
+
+                // The box: carried in, pulled into place with the overshoot, sized to fit, corners squared.
+                double[] times = { 0, t + 0.9, t + carried, t + drop, t + pulled, t + back, t + back + 0.01, len };
+                loop.Keys(p.Box, Canvas.LeftProperty, times, new[] { startX, startX, nearX, nearX, landX, landX, startX, startX }, new[] { none, none, none, none, snap });
+                loop.Keys(p.Box, Canvas.TopProperty, times, new[] { startY, startY, nearY, nearY, landY, landY, startY, startY }, new[] { none, none, none, none, snap });
+                double[] stretchTimes = { 0, t + drop, t + drop + 0.01, t + back, t + back + 0.01, len };
+                if (p.Stacked) loop.Keys(p.Box, FrameworkElement.MinWidthProperty, stretchTimes, new[] { 0, 0, joinedW, joinedW, 0, 0 });
+                else loop.Keys(p.Box, FrameworkElement.MinHeightProperty, stretchTimes, new[] { 0, 0, joinedH, joinedH, 0, 0 });
+                loop.Show(p.Box, t + 0.05, t + fade);
+                loop.Steps(p.Box, Border.CornerRadiusProperty, new[] { 0, t + drop, t + back },
+                    new object[] { new CornerRadius(7), p.Stacked ? new CornerRadius(7, 7, 0, 0) : new CornerRadius(0, 7, 7, 0), new CornerRadius(7) });
+
+                sideOpacity.Add(new[] { t + 0.05, 0 }); sideOpacity.Add(new[] { t + 0.35, 1 });
+                sideOpacity.Add(new[] { t + fade, 1 }); sideOpacity.Add(new[] { t + fade + 0.3, 0 });
+                var stretch = p.Stacked ? sideMinW : sideMinH;
+                stretch.Add(new[] { t + drop, 0 }); stretch.Add(new[] { t + drop + 0.01, p.Stacked ? joinedW : joinedH });
+                stretch.Add(new[] { t + back, p.Stacked ? joinedW : joinedH }); stretch.Add(new[] { t + back + 0.01, 0 });
+                nudgeKeys.Add(new[] { t + drop + 0.18, 1 }); nudgeKeys.Add(new[] { t + drop + 0.29, 1.03 }); nudgeKeys.Add(new[] { t + drop + 0.40, 1 });
+                cornerTimes.Add(t + drop);
+                cornerValues.Add(p.Stacked ? new CornerRadius(0, 0, r.BottomRight, r.BottomLeft) : new CornerRadius(r.TopLeft, 0, 0, r.BottomLeft));
+                cornerTimes.Add(t + back); cornerValues.Add(r);
+
+                // The offer, while the box is held within reach: the outline of its place (already the
+                // size it will be given) and the two edges that will meet, pulsing.
+                Edge(p.Ghost, landX, landY, joinedW, joinedH);
+                if (p.Stacked)
+                {
+                    Edge(p.BarA, nearX, nearY + bh - 1.5, bw, 3);
+                    Edge(p.BarB, sb.X, sb.Y - 1.5, sb.Width, 3);
+                }
+                else
+                {
+                    Edge(p.BarA, nearX - 1.5, nearY, 3, bh);
+                    Edge(p.BarB, sb.Right - 1.5, sb.Y, 3, sb.Height);
+                }
+                double on = t + carried + 0.05;
+                loop.Keys(p.Ghost, UIElement.OpacityProperty, new[] { 0, on, on + 0.01, t + drop, t + drop + 0.01, len }, new[] { 0.0, 0, 1, 1, 0, 0 });
+                foreach (var b in new[] { p.BarA, p.BarB })
+                    loop.Keys(b, UIElement.OpacityProperty, new[] { 0, on, on + 0.01, on + 0.21, on + 0.42, on + 0.63, t + drop, t + drop + 0.01, len },
+                        new[] { 0.0, 0, 1, 0.45, 1, 0.45, 1, 0, 0 });
+
+                // The seam lit from its middle out, then faded; sparks jump off it.
+                double sx, sy, sl;
+                if (p.Stacked) { sx = Math.Min(landX, sb.X); sl = Math.Max(landX + joinedW, sb.Right) - sx; sy = sb.Y; Edge(p.Seam, sx, sy - 2, sl, 4); }
+                else { sx = sb.Right; sy = sb.Y; sl = joinedH; Edge(p.Seam, sx - 2, sy, 4, sl); }
+                loop.Keys(p.Seam, new PropertyPath(p.Stacked ? "RenderTransform.ScaleX" : "RenderTransform.ScaleY"),
+                    new[] { 0, t + drop + 0.14, t + drop + 0.32, t + drop + 0.8, t + drop + 0.81, len }, new[] { 0.0, 0, 1, 1, 0, 0 });
+                loop.Keys(p.Seam, UIElement.OpacityProperty, new[] { 0, t + drop + 0.13, t + drop + 0.14, t + drop + 0.33, t + drop + 0.75, len },
+                    new[] { 0.0, 0, 1, 1, 0, 0 });
+                var rnd = new Random(7 + n);
+                for (int i = 0; i < p.Sparks.Count; i++)
+                {
+                    var spark = p.Sparks[i];
+                    double size = 3 + rnd.NextDouble() * 3, along = (i + 0.5) / p.Sparks.Count * sl;
+                    spark.Width = size; spark.Height = size;
+                    double x = p.Stacked ? sx + along : sx - size / 2, y = p.Stacked ? sy - size / 2 : sy + along;
+                    double start = t + drop + 0.24 + rnd.NextDouble() * 0.12, time = 0.32 + rnd.NextDouble() * 0.16;
+                    double off = (i % 2 == 0 ? -1 : 1) * (14 + rnd.NextDouble() * 18), drift = (rnd.NextDouble() - 0.5) * 20;
+                    double toX = p.Stacked ? x + drift : x + off, toY = p.Stacked ? y + off : y + drift;
+                    loop.Keys(spark, Canvas.LeftProperty, new[] { 0, start, start + time, len }, new[] { x, x, toX, toX });
+                    loop.Keys(spark, Canvas.TopProperty, new[] { 0, start, start + time, len }, new[] { y, y, toY, toY });
+                    loop.Keys(spark, UIElement.OpacityProperty, new[] { 0, start, start + 0.02, start + time, len }, new[] { 0.0, 0, 1, 0, 0 });
+                }
+
+                // The cursor takes the box by its middle, carries it, lets go and leaves.
+                Point at = onStage(startX + bw / 2, startY + bh / 2), near = onStage(nearX + bw / 2, nearY + bh / 2);
+                cursorKeys.Add(new[] { t + 0.3, rest.X, rest.Y });
+                cursorKeys.Add(new[] { t + grab, at.X, at.Y });
+                cursorKeys.Add(new[] { t + 0.9, at.X, at.Y });
+                cursorKeys.Add(new[] { t + carried, near.X, near.Y });
+                cursorKeys.Add(new[] { t + drop + 0.1, near.X, near.Y });
+                cursorKeys.Add(new[] { t + drop + 0.8, rest.X, rest.Y });
+                Click(stage, loop, at.X, at.Y, t + grab + 0.02);
+            }
+
+            Action<DependencyObject, object, List<double[]>> keys = (target, property, list) =>
+            {
+                list.Add(new[] { len, list[list.Count - 1][1] });
+                loop.Keys(target, property, list.Select(a => a[0]).ToArray(), list.Select(a => a[1]).ToArray());
+            };
+            root.Opacity = 0;
+            keys(root, UIElement.OpacityProperty, sideOpacity);
+            keys(root, FrameworkElement.MinWidthProperty, sideMinW);
+            keys(root, FrameworkElement.MinHeightProperty, sideMinH);
+            root.RenderTransformOrigin = new Point(0.5, 0.5);
+            var nudge = new ScaleTransform(1, 1);
+            root.RenderTransform = nudge;
+            keys(nudge, ScaleTransform.ScaleYProperty, new List<double[]>(nudgeKeys));
+            keys(nudge, ScaleTransform.ScaleXProperty, nudgeKeys);
+            loop.Steps(root, Border.CornerRadiusProperty, cornerTimes.ToArray(), cornerValues.ToArray());
+            cursorKeys.Add(new[] { len, rest.X, rest.Y });
+            loop.Move(cursor, cursorKeys.Select(a => a[0]).ToArray(), cursorKeys.Select(a => a[1]).ToArray(), cursorKeys.Select(a => a[2]).ToArray());
+            stage.Children.Remove(cursor); stage.Children.Add(cursor);
+            loop.RunNow(stage);
+        }
+
+        private static void Edge(FrameworkElement el, double x, double y, double w, double h)
+        {
+            Canvas.SetLeft(el, x); Canvas.SetTop(el, y); el.Width = Math.Max(0, w); el.Height = Math.Max(0, h);
         }
 
         // ── Start with Windows: the icon waits in the tray, comes alive with the game, rests again ─

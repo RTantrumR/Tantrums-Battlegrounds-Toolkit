@@ -918,7 +918,10 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.general.assembleOn") : Strings.T("settings.general.assembleOff");
                 Changed();
             }));
-            stack.Children.Add(AssembleDemo.Build());
+            if (!_indexing)
+            {
+                try { stack.Children.Add(SettingsDemos.Assemble(_config)); } catch { }
+            }
             stack.Children.Add(new TextBlock
             {
                 Text = Strings.T("settings.general.assembleTip"), Foreground = UiKit.TextMuted, FontSize = 12.5,
