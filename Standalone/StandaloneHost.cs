@@ -21,6 +21,7 @@ namespace Toolkit.Standalone
         public string CardName => null;               // the features name cards from our own store
         public bool HasTag(int tag) => _e.Tags.ContainsKey(tag);
         public int GetTag(int tag) { int v; return _e.Tags.TryGetValue(tag, out v) ? v : 0; }
+        public Dictionary<int, int> AllTags() => new Dictionary<int, int>(_e.Tags);
         public bool IsInPlay => GetTag(49) == 1;      // ZONE == PLAY
         public int Health => GetTag(45) - GetTag(44); // HEALTH - DAMAGE
     }

@@ -19,6 +19,8 @@ namespace HsbgCardLookup.Host
         string CardName { get; }
         bool HasTag(int tag);
         int GetTag(int tag);
+        /// <summary>Every tag the host holds for the entity, as a copy.</summary>
+        Dictionary<int, int> AllTags();
         bool IsInPlay { get; }
         /// <summary>HEALTH minus DAMAGE.</summary>
         int Health { get; }

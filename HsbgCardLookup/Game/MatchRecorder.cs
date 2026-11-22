@@ -16,6 +16,31 @@ namespace HsbgCardLookup.Game
         [JsonProperty("golden", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Golden;
         /// <summary>One letter each: T aunt, D ivine shield, W indfury, R eborn, S tealth, P oisonous, V enomous.</summary>
         [JsonProperty("kw", DefaultValueHandling = DefaultValueHandling.Ignore)] public string Keywords;
+        [JsonProperty("tier", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Tier;
+        [JsonProperty("gift", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool DarkGift;
+    }
+
+    /// <summary>Something of ours in play that is not a minion: a hero power, trinket, quest, reward, buddy
+    /// meter, secret, whatever a season adds. Type is the game's CARDTYPE number.</summary>
+    public sealed class RecordedCard
+    {
+        [JsonProperty("card")] public string Card;
+        [JsonProperty("type")] public int Type;
+    }
+
+    /// <summary>Which of the game's systems the lobby ran with, from the game entity's own switches.</summary>
+    public sealed class RecordedMechanics
+    {
+        [JsonProperty("buddies", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Buddies;
+        [JsonProperty("quests", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Quests;
+        [JsonProperty("trinkets", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Trinkets;
+        [JsonProperty("darkGifts", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool DarkGifts;
+        /// <summary>The timewarped tavern (the client's "alt tavern").</summary>
+        [JsonProperty("timewarp", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Timewarp;
+        /// <summary>Card numbers (dbf ids): the lobby's anomalies, and its Deity.</summary>
+        [JsonProperty("anomalies")] public List<int> Anomalies = new List<int>();
+        [JsonProperty("deity", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Deity;
+        [JsonProperty("damageCap", DefaultValueHandling = DefaultValueHandling.Ignore)] public int DamageCap;
     }
 
     /// <summary>One round: the board sent into the fight and how the fight went.</summary>
@@ -37,6 +62,12 @@ namespace HsbgCardLookup.Game
         /// <summary>Every player's health (with armor) as the round's shop ended, by PLAYER_ID.</summary>
         [JsonProperty("healths")] public Dictionary<int, int> Healths = new Dictionary<int, int>();
         [JsonProperty("tiers")] public Dictionary<int, int> Tiers = new Dictionary<int, int>();
+        /// <summary>Ours in play besides the minions, and the hand's cards, as the shop ended.</summary>
+        [JsonProperty("cards")] public List<RecordedCard> Cards = new List<RecordedCard>();
+        [JsonProperty("hand")] public List<string> Hand = new List<string>();
+        /// <summary>Our Player entity's tags that changed since the round before (the first round: all of them).
+        /// Raw game numbers: gold, buddy meter, timewarp visits, rerolls, whatever the season counts there.</summary>
+        [JsonProperty("playerTags")] public Dictionary<int, int> PlayerTags = new Dictionary<int, int>();
     }
 
     public sealed class RecordedPlayer
@@ -46,6 +77,8 @@ namespace HsbgCardLookup.Game
         [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)] public string Name;
         [JsonProperty("place")] public int Place;
         [JsonProperty("me", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Me;
+        /// <summary>The leaderboard hero's tags as last seen (trinkets, quest rewards, buddy and more live there).</summary>
+        [JsonProperty("tags")] public Dictionary<int, int> Tags = new Dictionary<int, int>();
     }
 
     /// <summary>One match as the recorder saw it: <c>match-records\&lt;yyyyMMdd_HHmmss&gt;.json</c> in the data folder.</summary>
@@ -76,6 +109,11 @@ namespace HsbgCardLookup.Game
         /// <summary>TAG_RACE ids in the lobby.</summary>
         [JsonProperty("types")] public List<int> Types = new List<int>();
         [JsonProperty("anomaly", DefaultValueHandling = DefaultValueHandling.Ignore)] public int AnomalyDbId;
+        [JsonProperty("mechanics")] public RecordedMechanics Mechanics = new RecordedMechanics();
+        /// <summary>The game entity's tags as the match began and as it ended, raw: the lobby's rules. Kept whole
+        /// so a mechanic nobody named yet can still be read out of old records.</summary>
+        [JsonProperty("gameTagsStart")] public Dictionary<int, int> GameTagsStart = new Dictionary<int, int>();
+        [JsonProperty("gameTags")] public Dictionary<int, int> GameTags = new Dictionary<int, int>();
         [JsonProperty("players")] public List<RecordedPlayer> Players = new List<RecordedPlayer>();
         [JsonProperty("turns")] public List<RecordedTurn> Turns = new List<RecordedTurn>();
         /// <summary>The board as the match ended, with what the last fight left on it for good (the game's own
@@ -98,7 +136,11 @@ namespace HsbgCardLookup.Game
         public const string FolderName = "match-records";
 
         private const int TagHeroEntity = 27, TagArmor = 292, TagAnomalyDbId = 2897;
-        private const int CardTypeGame = 1, CardTypeHero = 3, CardTypeHeroPower = 10;
+        private const int CardTypeGame = 1, CardTypePlayer = 2, CardTypeHero = 3, CardTypeMinion = 4, CardTypeEnchantment = 6, CardTypeHeroPower = 10;
+        private const int ZoneHand = 3;
+        private const int TagBuddyEnabled = 2518, TagQuestsActive = 2468, TagTrinketsActive = 3740, TagDarkGiftsActive = 4845,
+            TagAltTavernActive = 4519, TagAnomaly1 = 3182, TagAnomaly2 = 3183, TagDamageCap = 2089, TagDamageCapEnabled = 3403;
+        private Dictionary<int, int> _playerNow, _playerBase;   // our Player's tags: at the last shop read, and as the round before ended
 
         private readonly IGameState _game;
         private readonly IClientMemory _memory;
@@ -204,7 +246,12 @@ namespace HsbgCardLookup.Game
             _rec.Region = _game.Region ?? _rec.Region;
             _rec.Duos = _rec.Duos || _game.IsBattlegroundsDuosMatch;
             _rec.Hero = mine.CardId ?? _rec.Hero;
-            if (gameEntity != null && gameEntity.GetTag(TagAnomalyDbId) > 0) _rec.AnomalyDbId = gameEntity.GetTag(TagAnomalyDbId);
+            if (gameEntity != null)
+            {
+                if (gameEntity.GetTag(TagAnomalyDbId) > 0) _rec.AnomalyDbId = gameEntity.GetTag(TagAnomalyDbId);
+                if (_rec.GameTagsStart.Count == 0) _rec.GameTagsStart = gameEntity.AllTags();
+                ReadMechanics(gameEntity);
+            }
             var types = _memory?.LobbyTribes();
             if (types != null && types.Count > 0 && _rec.Types.Count == 0) _rec.Types = types.OrderBy(t => t).ToList();
             foreach (var t in _game.PlayerTrinkets())
@@ -214,6 +261,7 @@ namespace HsbgCardLookup.Game
             if (_turn != null && turn > _turn.Number) EndFight(heroes, mine);
             if (_turn == null || turn > _turn.Number)
             {
+                CloseTurnTags();
                 _turn = new RecordedTurn { Number = turn };
                 _rec.Turns.Add(_turn);
                 if (_turn.Number > 1) Write(_rec, _path);      // the round before it is whole now
@@ -232,10 +280,58 @@ namespace HsbgCardLookup.Game
                 _turn.Tiers[kv.Key] = Math.Max(1, kv.Value.GetTag(Tags.PLAYER_TECH_LEVEL));
             }
             _turn.Board = _game.PlayerMinions().OrderBy(m => m.GetTag(Tags.ZONE_POSITION)).Take(7).Select(Minion).ToList();
+            _playerNow = me.AllTags();
+            var cards = new List<RecordedCard>(); var hand = new List<IGameEntity>();
+            foreach (var e in _game.Entities())
+            {
+                if (e.GetTag(Tags.CONTROLLER) != pid || string.IsNullOrEmpty(e.CardId)) continue;
+                int type = e.GetTag(Tags.CARDTYPE);
+                if (e.GetTag(Tags.ZONE) == ZoneHand) hand.Add(e);
+                else if (e.IsInPlay && !IsShopControl(e.CardId, type) && type != CardTypeMinion && type != CardTypeEnchantment && type != CardTypeHero && type != CardTypePlayer && type != CardTypeGame)
+                    cards.Add(new RecordedCard { Card = e.CardId, Type = type });
+            }
+            _turn.Cards = cards.OrderBy(c => c.Type).ThenBy(c => c.Card).ToList();
+            _turn.Hand = hand.OrderBy(e => e.GetTag(Tags.ZONE_POSITION)).Select(e => e.CardId).ToList();
 
             _rec.HeroPowers = _game.Entities()
                 .Where(e => e.GetTag(Tags.CARDTYPE) == CardTypeHeroPower && e.GetTag(Tags.CONTROLLER) == pid && e.IsInPlay && !string.IsNullOrEmpty(e.CardId))
                 .OrderBy(e => e.Id).Select(e => e.CardId).Distinct().ToList();
+        }
+
+        // The shop's own controls are entities of ours in play too: the refresh, freeze and tier-up buttons,
+        // and the drag targets (card type 22).
+        private static bool IsShopControl(string card, int type) =>
+            type == 22 || card.IndexOf("_Button", StringComparison.Ordinal) >= 0 || card.StartsWith("TB_BaconShop_Drag", StringComparison.Ordinal);
+
+        private void ReadMechanics(IGameEntity g)
+        {
+            var m = _rec.Mechanics;
+            m.Buddies |= g.GetTag(TagBuddyEnabled) > 0;
+            m.Quests |= g.GetTag(TagQuestsActive) > 0;
+            m.Trinkets |= g.GetTag(TagTrinketsActive) > 0;
+            m.DarkGifts |= g.GetTag(TagDarkGiftsActive) > 0;
+            m.Timewarp |= g.GetTag(TagAltTavernActive) > 0;
+            foreach (int tag in new[] { TagAnomalyDbId, TagAnomaly1, TagAnomaly2 })
+            {
+                int id = g.GetTag(tag);
+                if (id > 0 && !m.Anomalies.Contains(id)) m.Anomalies.Add(id);
+            }
+            if (g.GetTag(Tags.BACON_GLOBAL_OLD_GOD_DBID) > 0) m.Deity = g.GetTag(Tags.BACON_GLOBAL_OLD_GOD_DBID);
+            if (g.GetTag(TagDamageCapEnabled) > 0) m.DamageCap = g.GetTag(TagDamageCap);
+        }
+
+        // The round in progress gets what changed on our Player since the round before.
+        private void CloseTurnTags()
+        {
+            if (_turn == null || _playerNow == null) return;
+            var diff = new Dictionary<int, int>();
+            foreach (var kv in _playerNow)
+            {
+                int was;
+                if (_playerBase == null || !_playerBase.TryGetValue(kv.Key, out was) || was != kv.Value) diff[kv.Key] = kv.Value;
+            }
+            _turn.PlayerTags = diff;
+            _playerBase = _playerNow; _playerNow = null;
         }
 
         // The leaderboard's heroes by PLAYER_ID, and the game entity. A fight plays on copies of the two heroes,
@@ -281,6 +377,7 @@ namespace HsbgCardLookup.Game
                 if (p == null) _rec.Players.Add(p = new RecordedPlayer { PlayerId = kv.Key, Me = kv.Key == pid });
                 p.Hero = kv.Value.CardId ?? p.Hero;
                 p.Place = kv.Value.GetTag(Tags.PLAYER_LEADERBOARD_PLACE);
+                p.Tags = kv.Value.AllTags();
                 if (p.Name == null && p.Hero != null)
                 {
                     if (lobby == null) lobby = _memory?.LobbyPlayers() ?? new List<LobbyPlayer>();
@@ -303,14 +400,22 @@ namespace HsbgCardLookup.Game
             {
                 Card = m.CardId, Attack = m.GetTag(Tags.ATK), Health = m.Health,
                 Golden = m.GetTag(Tags.PREMIUM) > 0, Keywords = kw.Length > 0 ? kw : null,
+                Tier = m.GetTag(Tags.TECH_LEVEL), DarkGift = m.GetTag(Tags.HAS_DARK_GIFT) > 0,
             };
         }
 
         private void Close(bool finished)
         {
+            CloseTurnTags();
             var rec = _rec; string path = _path;
-            _rec = null; _turn = null;
+            _rec = null; _turn = null; _playerNow = _playerBase = null;
             if (rec == null) return;
+            try
+            {
+                var g = _game.Entities().FirstOrDefault(e => e.GetTag(Tags.CARDTYPE) == CardTypeGame);
+                if (g != null) rec.GameTags = g.AllTags();
+            }
+            catch { }
             // The last round has no next shop to close it: its fight is read from the final healths.
             var last = rec.Turns.LastOrDefault();
             var me = rec.Players.FirstOrDefault(p => p.Me);

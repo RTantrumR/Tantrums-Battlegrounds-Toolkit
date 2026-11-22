@@ -38,6 +38,12 @@ namespace HsbgCardLookup.Host.Hdt
         public string CardName => _e.Card?.Name;
         public bool HasTag(int tag) => _e.HasTag((GameTag)tag);
         public int GetTag(int tag) => _e.GetTag((GameTag)tag);
+        public Dictionary<int, int> AllTags()
+        {
+            var d = new Dictionary<int, int>();
+            try { foreach (var kv in _e.Tags.ToArray()) d[(int)kv.Key] = kv.Value; } catch { }
+            return d;
+        }
         public bool IsInPlay => _e.IsInPlay;
         public int Health => _e.Health;
     }
