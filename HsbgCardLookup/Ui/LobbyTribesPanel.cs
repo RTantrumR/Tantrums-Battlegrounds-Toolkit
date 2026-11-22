@@ -301,7 +301,7 @@ namespace HsbgCardLookup.Ui
                     {
                         IEnumerable<string> pool = null;
                         try { pool = Pool?.Invoke(); } catch { }
-                        foreach (string t in pool ?? new[] { "Demon", "Elemental", "Naga", "Pirate", "Quilboar" })
+                        foreach (string t in pool ?? new[] { "Aberration", "Demon", "Elemental", "Pirate", "Quilboar" })
                             if (!sample.Contains(t) && !banned.Contains(t) && TribeIcons.BrushFor(t) != null) banned.Add(t);
                     }
                     Build(face, ByLabel(sample), ByLabel(banned), PerRow(config.LobbyTribesLayout), Style(config.LobbyTribesStyle));

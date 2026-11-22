@@ -54,15 +54,20 @@ namespace HsbgCardLookup.Data
         private static bool IsTavern(BgCard c) =>
             c.Categories == null || c.Categories.Count == 0 || c.Categories.Contains("tavern");
 
-        /// <summary>The minion types of the current season: every type that has a minion Bob can sell
-        /// (a tavern minion with a tier). A lobby holds five of them; the rest are that lobby's banned ones.</summary>
+        /// <summary>The minion types of the current season: every type Bob sells a minion of on its own
+        /// (a tavern minion with a tier and that one type). A lobby holds five of them; the rest are that
+        /// lobby's banned ones. A type found only on dual-type minions is not in the season: patch 37.0.3
+        /// keeps Ominous Seer (Demon/Naga) and Firescale Hoarder (Naga/Dragon) in the tavern under their
+        /// other type while Nagas are out of the rotation, and counting those showed Naga as banned in
+        /// every lobby (owner, 2026-11-22). 10 types that patch, 21 to 29 single-type minions each.</summary>
         public List<string> PoolTribes()
         {
             try
             {
                 return Current.Where(c => c.CardType == "minion" && c.Tier > 0 && IsTavern(c))
-                    .SelectMany(c => c.MinionTypes ?? new List<string>())
-                    .Where(t => !string.IsNullOrEmpty(t) && t != "All")
+                    .Select(c => (c.MinionTypes ?? new List<string>()).Where(t => !string.IsNullOrEmpty(t) && t != "All").ToList())
+                    .Where(types => types.Count == 1)
+                    .Select(types => types[0])
                     .Distinct().ToList();
             }
             catch { return new List<string>(); }
