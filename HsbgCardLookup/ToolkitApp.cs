@@ -660,6 +660,13 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search == "stats" || search == "stats snap")
+            {
+                // The stats window; "stats snap" also saves the whole page as stats.png beside the program.
+                OpenStats();
+                if (search == "stats snap") _stats?.TestSnap(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "stats.png"));
+                return;
+            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).
@@ -679,6 +686,20 @@ namespace HsbgCardLookup
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
         private bool _quietOpen;
+
+        private StatsWindow _stats;
+
+        /// <summary>The player's match history (tray menu). UI thread.</summary>
+        public void OpenStats()
+        {
+            if (_stats != null) { _stats.Show(); _stats.Activate(); return; }
+            // Dev: TOOLKIT_STATS_DIR points the page at another folder of records.
+            string folder = Environment.GetEnvironmentVariable("TOOLKIT_STATS_DIR");
+            if (string.IsNullOrEmpty(folder)) folder = System.IO.Path.Combine(PluginConfig.DataDir, Game.MatchRecorder.FolderName);
+            _stats = new StatsWindow(_store, folder);
+            _stats.Closed += (s, e) => _stats = null;
+            _stats.Show();
+        }
 
         public void OpenSettings()
         {
