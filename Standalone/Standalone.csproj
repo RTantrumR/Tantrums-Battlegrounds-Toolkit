@@ -45,6 +45,8 @@
     <Compile Include="..\MemSpike\Mem.cs"><Link>Reader\Mem.cs</Link></Compile>
     <Compile Include="..\MemSpike\Mono.cs"><Link>Reader\Mono.cs</Link></Compile>
     <Compile Include="GameReader.cs" />
+    <Compile Include="StateFeed.cs" />
+    <Compile Include="..\MemSpike\ClientEvents.cs"><Link>Reader\ClientEvents.cs</Link></Compile>
     <Compile Include="HsWindow.cs" />
     <Compile Include="OverlayWindow.cs" />
     <Compile Include="StandaloneHost.cs" />

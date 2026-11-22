@@ -128,6 +128,8 @@
     <Compile Include="Assets\GameArt.cs" />
     <Compile Include="Assets\UnityBundle.cs" />
     <Compile Include="Game\OpponentBoards.cs" />
+    <Compile Include="Game\MatchRecorder.cs" />
+    <Compile Include="Game\SeasonCalendar.cs" />
     <Compile Include="Ui\OpponentBoardPanel.cs" />
     <Compile Include="Ui\CardStats.cs" />
     <Compile Include="Ui\CardTextPaint.cs" />

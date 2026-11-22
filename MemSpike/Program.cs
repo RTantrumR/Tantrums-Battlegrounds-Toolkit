@@ -103,6 +103,14 @@ namespace MemSpike
                             var evs = ClientEvents.Read(mono, args.Length > 1 ? args[1] : "battlegrounds_");
                             if (evs == null) { Console.WriteLine("EventTimingManager not found"); break; }
                             evs.Sort((x, y) => Nullable.Compare(x.Start, y.Start));
+                            if (args.Length > 2)      // events <prefix> <out.json>: the calendar file SeasonCalendar loads
+                            {
+                                var sb = new System.Text.StringBuilder("[");
+                                for (int n = 0; n < evs.Count; n++)
+                                    sb.Append(n > 0 ? ",\n" : "\n").Append("{\"name\":\"" + evs[n].Name + "\",\"start\":" + (evs[n].Start == null ? "null" : "\"" + evs[n].Start.Value.ToString("o") + "\"")
+                                        + ",\"end\":" + (evs[n].End == null ? "null" : "\"" + evs[n].End.Value.ToString("o") + "\"") + "}");
+                                System.IO.File.WriteAllText(args[2], sb.Append("\n]").ToString());
+                            }
                             foreach (var e in evs) Console.WriteLine((e.Start?.ToString("yyyy-MM-dd HH:mm") ?? "-") + "  " + (e.End?.ToString("yyyy-MM-dd HH:mm") ?? "-") + "  " + e.Name);
                             Console.WriteLine(evs.Count + " events");
                             break;
