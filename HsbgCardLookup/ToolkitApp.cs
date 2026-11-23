@@ -648,6 +648,12 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search.StartsWith("tip ", StringComparison.Ordinal))
+            {
+                // The n-th styled tooltip on the open page, opened as a hover would (to picture it).
+                int n; if (int.TryParse(search.Substring(4).Trim(), out n)) try { _settings?.TestTip(n); } catch { }
+                return;
+            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).

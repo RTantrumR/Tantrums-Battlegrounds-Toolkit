@@ -42,6 +42,24 @@ namespace HsbgCardLookup.Ui
             return _searchField;
         }
 
+        /// <summary>Test aid: open the n-th (0-based) styled tooltip on the page under its element, as a
+        /// hover would, and close the others; n &lt; 0 closes them all.</summary>
+        public void TestTip(int n)
+        {
+            int i = 0;
+            Action<DependencyObject> walk = null;
+            walk = d =>
+            {
+                if (d is FrameworkElement fe && fe.ToolTip is ToolTip tt && tt.Content is Border)
+                {
+                    tt.PlacementTarget = fe;
+                    tt.IsOpen = i++ == n;
+                }
+                for (int c = 0; c < VisualTreeHelper.GetChildrenCount(d); c++) walk(VisualTreeHelper.GetChild(d, c));
+            };
+            if (_pageRoot != null) walk(_pageRoot);
+        }
+
         /// <summary>Test aid: as if typed into the search box.</summary>
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
 
