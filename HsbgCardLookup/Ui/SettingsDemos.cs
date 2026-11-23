@@ -104,6 +104,13 @@ namespace HsbgCardLookup.Ui
                 try { _story.Begin(stage, true); } catch { }
                 Run(stage);
             }
+
+            /// <summary>Test aid: hold the loop at <paramref name="t"/> seconds, applied at once (to render frames).</summary>
+            public void SeekTo(FrameworkElement stage, double t)
+            {
+                _story.Pause(stage);
+                _story.SeekAlignedToLastTick(stage, TimeSpan.FromSeconds(t), TimeSeekOrigin.BeginTime);
+            }
         }
 
         private static Path Cursor() => new Path
@@ -606,7 +613,16 @@ namespace HsbgCardLookup.Ui
             loop.Move(cursor, cursorKeys.Select(a => a[0]).ToArray(), cursorKeys.Select(a => a[1]).ToArray(), cursorKeys.Select(a => a[2]).ToArray());
             stage.Children.Remove(cursor); stage.Children.Add(cursor);
             loop.RunNow(stage);
+            AssembleSeek = t => loop.SeekTo(stage, t);
+            AssembleLength = len;
+            AssembleView = stage.Parent as FrameworkElement ?? stage;
         }
+
+        /// <summary>Test aid: the last "Assemble panels" picture built — hold it at a time, its loop
+        /// length, the element to render (to make frames of it).</summary>
+        internal static Action<double> AssembleSeek;
+        internal static double AssembleLength;
+        internal static FrameworkElement AssembleView;
 
         private static void Edge(FrameworkElement el, double x, double y, double w, double h)
         {

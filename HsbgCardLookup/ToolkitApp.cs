@@ -648,6 +648,15 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search.StartsWith("frames ", StringComparison.Ordinal))
+            {
+                // "frames <fps> <scale> <folder>": the Assemble panels picture's loop as PNG frames.
+                var a = search.Substring(7).Trim().Split(new[] { ' ' }, 3);
+                int fps; double scale;
+                if (a.Length == 3 && int.TryParse(a[0], out fps) && double.TryParse(a[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale))
+                    try { _settings?.TestFrames(a[2], fps, scale); } catch { }
+                return;
+            }
             if (search.StartsWith("tip ", StringComparison.Ordinal))
             {
                 // The n-th styled tooltip on the open page, opened as a hover would (to picture it).
