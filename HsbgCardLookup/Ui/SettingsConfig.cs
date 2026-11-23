@@ -34,7 +34,8 @@ namespace HsbgCardLookup.Ui
             string file = Path.Combine(PluginConfig.DataDir, "config.xml");
             if (stack.Children.Count > 0 && stack.Children[0] is DockPanel head)
             {
-                var folder = IconButton("", Strings.T("settings.config.openFolder") + "\n" + file, () => OpenUrl(PluginConfig.DataDir));
+                var folder = IconButton("", null, () => OpenUrl(PluginConfig.DataDir));
+                Tip.Set(folder, file, title: Strings.T("settings.config.openFolder"));
                 // A drawn folder: the icon font's folder glyphs read as a door or a page at this size.
                 var shape = new System.Windows.Shapes.Path
                 {
@@ -50,14 +51,14 @@ namespace HsbgCardLookup.Ui
                 var hazard = new Border
                 {
                     Width = 32, Height = 32, Background = Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(4, 0, 0, 0), ToolTip = Strings.T("settings.config.warning"),
+                    Margin = new Thickness(4, 0, 0, 0),
                     Child = new TextBlock
                     {
                         Text = "\uE7BA", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 18, Foreground = UiKit.Br(WarnRed),
                         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                     }
                 };
-                ToolTipService.SetInitialShowDelay(hazard, 150);
+                Tip.Set(hazard, Strings.T("settings.config.warning"), TipKind.Warning);
                 DockPanel.SetDock(hazard, Dock.Right);
                 head.Children.Insert(0, hazard);
             }
@@ -221,7 +222,7 @@ namespace HsbgCardLookup.Ui
                 Padding = new Thickness(14, 6, 14, 6), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0),
                 Child = new TextBlock { Text = Strings.T("settings.config.ready.apply"), FontSize = 13.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(r.Accent) }
             };
-            apply.ToolTip = Strings.T("settings.config.ready.turnsOff") + " " + string.Join(", ", r.Off.Select(part => Strings.T(part.Key)));
+            Tip.Set(apply, string.Join("\n", r.Off.Select(part => Strings.T(part.Key))), title: Strings.T("settings.config.ready.turnsOff"));
             apply.MouseEnter += (s, e) => apply.Background = tint(0x4D);
             apply.MouseLeave += (s, e) => apply.Background = tint(0x26);
             apply.MouseLeftButtonUp += (s, e) => { e.Handled = true; ApplyReady(r); };
@@ -252,7 +253,7 @@ namespace HsbgCardLookup.Ui
             var dot = new Border
             {
                 Width = 16, Height = 16, CornerRadius = new CornerRadius(8), BorderBrush = UiKit.TextSecondary, BorderThickness = new Thickness(1),
-                Background = Brushes.Transparent, Cursor = Cursors.Help, ToolTip = tip, VerticalAlignment = VerticalAlignment.Top,
+                Background = Brushes.Transparent, Cursor = Cursors.Help, VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(7, besideHeader.Top - 1, 0, 0),
                 Child = new TextBlock
                 {
@@ -260,8 +261,7 @@ namespace HsbgCardLookup.Ui
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
             };
-            ToolTipService.SetInitialShowDelay(dot, 150);
-            ToolTipService.SetShowDuration(dot, 20000);
+            Tip.Set(dot, tip);
             return dot;
         }
 
