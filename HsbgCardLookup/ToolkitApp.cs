@@ -665,9 +665,9 @@ namespace HsbgCardLookup
                 // The stats window. "stats snap [overview|heroes|matches|match [id]]" opens that page and saves
                 // the whole of it as stats-<page>.png beside the program.
                 var words = search.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                bool snap = words.Length > 1 && words[1] == "snap";
-                OpenStats(snap);
-                if (snap && _stats != null)
+                bool statsSnap = words.Length > 1 && words[1] == "snap";
+                OpenStats(statsSnap);
+                if (statsSnap && _stats != null)
                 {
                     string page = words.Length > 2 ? words[2] : "overview";
                     _stats.Go(page, words.Length > 3 ? words[3] : null);
