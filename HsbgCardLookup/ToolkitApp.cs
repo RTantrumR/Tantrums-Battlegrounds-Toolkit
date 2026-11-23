@@ -609,6 +609,36 @@ namespace HsbgCardLookup
             }));
         }
 
+        /// <summary>Test aid: "Name=value" lines set those settings and apply them as a click in the
+        /// settings window would (bool, int, double or string properties of the config). Returns what it
+        /// did, one entry per line. UI thread.</summary>
+        public string TestSet(string lines)
+        {
+            var done = new List<string>();
+            foreach (var raw in (lines ?? "").Split('\n'))
+            {
+                string line = raw.Trim();
+                int eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                string name = line.Substring(0, eq).Trim(), value = line.Substring(eq + 1).Trim();
+                var prop = typeof(PluginConfig).GetProperty(name);
+                try
+                {
+                    object v = prop == null ? null
+                        : prop.PropertyType == typeof(bool) ? bool.Parse(value)
+                        : prop.PropertyType == typeof(int) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(double) ? double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(string) ? (object)value : null;
+                    if (v == null || !prop.CanWrite) { done.Add(name + ": not settable"); continue; }
+                    prop.SetValue(_config, v);
+                    done.Add(name + "=" + value);
+                }
+                catch (Exception ex) { done.Add(name + ": " + ex.Message); }
+            }
+            ApplySettings();
+            return string.Join(", ", done);
+        }
+
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
         /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window;
@@ -624,10 +654,14 @@ namespace HsbgCardLookup
                 try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
                 return;
             }
-            // A snap renders off the window's own visuals, so it never needs the focus.
             bool snap = search.StartsWith("snap ", StringComparison.Ordinal);
-            _quietOpen = snap;
-            try { OpenSettings(); } finally { _quietOpen = false; }
+            if (snap)
+            {
+                // A snap never takes the focus and is never seen: opened quietly outside every screen (the
+                // picture is rendered from the window's visuals), or left as it is when already open.
+                if (_settings == null) { _quietOpen = _snapOpen = true; try { OpenSettings(); } finally { _quietOpen = _snapOpen = false; } }
+            }
+            else OpenSettings();
             try
             {
                 if (snap)
@@ -639,7 +673,7 @@ namespace HsbgCardLookup
 
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
-        private bool _quietOpen;
+        private bool _quietOpen, _snapOpen;
 
         public void OpenSettings()
         {
@@ -652,6 +686,12 @@ namespace HsbgCardLookup
             _settings.ReloadLayout = ReloadLayout;
             _settings.Closed += (s, e) => { _settings = null; SettingsClosed?.Invoke(); };
             if (_quietOpen) _settings.ShowActivated = false;
+            if (_snapOpen)
+            {
+                _settings.WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
+                _settings.Left = System.Windows.SystemParameters.VirtualScreenLeft - 4000;
+                _settings.Top = 0;
+            }
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known
         }

@@ -613,47 +613,6 @@ namespace HsbgCardLookup.Ui
             Canvas.SetLeft(el, x); Canvas.SetTop(el, y); el.Width = Math.Max(0, w); el.Height = Math.Max(0, h);
         }
 
-        // ── Start with Windows: the icon waits in the tray, comes alive with the game, rests again ─
-
-        public static FrameworkElement Autostart()
-        {
-            const double len = 6.4;
-            var stage = new Canvas { Width = StageW, Height = 124 };
-            var loop = new Loop(len);
-
-            // The desktop's taskbar, the tray at its right end.
-            Put(stage, new Rectangle { Width = StageW, Height = 28, Fill = Frozen(Color.FromRgb(0x10, 0x14, 0x1C)) }, 0, 96);
-            Put(stage, new Rectangle { Width = StageW, Height = 1, Fill = UiKit.StrokeBrush }, 0, 96);
-
-            // The game: its window (the replay frame), and its button on the taskbar.
-            const double gameW = 160;
-            var game = new Border
-            {
-                CornerRadius = new CornerRadius(4), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                Background = Brushes.Black, ClipToBounds = true, Child = GameFrame(gameW)
-            };
-            Put(stage, game, 150, 4);
-            var button = new Rectangle { Width = 34, Height = 16, RadiusX = 3, RadiusY = 3, Fill = Frozen(Color.FromRgb(0x2B, 0x3F, 0x5C)), Stroke = UiKit.StrokeBrush };
-            Put(stage, button, 20, 102);
-            loop.Show(game, 1.3, 4.4);
-            loop.Show(button, 1.3, 4.4);
-
-            // The tray icon: dim while it waits, lit while the toolkit runs.
-            FrameworkElement icon;
-            var logo = TrayFlight.LogoImage;
-            if (logo != null) icon = new Image { Source = logo, Width = 20, Height = 20 };
-            else icon = new Ellipse { Width = 18, Height = 18, Fill = UiKit.AccentBrush };
-            Put(stage, icon, 436, 100);
-            var lit = new Ellipse { Width = 34, Height = 34, Fill = UiKit.AccentBrush, Opacity = 0, Effect = new BlurEffect { Radius = 14 } };
-            Put(stage, lit, 429, 93);
-            stage.Children.Remove(lit); stage.Children.Insert(2, lit);
-            loop.Keys(icon, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.4, 0.4, 1, 1, 0.4, 0.4 });
-            loop.Keys(lit, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.0, 0, 0.5, 0.5, 0, 0 });
-
-            loop.Run(stage);
-            return Stage(stage);
-        }
-
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
     }
 }

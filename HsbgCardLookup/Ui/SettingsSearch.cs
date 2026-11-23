@@ -45,7 +45,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>Test aid: as if typed into the search box.</summary>
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
 
-        /// <summary>Test aid: open a page by name ("panels", "mmr", "boards", "gifts", "search", "app") and save all of it, the
+        /// <summary>Test aid: open a page by name ("panels", "mmr", "boards", "gifts", "search", "app", "trinkets", "anomaly") and save all of it, the
         /// part below the window's edge too, as a PNG. "name@2.5" waits that many seconds first, so a
         /// looping picture is caught mid-pass.</summary>
         public void TestSnap(string page, string path)
@@ -58,7 +58,8 @@ namespace HsbgCardLookup.Ui
                 page = page.Substring(0, at);
             }
             if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
-            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig(); else BuildPanels();
+            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig();
+            else if (page == "trinkets") BuildTrinkets(); else if (page == "anomaly") BuildAnomaly(); else BuildPanels();
             Action shoot = null;
             if (wait > 0)
             {

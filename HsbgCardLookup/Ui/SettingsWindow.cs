@@ -1355,7 +1355,6 @@ namespace HsbgCardLookup.Ui
                     Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
                     TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
-                if (!_indexing) stack.Children.Add(SettingsDemos.Autostart());
             }
 
             stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));

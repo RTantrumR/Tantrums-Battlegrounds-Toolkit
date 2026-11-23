@@ -150,9 +150,10 @@ namespace HsbgCardLookup.Config
         public bool ShowTurnCounter { get; set; } = true;
         public HudPlacement TurnCounterHud { get; set; } = new HudPlacement();
 
-        // Opponents' last boards: hover a leaderboard portrait to see one, click to pin it.
+        // Opponents' last boards: hover a leaderboard portrait to see one; a click pins it only when
+        // BoardPinOnClick is on (off by default, owner 2026-11-23).
         public bool ShowOpponentBoards { get; set; } = true;
-        public bool BoardPinOnClick { get; set; } = true;
+        public bool BoardPinOnClick { get; set; }
         // XF = the board's middle, YF = its top (canvas fractions), WF = its scale against a
         // 1080-high window, Px the scale it settled at; unset = top-middle.
         public HudPlacement OpponentBoardsHud { get; set; } = new HudPlacement();
