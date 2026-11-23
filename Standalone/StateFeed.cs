@@ -35,14 +35,14 @@ namespace Toolkit.Standalone
                 if (calendar != null) recorder.SeasonOf = calendar.Of;
 
                 var entities = new Dictionary<int, EntitySnap>();
-                int gameEntity = 0, local = 0, opponent = 0, friendly = 0, lastPublish = -PollMs;
+                int gameEntity = 0, local = 0, opponent = 0, friendly = 0, lastPublish = -PollMs, gameType = 0;
                 DateTime start = DateTime.MinValue;
                 int? rating = null, change = null;
                 addr++;
                 Action<int> publish = ms =>
                 {
                     clock = start.AddMilliseconds(ms);
-                    var s = new Snapshot { GameStateAddr = addr, GameEntityId = gameEntity, LocalPlayerEntityId = local, OpponentPlayerEntityId = opponent, Entities = entities };
+                    var s = new Snapshot { GameStateAddr = addr, GameEntityId = gameEntity, LocalPlayerEntityId = local, OpponentPlayerEntityId = opponent, Entities = entities, GameType = gameType };
                     for (int t = 0; t < 8; t++) s.Tiles.Add(new TileSnap());
                     game.Publish(s);
                     recorder.Poll();
@@ -60,6 +60,10 @@ namespace Toolkit.Standalone
                             start = DateTime.ParseExact((string)o["startLocal"], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal).ToUniversalTime();
                             friendly = (int)o["friendly"];
                             string build = (string)o["build"];
+                            // PegasusShared.GameType, as GameMgr.m_gameType holds it live.
+                            string type = (string)o["gameType"];
+                            gameType = type == "GT_BATTLEGROUNDS" ? 23 : type == "GT_BATTLEGROUNDS_FRIENDLY" ? 24
+                                : type == "GT_BATTLEGROUNDS_DUO" ? 37 : type == "GT_BATTLEGROUNDS_DUO_FRIENDLY" ? 39 : 0;
                             recorder.BuildSource = () => build;
                             continue;
                         }
