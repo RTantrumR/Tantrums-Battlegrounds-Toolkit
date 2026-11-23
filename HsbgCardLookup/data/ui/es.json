@@ -296,7 +296,6 @@
   "settings.support": "Apoya el proyecto",
   "settings.config.title": "Configuración",
   "settings.config.warning": "Importa una configuración solo de alguien en quien confíes plenamente. El archivo se comprueba antes de aplicar nada, pero una comprobación puede burlarse.",
-  "settings.config.fileHeader": "Archivo de configuración",
   "settings.config.openFolder": "Abrir carpeta",
   "settings.config.shareHeader": "Compartir",
   "settings.config.export": "Exportar configuración…",

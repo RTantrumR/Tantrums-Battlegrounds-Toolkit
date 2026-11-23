@@ -296,7 +296,6 @@
   "settings.support": "支持本项目",
   "settings.config.title": "配置",
   "settings.config.warning": "只导入你完全信任的人提供的配置。文件在应用前会经过检查，但检查也可能被绕过。",
-  "settings.config.fileHeader": "配置文件",
   "settings.config.openFolder": "打开文件夹",
   "settings.config.shareHeader": "分享",
   "settings.config.export": "导出配置…",

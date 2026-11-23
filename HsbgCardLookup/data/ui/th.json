@@ -296,7 +296,6 @@
   "settings.support": "สนับสนุนโปรเจกต์",
   "settings.config.title": "คอนฟิก",
   "settings.config.warning": "นำเข้าคอนฟิกจากคนที่คุณไว้ใจได้เต็มที่เท่านั้น ไฟล์จะถูกตรวจสอบก่อนนำไปใช้ แต่การตรวจสอบก็อาจถูกหลอกได้",
-  "settings.config.fileHeader": "ไฟล์คอนฟิก",
   "settings.config.openFolder": "เปิดโฟลเดอร์",
   "settings.config.shareHeader": "แชร์",
   "settings.config.export": "ส่งออกคอนฟิก…",

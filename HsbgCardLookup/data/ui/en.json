@@ -330,7 +330,6 @@
   "settings.support": "Support the project",
   "settings.config.title": "Config",
   "settings.config.warning": "Only import a config from someone you trust completely. The file is checked before anything is applied, but a check can be outsmarted.",
-  "settings.config.fileHeader": "Config file",
   "settings.config.openFolder": "Open folder",
   "settings.config.shareHeader": "Share",
   "settings.config.export": "Export config…",

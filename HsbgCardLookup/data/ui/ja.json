@@ -296,7 +296,6 @@
   "settings.support": "プロジェクトを支援",
   "settings.config.title": "コンフィグ",
   "settings.config.warning": "完全に信頼できる相手のコンフィグだけを読み込んでください。適用前にファイルは検査されますが、検査をすり抜けられる可能性があります。",
-  "settings.config.fileHeader": "コンフィグファイル",
   "settings.config.openFolder": "フォルダーを開く",
   "settings.config.shareHeader": "共有",
   "settings.config.export": "コンフィグを書き出し…",

@@ -350,6 +350,7 @@ namespace HsbgCardLookup.Data
 
         /// <summary>A sprite of the in-play minion look (ring, taunt, gems…), bundled under data/board.</summary>
         public static string BoardAssetPath(string name) => FindBundledAsset("board", name + ".png");
+        public static string LogoPath(string name) => FindBundledAsset("logos", name + ".png");
 
         /// <summary>A real game frame for a settings demonstration, bundled under data/demos (jpg).</summary>
         public static string DemoAssetPath(string name) => BundledDataPath(Path.Combine("demos", name + ".jpg"));
