@@ -654,7 +654,13 @@ namespace HsbgCardLookup
                 try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
                 return;
             }
-            OpenSettings();
+            if (search.StartsWith("snap ", StringComparison.Ordinal))
+            {
+                // A snap never takes the focus and is never seen: opened quietly outside every screen (the
+                // picture is rendered from the window's visuals), or left as it is when already open.
+                if (_settings == null) { _quietOpen = _snapOpen = true; try { OpenSettings(); } finally { _quietOpen = _snapOpen = false; } }
+            }
+            else OpenSettings();
             try
             {
                 if (search.StartsWith("snap ", StringComparison.Ordinal))
@@ -666,7 +672,7 @@ namespace HsbgCardLookup
 
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
-        private bool _quietOpen;
+        private bool _quietOpen, _snapOpen;
 
         public void OpenSettings()
         {
@@ -679,6 +685,12 @@ namespace HsbgCardLookup
             _settings.ReloadLayout = ReloadLayout;
             _settings.Closed += (s, e) => { _settings = null; SettingsClosed?.Invoke(); };
             if (_quietOpen) _settings.ShowActivated = false;
+            if (_snapOpen)
+            {
+                _settings.WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
+                _settings.Left = System.Windows.SystemParameters.VirtualScreenLeft - 4000;
+                _settings.Top = 0;
+            }
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known
         }
