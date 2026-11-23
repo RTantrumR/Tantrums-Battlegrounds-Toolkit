@@ -130,6 +130,7 @@
     <Compile Include="Game\OpponentBoards.cs" />
     <Compile Include="Game\MatchRecorder.cs" />
     <Compile Include="Ui\StatsWindow.cs" />
+    <Compile Include="Ui\StatsWindow.Match.cs" />
     <Compile Include="Game\SeasonCalendar.cs" />
     <Compile Include="Ui\OpponentBoardPanel.cs" />
     <Compile Include="Ui\CardStats.cs" />

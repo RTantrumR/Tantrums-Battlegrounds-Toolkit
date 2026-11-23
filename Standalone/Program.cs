@@ -19,6 +19,12 @@ namespace Toolkit.Standalone
         {
             if (Array.IndexOf(args, "--autostart") >= 0) return Watcher.Run();
             if (Array.IndexOf(args, "--feed-states") >= 0) return StateFeed.Run(args);   // dev: recorded games into the match recorder
+            int snap = Array.IndexOf(args, "--stats-snap");                              // dev: the stats pages as PNGs, off screen
+            if (snap >= 0 && args.Length > snap + 2)
+            {
+                HsbgCardLookup.Config.PluginConfig.DataDirOverride = Shared.DataDir;
+                return HsbgCardLookup.ToolkitApp.SnapStats(args[snap + 1], args[snap + 2], args.Length > snap + 3 ? args[snap + 3] : null);
+            }
             // WPF names every window class "HwndWrapper[<exe>;<thread name>;<random GUID>]". OBS's Window
             // Capture, left on its defaults, picks Windows Graphics Capture (the only method that keeps a
             // transparent window's alpha) and finds the window again by title only for classes containing

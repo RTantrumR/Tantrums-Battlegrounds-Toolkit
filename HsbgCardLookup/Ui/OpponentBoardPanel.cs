@@ -35,9 +35,10 @@ namespace HsbgCardLookup.Ui
     public sealed class OpponentBoardPanel
     {
         // Design units = pixels of a 1080-high game.
-        private const double CellW = 124, CellH = 156, Pad = 8, HeaderH = 22;
+        internal const double CellW = 124, CellH = 156;
+        private const double Pad = 8, HeaderH = 22;
         // The portrait's oval inside our card renders (512×672), as fractions of the image.
-        private static readonly Rect MinionArt = new Rect(154 / 512.0, 71 / 672.0, 216 / 512.0, 264 / 672.0);
+        internal static readonly Rect MinionArt = new Rect(154 / 512.0, 71 / 672.0, 216 / 512.0, 264 / 672.0);
         private static readonly Rect SpellArt = new Rect(190 / 512.0, 112 / 672.0, 132 / 512.0, 132 / 672.0);
         private const double CardW = 250;   // the opened card
 
@@ -363,11 +364,19 @@ namespace HsbgCardLookup.Ui
         {
             if (Assets.GameArt.Started || _artTried) return;
             _artTried = true;
+            StartArt(_store, ui, _log);
+        }
+
+        /// <summary>Starts the reading of the game's own minion art and number face, once per run.
+        /// Also for the stats window, which draws boards with no match on.</summary>
+        internal static void StartArt(CardStore _store, System.Windows.Threading.Dispatcher ui, Action<string> _log)
+        {
+            if (Assets.GameArt.Started) return;
+            Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-numbers.ttf"));
             string dir = HostServices.Shell?.HearthstoneDataDirectory();
             if (dir == null) return;
             var ids = _store.All.Where(c => !string.IsNullOrEmpty(c.ExternalId)
                 && (c.CardType == "minion" || (c.Categories != null && c.Categories.Contains("darkgift")))).Select(c => c.ExternalId).ToList();
-            Assets.GameArt.UseFontFile(System.IO.Path.Combine(PluginConfig.DataDir, "game-numbers.ttf"));
             Assets.GameArt.Start(dir, ids, System.IO.Path.Combine(PluginConfig.DataDir, "game-art.txt"), ui, _log);
         }
         private bool _artTried;
@@ -670,7 +679,7 @@ namespace HsbgCardLookup.Ui
         // and the numbers are ours. Units below are capture pixels × 0.15.
         private const double LayerW = 153.6, RingMidX = 81.7, LayerTop = -27;
 
-        private FrameworkElement Minion(BoardMinion m, double s)
+        internal static FrameworkElement Minion(BoardMinion m, double s)
         {
             var c = new Canvas { Width = CellW * s, Height = CellH * s };
             double left = CellW / 2 - RingMidX;                      // the ring's middle on the cell's middle
@@ -874,7 +883,7 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>A number in the game's face with a black outline. The element is exactly the glyphs'
         /// box, so centring the element centres the digits themselves.</summary>
-        private sealed class OutlinedText : FrameworkElement
+        internal sealed class OutlinedText : FrameworkElement
         {
             private readonly Geometry _shape;
             private readonly Brush _fill;
