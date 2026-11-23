@@ -28,6 +28,7 @@ namespace Toolkit.Standalone
                 bool ignoreFocus = Array.IndexOf(args, "--ignore-focus") >= 0;
                 bool withHs = Array.IndexOf(args, "--with-hs") >= 0;
                 bool welcome = Array.IndexOf(args, "--welcome") >= 0;
+                bool showSettings = Array.IndexOf(args, "--settings") >= 0;   // the watcher's tray icon was clicked
                 Shared.Log("=== start" + (withHs ? " (with Hearthstone)" : "") + (ignoreFocus ? " (TEST MODE: --ignore-focus)" : ""));
                 Action<string> log = Shared.Log;
 
@@ -73,7 +74,12 @@ namespace Toolkit.Standalone
                 searchItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => toolkit.ToggleSearch());
                 settingsItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
                 exitItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => app.Shutdown());
-                tray.DoubleClick += (s, e) => toolkit.ToggleSearch();
+                // A click opens the settings, a double click the card search: the click waits out the
+                // double-click time first, since a double click begins with one.
+                var clickWait = new Forms.Timer { Interval = Forms.SystemInformation.DoubleClickTime };
+                clickWait.Tick += (s, e) => { clickWait.Stop(); ui.BeginInvoke(new Action(toolkit.OpenSettings)); };
+                tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) { clickWait.Stop(); clickWait.Start(); } };
+                tray.DoubleClick += (s, e) => { clickWait.Stop(); toolkit.ToggleSearch(); };
                 toolkit.LanguageChanged += relabel;
 
                 // Setup's "close down" signal.
@@ -227,9 +233,9 @@ namespace Toolkit.Standalone
                     }
                 };
 
-                // Started only to show the settings (--welcome): with them closed and no Hearthstone there
-                // is nothing to stay for, and the watcher that started us goes on waiting.
-                if (welcome)
+                // Started only to show the settings (--welcome, --settings): with them closed and no
+                // Hearthstone there is nothing to stay for, and the watcher that started us goes on waiting.
+                if (welcome || showSettings)
                     toolkit.SettingsClosed += () =>
                     {
                         if (Shared.HearthstoneRunning()) return;
@@ -239,7 +245,11 @@ namespace Toolkit.Standalone
                         leave.Tick += (s, e) => { leave.Stop(); app.Shutdown(); };
                         leave.Start();
                     };
-                app.Startup += (s, e) => { toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start(); };
+                app.Startup += (s, e) =>
+                {
+                    toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start();
+                    if (showSettings) ui.BeginInvoke(new Action(toolkit.OpenSettings));
+                };
                 app.Exit += (s, e) =>
                 {
                     stop.Set(); poll.Stop();
