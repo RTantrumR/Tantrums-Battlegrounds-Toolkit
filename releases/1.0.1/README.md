@@ -24,6 +24,7 @@ v1.0.1
 ### Standalone program
 - After a first install the settings open by themselves, once, so you see what can be set up.
 - When the settings close, they fold into the toolkit's logo, which flies to its icon in the Windows tray: that icon is where they open from again.
+- Click the toolkit's tray icon to open the settings, also while it waits for Hearthstone. A double click still opens the card search.
 - The overlay no longer draws over Hearthstone's friends list or its Esc menu. While either is open, that part of the screen belongs to the game, and the toolkit's elements there disappear until it closes.
 
 ### Setup
