@@ -319,18 +319,22 @@ namespace Toolkit.Standalone
                 if (isLocal) s.LocalPlayerEntityId = entityId; else s.OpponentPlayerEntityId = entityId;
             }
 
-            // Enchantments on the opposing seat's minions (the fight's enemy board; Bob's shop has few).
+            // Enchantments on both seats' minions: the fight's enemy board (Bob's shop has few) for the
+            // opponents' boards, our own for the match record (they name a minion's Dark Gifts).
             // An enchantment is created blank and gets its card id and target when the fight's copy is
             // revealed, which is when it was classified, so the remembered target is the real one.
-            EntitySnap opp;
-            int seat;
-            if (s.Entities.TryGetValue(s.OpponentPlayerEntityId, out opp) && opp.Tags.TryGetValue(TagPlayerId, out seat))
+            EntitySnap opp, own;
+            int seat, ownSeat = -1;
+            if (s.Entities.TryGetValue(s.LocalPlayerEntityId, out own)) own.Tags.TryGetValue(TagPlayerId, out ownSeat);
+            if (ownSeat == 0) ownSeat = -1;
+            if (!(s.Entities.TryGetValue(s.OpponentPlayerEntityId, out opp) && opp.Tags.TryGetValue(TagPlayerId, out seat))) seat = -1;
+            if (seat > 0 || ownSeat > 0)
                 foreach (var kv in _entities)
                 {
                     var c = kv.Value;
                     EntitySnap target; int ctrl, type;
                     if (c.Attached == 0 || string.IsNullOrEmpty(c.CardId) || !live.Contains(kv.Key)) continue;
-                    if (!s.Entities.TryGetValue(c.Attached, out target) || !target.Tags.TryGetValue(TagController, out ctrl) || ctrl != seat) continue;
+                    if (!s.Entities.TryGetValue(c.Attached, out target) || !target.Tags.TryGetValue(TagController, out ctrl) || (ctrl != seat && ctrl != ownSeat)) continue;
                     if (!target.Tags.TryGetValue(TagCardType, out type) || type != 4) continue;
                     List<string> l;
                     if (!s.Enchantments.TryGetValue(c.Attached, out l)) s.Enchantments[c.Attached] = l = new List<string>();

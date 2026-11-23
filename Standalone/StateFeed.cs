@@ -44,6 +44,16 @@ namespace Toolkit.Standalone
                     clock = start.AddMilliseconds(ms);
                     var s = new Snapshot { GameStateAddr = addr, GameEntityId = gameEntity, LocalPlayerEntityId = local, OpponentPlayerEntityId = opponent, Entities = entities, GameType = gameType };
                     for (int t = 0; t < 8; t++) s.Tiles.Add(new TileSnap());
+                    // Enchantments in play, by the entity they sit on (CARDTYPE 6, ZONE play, ATTACHED).
+                    foreach (var e in entities.Values)
+                    {
+                        int type, zone, target;
+                        if (string.IsNullOrEmpty(e.CardId) || !e.Tags.TryGetValue(202, out type) || type != 6) continue;
+                        if (!e.Tags.TryGetValue(49, out zone) || zone != 1 || !e.Tags.TryGetValue(40, out target) || target == 0) continue;
+                        List<string> l;
+                        if (!s.Enchantments.TryGetValue(target, out l)) s.Enchantments[target] = l = new List<string>();
+                        l.Add(e.CardId);
+                    }
                     game.Publish(s);
                     recorder.Poll();
                     lastPublish = ms;

@@ -14,10 +14,14 @@ namespace HsbgCardLookup.Game
         [JsonProperty("atk")] public int Attack;
         [JsonProperty("hp")] public int Health;
         [JsonProperty("golden", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Golden;
-        /// <summary>One letter each: T aunt, D ivine shield, W indfury, R eborn, S tealth, P oisonous, V enomous.</summary>
+        /// <summary>One letter each: T aunt, D ivine shield, W indfury, R eborn, S tealth, P oisonous, V enomous;
+        /// lower case for what only changes the look: e lite (legendary), d eathrattle, r ally, t rigger.</summary>
         [JsonProperty("kw", DefaultValueHandling = DefaultValueHandling.Ignore)] public string Keywords;
         [JsonProperty("tier", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Tier;
         [JsonProperty("gift", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool DarkGift;
+        /// <summary>The enchantments on it, card id to how many: what names its Dark Gifts (a gift's
+        /// enchantment is the gift's id plus "e"), and every other buff it carried.</summary>
+        [JsonProperty("ench", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, int> Enchantments;
     }
 
     /// <summary>Something of ours in play that is not a minion: a hero power, trinket, quest, reward, buddy
@@ -386,8 +390,19 @@ namespace HsbgCardLookup.Game
             }
         }
 
-        private static RecordedMinion Minion(IGameEntity m)
+        private RecordedMinion Minion(IGameEntity m)
         {
+            Dictionary<string, int> ench = null;
+            try
+            {
+                foreach (string id in _game.EnchantmentsOf(m.Id))
+                {
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (ench == null) ench = new Dictionary<string, int>();
+                    int n; ench.TryGetValue(id, out n); ench[id] = n + 1;
+                }
+            }
+            catch { }
             string kw = "";
             if (m.GetTag(Tags.TAUNT) > 0) kw += "T";
             if (m.GetTag(Tags.DIVINE_SHIELD) > 0) kw += "D";
@@ -396,11 +411,15 @@ namespace HsbgCardLookup.Game
             if (m.GetTag(Tags.STEALTH) > 0) kw += "S";
             if (m.GetTag(Tags.POISONOUS) > 0) kw += "P";
             if (m.GetTag(Tags.VENOMOUS) > 0) kw += "V";
+            if (m.GetTag(Tags.ELITE) > 0) kw += "e";
+            if (m.GetTag(Tags.DEATHRATTLE) > 0) kw += "d";
+            if (m.GetTag(Tags.RALLY) > 0) kw += "r";
+            if (m.GetTag(Tags.TRIGGER_VISUAL) > 0) kw += "t";
             return new RecordedMinion
             {
                 Card = m.CardId, Attack = m.GetTag(Tags.ATK), Health = m.Health,
                 Golden = m.GetTag(Tags.PREMIUM) > 0, Keywords = kw.Length > 0 ? kw : null,
-                Tier = m.GetTag(Tags.TECH_LEVEL), DarkGift = m.GetTag(Tags.HAS_DARK_GIFT) > 0,
+                Tier = m.GetTag(Tags.TECH_LEVEL), DarkGift = m.GetTag(Tags.HAS_DARK_GIFT) > 0, Enchantments = ench,
             };
         }
 
