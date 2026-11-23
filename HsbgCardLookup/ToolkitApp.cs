@@ -609,6 +609,36 @@ namespace HsbgCardLookup
             }));
         }
 
+        /// <summary>Test aid: "Name=value" lines set those settings and apply them as a click in the
+        /// settings window would (bool, int, double or string properties of the config). Returns what it
+        /// did, one entry per line. UI thread.</summary>
+        public string TestSet(string lines)
+        {
+            var done = new List<string>();
+            foreach (var raw in (lines ?? "").Split('\n'))
+            {
+                string line = raw.Trim();
+                int eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                string name = line.Substring(0, eq).Trim(), value = line.Substring(eq + 1).Trim();
+                var prop = typeof(PluginConfig).GetProperty(name);
+                try
+                {
+                    object v = prop == null ? null
+                        : prop.PropertyType == typeof(bool) ? bool.Parse(value)
+                        : prop.PropertyType == typeof(int) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(double) ? double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(string) ? (object)value : null;
+                    if (v == null || !prop.CanWrite) { done.Add(name + ": not settable"); continue; }
+                    prop.SetValue(_config, v);
+                    done.Add(name + "=" + value);
+                }
+                catch (Exception ex) { done.Add(name + ": " + ex.Message); }
+            }
+            ApplySettings();
+            return string.Join(", ", done);
+        }
+
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
         /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window;
