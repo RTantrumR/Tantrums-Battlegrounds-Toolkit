@@ -55,7 +55,7 @@ namespace Toolkit.Standalone
                     Icon = Shared.TrayIcon(),
                     Text = ignoreFocus ? "TEST MODE (draws without focus)" : ToolkitApp.DisplayName,
                     Visible = true,
-                    ContextMenuStrip = new Forms.ContextMenuStrip()
+                    ContextMenuStrip = TrayMenu.Create()
                 };
                 HsbgCardLookup.Ui.TrayFlight.LogoPath = Path.Combine(Shared.ExeDir, "toolkit.ico");
                 HsbgCardLookup.Ui.TrayFlight.Target = () =>
@@ -71,9 +71,9 @@ namespace Toolkit.Standalone
                     settingsItem.Text = Strings.T("plugin.settings");
                     exitItem.Text = Strings.T("standalone.tray.exit");
                 };
-                searchItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => toolkit.ToggleSearch());
-                settingsItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
-                exitItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => app.Shutdown());
+                searchItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => toolkit.ToggleSearch());
+                settingsItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
+                exitItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => app.Shutdown());
                 // A click opens the settings, a double click the card search: the click waits out the
                 // double-click time first, since a double click begins with one.
                 var clickWait = new Forms.Timer { Interval = Forms.SystemInformation.DoubleClickTime };
@@ -206,6 +206,20 @@ namespace Toolkit.Standalone
                         string lines = ""; try { lines = File.ReadAllText(setFile); } catch { }
                         try { File.Delete(setFile); } catch { }
                         Shared.Log("set: " + toolkit.TestSet(lines));
+                    }
+
+                    // Test aid: traymenu.trigger ("x,y" in screen pixels) opens the tray icon's menu there.
+                    string trayMenuFile = Path.Combine(Shared.ExeDir, "traymenu.trigger");
+                    if (File.Exists(trayMenuFile))
+                    {
+                        string at = ""; try { at = File.ReadAllText(trayMenuFile); } catch { }
+                        try { File.Delete(trayMenuFile); } catch { }
+                        var xy = at.Split(',');
+                        int x, y;
+                        if (at.StartsWith("png ", StringComparison.Ordinal))
+                            Shared.Log("traymenu: " + TrayMenu.Render(tray.ContextMenuStrip, at.Substring(4).Trim(), 1));
+                        else if (xy.Length == 2 && int.TryParse(xy[0].Trim(), out x) && int.TryParse(xy[1].Trim(), out y))
+                            tray.ContextMenuStrip.Show(new System.Drawing.Point(x, y));
                     }
 
                     // Test aid: tribesmenu.trigger opens the lobby types box's layout menu under the cursor.

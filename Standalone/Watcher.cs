@@ -32,7 +32,7 @@ namespace Toolkit.Standalone
                     Icon = Shared.TrayIcon(),
                     Text = Trim(text["standalone.tray.waiting"]),
                     Visible = true,
-                    ContextMenuStrip = new Forms.ContextMenuStrip()
+                    ContextMenuStrip = TrayMenu.Create()
                 };
                 int launchedFor = 0;   // the Hearthstone process the toolkit was last started for
                 bool trimmed = false;
@@ -41,8 +41,8 @@ namespace Toolkit.Standalone
                     try { Process.Start(Shared.ExePath, "--with-hs"); Shared.Log("started the toolkit"); }
                     catch (Exception ex) { Shared.Log("could not start the toolkit: " + ex.Message); }
                 };
-                tray.ContextMenuStrip.Items.Add(text["standalone.tray.startNow"], null, (s, e) => launch());
-                tray.ContextMenuStrip.Items.Add(text["standalone.tray.exit"], null, (s, e) => Forms.Application.Exit());
+                TrayMenu.Add(tray.ContextMenuStrip, text["standalone.tray.startNow"], (s, e) => launch());
+                TrayMenu.Add(tray.ContextMenuStrip, text["standalone.tray.exit"], (s, e) => Forms.Application.Exit());
                 // A click brings the toolkit up with its settings open; it leaves again when they close.
                 tray.MouseClick += (s, e) =>
                 {

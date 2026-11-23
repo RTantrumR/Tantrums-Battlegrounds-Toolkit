@@ -54,6 +54,7 @@
     <Compile Include="ToolkitHost.cs" />
     <Compile Include="Watcher.cs" />
     <Compile Include="TrayPlace.cs" />
+    <Compile Include="TrayMenu.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="toolkit.ico"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
