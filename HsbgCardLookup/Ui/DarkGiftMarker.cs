@@ -114,7 +114,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>Re-set the tooltip in the current language (keeps the dimmed wording). Canvas thread.</summary>
         public void Relabel()
         {
-            if (_root != null) _root.ToolTip = Tooltip(_dim);
+            if (_root != null) Tip.Set(_root, Tooltip(_dim));
         }
 
         public void SetDimmed(bool dim)
@@ -125,7 +125,7 @@ namespace HsbgCardLookup.Ui
             {
                 _root.Opacity = dim ? 0.45 : 1.0;
                 _root.Cursor = dim ? Cursors.Arrow : Cursors.Hand;
-                _root.ToolTip = Tooltip(dim);
+                Tip.Set(_root, Tooltip(dim));
             }
             ApplyColors();
         }
@@ -163,9 +163,9 @@ namespace HsbgCardLookup.Ui
                 Background = new SolidColorBrush(FaceColor),
                 BorderBrush = new SolidColorBrush(RimColor),
                 Child = _glyph,
-                Cursor = Cursors.Hand,
-                ToolTip = Tooltip(false)
+                Cursor = Cursors.Hand
             };
+            Tip.Set(_root, Tooltip(false));
             _root.MouseEnter += (s, e) => { _hover = true; ApplyColors(); };
             _root.MouseLeave += (s, e) => { _hover = false; ApplyColors(); };
             _root.MouseLeftButtonUp += (s, e) =>

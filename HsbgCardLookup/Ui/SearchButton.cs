@@ -147,9 +147,9 @@ namespace HsbgCardLookup.Ui
                 Background = new SolidColorBrush(FaceColor),
                 BorderBrush = new SolidColorBrush(RimColor),
                 Child = _glyph,
-                Cursor = Cursors.Hand,
-                ToolTip = Strings.T("searchButton.tooltip")
+                Cursor = Cursors.Hand
             };
+            Tip.Set(_root, Strings.T("searchButton.tooltip"));
             _root.MouseEnter += (s, e) =>
             {
                 _root.Background = new SolidColorBrush(FaceHover);
@@ -175,7 +175,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>Re-set the set-once tooltip in the current plugin language.</summary>
         public void Relabel()
         {
-            try { if (_root != null) _root.ToolTip = Strings.T("searchButton.tooltip"); }
+            try { if (_root != null) Tip.Set(_root, Strings.T("searchButton.tooltip")); }
             catch { }
         }
 

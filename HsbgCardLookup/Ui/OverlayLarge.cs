@@ -113,9 +113,9 @@ namespace HsbgCardLookup.Ui
             _bulbHost = new Border
             {
                 Cursor = Cursors.Hand, Padding = new Thickness(4), Background = Brushes.Transparent,
-                VerticalAlignment = VerticalAlignment.Center,
-                ToolTip = Strings.F("overlay.smartTooltip", "Tab")
+                VerticalAlignment = VerticalAlignment.Center
             };
+            Tip.Set(_bulbHost, Strings.F("overlay.smartTooltip", "Tab"));
             _bulbHost.MouseLeftButtonUp += (s, e) => ToggleSmart();
             // Clear-search "✕" sits just left of the lamp; visible only when there's text.
             _clearSearch = UiKit.ClearButton(() => { _search.Clear(); FocusSearch(); }, Strings.T("overlay.clearSearch"));
@@ -239,15 +239,15 @@ namespace HsbgCardLookup.Ui
         {
             RebuildFilters();
             RelabelClose();
-            if (_bulbHost != null) _bulbHost.ToolTip = Strings.F("overlay.smartTooltip", "Tab");
-            if (_clearSearch != null) _clearSearch.ToolTip = Strings.T("overlay.clearSearch");
+            if (_bulbHost != null) Tip.Set(_bulbHost, Strings.F("overlay.smartTooltip", "Tab"));
+            if (_clearSearch != null) Tip.Set(_clearSearch, Strings.T("overlay.clearSearch"));
             if (_watermark != null) _watermark.Text = Strings.T("overlay.search.placeholder");
-            if (_art != null) _art.ToolTip = Strings.T("overlay.art.dragTooltip");
+            if (_art != null) Tip.Set(_art, Strings.T("overlay.art.dragTooltip"));
             if (_relatedHeader != null) _relatedHeader.Text = Strings.T("overlay.related");
             if (_versionText != null) _versionText.Text = Strings.F("overlay.version", _version ?? "?");
-            if (_gearBtn != null) _gearBtn.ToolTip = Strings.T("overlay.settingsTooltip");
-            if (_refreshBtn != null) _refreshBtn.ToolTip = Strings.T("overlay.checkUpdatesTooltip");
-            if (_helpAnchor != null) _helpAnchor.ToolTip = Strings.T("overlay.helpTooltip");
+            if (_gearBtn != null) Tip.Set(_gearBtn, Strings.T("overlay.settingsTooltip"));
+            if (_refreshBtn != null) Tip.Set(_refreshBtn, Strings.T("overlay.checkUpdatesTooltip"));
+            if (_helpAnchor != null) Tip.Set(_helpAnchor, Strings.T("overlay.helpTooltip"));
             Refresh();
         }
 
@@ -283,9 +283,9 @@ namespace HsbgCardLookup.Ui
                 MaxWidth = 300,
                 MaxHeight = 350,   // a bit shorter so a minion's Golden button + first related row fit without scroll
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Cursor = Cursors.Hand,
-                ToolTip = Strings.T("overlay.art.dragTooltip")
+                Cursor = Cursors.Hand
             };
+            Tip.Set(_art, Strings.T("overlay.art.dragTooltip"));
             // Detail portrait: a past-threshold drag pulls the card out as a free-floating raw card
             // (FloatingCard) that follows the cursor until mouse-up. A plain click does nothing.
             _art.MouseLeftButtonDown += Art_Down;
@@ -381,8 +381,9 @@ namespace HsbgCardLookup.Ui
             {
                 Background = Brushes.Transparent, Cursor = Cursors.Hand,
                 Padding = new Thickness(5, 2, 5, 2), Margin = new Thickness(6, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center, Child = path, ToolTip = tip
+                VerticalAlignment = VerticalAlignment.Center, Child = path
             };
+            Tip.Set(b, tip);
             b.MouseEnter += (s, e) => path.Fill = UiKit.AccentBrush;
             b.MouseLeave += (s, e) => path.Fill = UiKit.TextMuted;
             b.MouseLeftButtonUp += (s, e) => onClick();
@@ -432,8 +433,9 @@ namespace HsbgCardLookup.Ui
             {
                 Background = Brushes.Transparent, Cursor = Cursors.Hand,
                 Padding = new Thickness(5, 1, 5, 1), Margin = new Thickness(6, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center, Child = tb, ToolTip = tip
+                VerticalAlignment = VerticalAlignment.Center, Child = tb
             };
+            Tip.Set(b, tip);
             b.MouseEnter += (s, e) => tb.Foreground = UiKit.AccentBrush;
             b.MouseLeave += (s, e) => tb.Foreground = UiKit.TextMuted;
             b.MouseLeftButtonUp += (s, e) => onClick();
@@ -453,8 +455,9 @@ namespace HsbgCardLookup.Ui
                 Width = 18, Height = 18, CornerRadius = new CornerRadius(9),
                 BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
                 Background = Brushes.Transparent, Cursor = Cursors.Hand,
-                Margin = new Thickness(6, 0, 0, 0), Child = q, ToolTip = Strings.T("overlay.helpTooltip")
+                Margin = new Thickness(6, 0, 0, 0), Child = q
             };
+            Tip.Set(circle, Strings.T("overlay.helpTooltip"));
             circle.MouseEnter += (s, e) => { q.Foreground = UiKit.AccentBrush; circle.BorderBrush = UiKit.AccentBrush; };
             circle.MouseLeave += (s, e) => { if (_helpPopup == null || !_helpPopup.IsOpen) { q.Foreground = UiKit.TextMuted; circle.BorderBrush = UiKit.StrokeBrush; } };
             circle.MouseLeftButtonUp += (s, e) => ToggleHelpPopup();

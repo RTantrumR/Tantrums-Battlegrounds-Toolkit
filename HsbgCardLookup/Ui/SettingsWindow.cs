@@ -791,8 +791,9 @@ namespace HsbgCardLookup.Ui
             var b = new Border
             {
                 Width = 32, Height = 32, CornerRadius = new CornerRadius(7), Background = Brushes.Transparent, BorderBrush = UiKit.StrokeBrush,
-                BorderThickness = new Thickness(1), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, ToolTip = tooltip, Child = text
+                BorderThickness = new Thickness(1), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, Child = text
             };
+            Tip.Set(b, tooltip);
             b.MouseEnter += (s, e) => { b.Background = UiKit.Br(UiKit.RowBgHover); text.Foreground = UiKit.AccentBrush; };
             b.MouseLeave += (s, e) => { b.Background = Brushes.Transparent; text.Foreground = UiKit.TextSecondary; };
             b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClick(); };
@@ -2184,7 +2185,7 @@ namespace HsbgCardLookup.Ui
         {
             if (_artFolderLabel == null) return;
             _artFolderLabel.Text = CardArt.CacheDir;
-            _artFolderLabel.ToolTip = CardArt.CacheDir;
+            Tip.Set(_artFolderLabel, CardArt.CacheDir);
         }
 
         private void ChangeArtFolder()

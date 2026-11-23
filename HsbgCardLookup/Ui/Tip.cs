@@ -30,6 +30,7 @@ namespace HsbgCardLookup.Ui
         public static void Set(FrameworkElement el, string text, TipKind kind = TipKind.Info, string title = null)
         {
             if (el == null) return;
+            if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(title)) { el.ToolTip = null; return; }
             var tip = Make(text, kind, title);
             // Under the element; lined up with its right edge when it sits in the right half of its
             // window, so a tip for a title-bar icon opens over the window instead of past its edge.
