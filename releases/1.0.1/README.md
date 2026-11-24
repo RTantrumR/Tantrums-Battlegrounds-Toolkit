@@ -21,6 +21,7 @@ v1.0.1
 - The toolkit now asks hsbg.cards and GitHub for news at most every two hours, and remembers the answer across restarts.
 - A "Website" button at the bottom of the main page opens hsbg.cards in your language.
 - The in-game search button and the bell can be moved and resized like the other boxes: the search button's Arrange sits on its own line on the Card search page, the bell's on App & updates. A bell you never moved stays left of the search button, wherever that goes.
+- Arrange with Hearthstone closed starts the game through Battle.net (and Battle.net too, if needed), then begins the arrange once the game is up.
 - Config page: "Ready-made configs" for players who run Firestone or Hearthstone Deck Tracker beside the toolkit. Apply one and the toolkit turns off what that app already shows, so nothing appears twice.
 - Tooltips in the settings, the card search and over the game are drawn in the toolkit's own style and wrap long text, instead of Windows' small plain box.
 
@@ -33,4 +34,5 @@ v1.0.1
 
 ### Setup
 - The Setup and the toolkit's own files now name the toolkit's author (TantrumUA) and publisher (hsbg.cards) and carry a signature. Windows still shows "Unknown publisher": the signature comes from our own certificate, which no authority vouches for.
-- The Setup is larger (about 16 MB) because its files are no longer packed. Some antivirus scanners read the packed version as suspicious.
+- The Setup installs the standalone program only. Hearthstone Deck Tracker stops running plugins on November 30, so the "Install as HDT plugin" choice is gone. If the HDT plugin is still switched on, the Setup switches it off so the toolkit doesn't run twice.
+- The Setup is larger than before (about 11 MB) because its files are no longer packed. Some antivirus scanners read the packed version as suspicious.
