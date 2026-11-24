@@ -30,6 +30,7 @@ namespace HsbgCardLookup.Ui
         // stacked on; a tall one (one column, or two-two-one) fits the height of what stands beside it.
         // The other way round it joins at the size it has.
         public bool DockStretches(bool stacked) => stacked == (PerRow(_config.LobbyTribesLayout) >= 3);
+        public double DockLength(bool stacked) => stacked ? _root.ActualWidth : _root.ActualHeight;
         public Border DockRoot => _root;
         public double DockScale
         {
