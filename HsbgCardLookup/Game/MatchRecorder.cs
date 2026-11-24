@@ -87,6 +87,9 @@ namespace HsbgCardLookup.Game
         [JsonProperty("me", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Me;
         /// <summary>The leaderboard hero's tags as last seen (trinkets, quest rewards, buddy and more live there).</summary>
         [JsonProperty("tags")] public Dictionary<int, int> Tags = new Dictionary<int, int>();
+        /// <summary>The minion types on the player's board as their leaderboard tile last showed them
+        /// (TAG_RACE id to count: the game's own "4 Beasts"); an empty reading never replaces a filled one.</summary>
+        [JsonProperty("types", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<int, int> Types;
     }
 
     /// <summary>One match as the recorder saw it: <c>match-records\&lt;yyyyMMdd_HHmmss&gt;.json</c> in the data folder.</summary>
@@ -151,6 +154,7 @@ namespace HsbgCardLookup.Game
         private const int ZoneHand = 3;
         private const int TagBuddyEnabled = 2518, TagQuestsActive = 2468, TagTrinketsActive = 3740, TagDarkGiftsActive = 4845,
             TagAltTavernActive = 4519, TagAnomaly1 = 3182, TagAnomaly2 = 3183, TagDamageCap = 2089, TagDamageCapEnabled = 3403;
+        private const int RaceMs = 2000;                        // the tiles' minion types, read at most this often
         private Dictionary<int, int> _playerNow, _playerBase;   // our Player's tags: at the last shop read, and as the round before ended
 
         private readonly IGameState _game;
@@ -176,6 +180,8 @@ namespace HsbgCardLookup.Game
         private bool _rejoinCheck;         // a game began while a record was open: the same match, or a new one?
         private MatchRecord _last;         // the match just written, for a rating that arrives after it
         private string _lastPath;
+        private readonly IRaceReader _races;   // the leaderboard tiles' minion types, as the portraits show them
+        private DateTime _lastRaceRead;
         // The hero choice: offer entity id -> (slot position, every hero it showed). Gathered before the match's
         // record opens (the pick comes first) and handed to it when it does.
         private readonly Dictionary<int, KeyValuePair<int, List<string>>> _offers = new Dictionary<int, KeyValuePair<int, List<string>>>();
@@ -183,6 +189,7 @@ namespace HsbgCardLookup.Game
         public MatchRecorder(IGameState game, IClientMemory memory, string folder, Action<string> log)
         {
             _game = game; _memory = memory; _folder = folder; _log = log;
+            try { _races = memory?.CreateRaceReader(_ => { }); } catch { }
             game.GameStarted += () => _started = true;
             game.GameEnded += () => _ended = true;
         }
@@ -195,7 +202,8 @@ namespace HsbgCardLookup.Game
                 if (_started)
                 {
                     _started = false; _armed = true; _ratingSeen = null;
-                    _offers.Clear();
+                    _offers.Clear(); _lastRaceRead = DateTime.MinValue;
+                    try { _races?.ResetMatch(); } catch { }
                     // A rejoin raises the start again; which it is shows once the board is readable.
                     _rejoinCheck = _rec != null;
                 }
@@ -275,6 +283,7 @@ namespace HsbgCardLookup.Game
             UpdatePlayers(heroes, pid);
             if (_rec.HeroOffers.Count == 0 && _offers.Count > 0)
                 _rec.HeroOffers = _offers.Values.OrderBy(o => o.Key).Select(o => o.Value.ToList()).ToList();
+            ReadTypes(heroes);
 
             if (_turn != null && turn > _turn.Number) EndFight(heroes, mine);
             if (_turn == null || turn > _turn.Number)
@@ -326,6 +335,27 @@ namespace HsbgCardLookup.Game
                 KeyValuePair<int, List<string>> o;
                 if (!_offers.TryGetValue(e.Id, out o)) _offers[e.Id] = o = new KeyValuePair<int, List<string>>(e.GetTag(Tags.ZONE_POSITION), new List<string>());
                 if (o.Value.Count == 0 || o.Value[o.Value.Count - 1] != e.CardId) o.Value.Add(e.CardId);
+            }
+        }
+
+        // Each player's minion types from the leaderboard tiles: the counts the portraits and the panel draw
+        // (the standalone reads them with every game read anyway). Keyed by the tile's hero entity.
+        private void ReadTypes(Dictionary<int, IGameEntity> heroes)
+        {
+            if (_races == null) return;
+            var now = UtcNow();
+            if ((now - _lastRaceRead).TotalMilliseconds < RaceMs && now >= _lastRaceRead) return;
+            _lastRaceRead = now;
+            Dictionary<int, Dictionary<int, int>> read;
+            try { read = _races.Read(); } catch { return; }
+            if (read == null) return;
+            foreach (var kv in read)
+            {
+                if (kv.Value == null || kv.Value.Count == 0) continue;
+                int pid = _game.Entity(kv.Key)?.GetTag(Tags.PLAYER_ID) ?? 0;
+                if (pid <= 0) pid = heroes.FirstOrDefault(h => h.Value.Id == kv.Key).Key;
+                var p = pid > 0 ? _rec.Players.FirstOrDefault(x => x.PlayerId == pid) : null;
+                if (p != null) p.Types = new Dictionary<int, int>(kv.Value);
             }
         }
 
