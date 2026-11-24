@@ -1356,6 +1356,36 @@ namespace HsbgCardLookup.Ui
                 Text = Strings.T("settings.share.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
+
+            // "My stats": the site's page of this PC's matches, behind a sign-in there. Shown once the site has it.
+            if (Game.MatchLink.Available || _indexing)
+            {
+                bool asking = false;
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 6) };
+                row.Children.Add(SmallButton(Strings.T("settings.share.stats"), () =>
+                {
+                    if (asking) return;
+                    asking = true;
+                    _status.Text = Strings.T("settings.share.statsOpening");
+                    System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        string url = null;
+                        try { url = await Game.MatchLink.RequestAsync(PluginConfig.DataDir, _currentVersion).ConfigureAwait(false); } catch { }
+                        _ = Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            asking = false;
+                            if (url != null) { OpenUrl(url); _status.Text = Strings.T("settings.share.statsOpened"); }
+                            else _status.Text = Strings.T("settings.share.statsFailed");
+                        }));
+                    });
+                }));
+                stack.Children.Add(row);
+                stack.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.share.linkHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+                });
+            }
             ShowPage();
         }
 

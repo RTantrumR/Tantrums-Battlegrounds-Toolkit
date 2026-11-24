@@ -108,6 +108,22 @@ namespace HsbgCardLookup.Net
             catch { return false; }
         }
 
+        /// <summary>POST a small JSON body; the answer's text, or null on any failure or non-success status.</summary>
+        public static async Task<string> PostJsonAsync(string url, string json)
+        {
+            try
+            {
+                using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+                using (var resp = await Http.PostAsync(url, content).ConfigureAwait(false))
+                {
+                    if (!resp.IsSuccessStatusCode) return null;
+                    var bytes = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    return System.Text.Encoding.UTF8.GetString(bytes);
+                }
+            }
+            catch { return null; }
+        }
+
         /// <summary>POST a JSON body gzipped (Content-Encoding: gzip); the HTTP status, 0 when no response arrived.</summary>
         public static async Task<int> PostJsonGzipAsync(string url, string json)
         {

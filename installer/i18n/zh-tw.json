@@ -59,7 +59,7 @@
     "AutoDesktop": "建立桌面捷徑",
     "SharePageCaption": "對戰資料",
     "SharePageDescription": "協助建立社群統計資料。",
-    "ShareCheck": "分享匿名對戰資料",
+    "ShareCheck": "分享對戰資料",
     "ShareHint": "每場單人對戰結束後，工具箱會把結果傳送到 hsbg.cards 用於社群統計：對戰中的英雄、手下類型和名次，你的積分和最終陣容。不會傳送任何名字，包括你和對手的名字。可以隨時在工具箱的設定中關閉。",
     "ReadyShare": "對戰資料：",
     "ReadyShareYes": "分享，不含名字",

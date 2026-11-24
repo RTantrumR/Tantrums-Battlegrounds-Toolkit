@@ -59,7 +59,7 @@
     "AutoDesktop": "Desktop-Verknüpfung erstellen",
     "SharePageCaption": "Matchdaten",
     "SharePageDescription": "Helfen Sie mit, die Community-Statistiken aufzubauen.",
-    "ShareCheck": "Anonyme Matchdaten teilen",
+    "ShareCheck": "Matchdaten teilen",
     "ShareHint": "Nach jedem Solo-Match sendet das Toolkit das Ergebnis für die Community-Statistiken an hsbg.cards: Helden, Dienertypen und Platzierungen der Lobby, Ihre Wertung und Ihr letztes Brett. Namen werden nicht gesendet, weder Ihrer noch die Ihrer Gegner. Sie können das jederzeit in den Einstellungen des Toolkits ausschalten.",
     "ReadyShare": "Matchdaten:",
     "ReadyShareYes": "werden ohne Namen geteilt",

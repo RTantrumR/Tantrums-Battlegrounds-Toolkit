@@ -85,6 +85,54 @@ namespace HsbgCardLookup.Game
     }
 
     /// <summary>
+    /// "My stats": asks the site for a one-time address that ties this install's reports to whoever signs
+    /// in there, and hands it to the browser. The install key goes in the request's body only, never into
+    /// an address; the answer's address carries a short-lived code instead.
+    /// </summary>
+    public static class MatchLink
+    {
+        /// <summary>Where the request goes. Empty until the site has it: the button is not shown.</summary>
+        public const string DefaultEndpoint = "";
+
+        public static string Endpoint
+        {
+            get
+            {
+                string test = Environment.GetEnvironmentVariable("TOOLKIT_LINK_URL");
+                return string.IsNullOrEmpty(test) ? DefaultEndpoint : test;
+            }
+        }
+
+        public static bool Available => !string.IsNullOrEmpty(Endpoint);
+
+        /// <summary>The address to open, or null when the site didn't give a usable one.</summary>
+        public static async Task<string> RequestAsync(string dataDir, string client)
+        {
+            string endpoint = Endpoint;
+            if (string.IsNullOrEmpty(endpoint)) return null;
+            var body = new JObject { ["install"] = MatchUploader.InstallKey(dataDir), ["client"] = client };
+            string answer = await AssetClient.PostJsonAsync(endpoint, body.ToString(Formatting.None)).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(answer)) return null;
+            try
+            {
+                string url = (string)JObject.Parse(answer).SelectToken("data.url");
+                return Trusted(url, endpoint) ? url : null;
+            }
+            catch { return null; }
+        }
+
+        // Only a web address on the host we asked (or the site itself) is handed to the browser.
+        private static bool Trusted(string url, string endpoint)
+        {
+            Uri u, e, site;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out u) || (u.Scheme != Uri.UriSchemeHttps && u.Scheme != Uri.UriSchemeHttp)) return false;
+            if (!Uri.TryCreate(endpoint, UriKind.Absolute, out e) || !Uri.TryCreate(AssetClient.SiteBase, UriKind.Absolute, out site)) return false;
+            if (u.Scheme == Uri.UriSchemeHttp && !u.IsLoopback) return false;
+            return string.Equals(u.Host, e.Host, StringComparison.OrdinalIgnoreCase) || string.Equals(u.Host, site.Host, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
     /// Sends the reports, one POST each. A report is a file in <c>match-uploads\</c> until the site takes
     /// it, so a match played offline (or before the site listens) goes out at a later start.
     /// </summary>
@@ -112,7 +160,7 @@ namespace HsbgCardLookup.Game
         }
 
         // A random key made once per install: tells one toolkit's reports from another's, names nobody.
-        private static string InstallKey(string dataDir)
+        public static string InstallKey(string dataDir)
         {
             string file = Path.Combine(dataDir, "install-id.txt");
             try

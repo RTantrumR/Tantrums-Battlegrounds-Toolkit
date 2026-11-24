@@ -20,6 +20,14 @@ namespace Toolkit.Standalone
         {
             if (Array.IndexOf(args, "--autostart") >= 0) return Watcher.Run();
             if (Array.IndexOf(args, "--feed-states") >= 0) return StateFeed.Run(args);   // dev: recorded games into the match recorder
+            if (Array.IndexOf(args, "--link-test") >= 0)   // dev: --link-test <data folder> <file>: what "My stats" would open (TOOLKIT_LINK_URL)
+            {
+                int i = Array.IndexOf(args, "--link-test");
+                if (args.Length < i + 3) return 2;
+                string url = HsbgCardLookup.Game.MatchLink.RequestAsync(args[i + 1], "test").GetAwaiter().GetResult();
+                System.IO.File.WriteAllText(args[i + 2], url ?? "(none)");
+                return url != null ? 0 : 1;
+            }
             // WPF names every window class "HwndWrapper[<exe>;<thread name>;<random GUID>]". OBS's Window
             // Capture, left on its defaults, picks Windows Graphics Capture (the only method that keeps a
             // transparent window's alpha) and finds the window again by title only for classes containing
