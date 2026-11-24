@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "Abrir el buscador",
   "settings.cardSearch.keyToggleGolden": "Alternar dorada",
   "settings.cardSearch.keyFocusSearch": "Ir a la búsqueda",
-  "settings.cardSearch.searchButton": "Botón de búsqueda en el juego (junto a la lista de cartas)",
+  "settings.cardSearch.searchButton": "Botón de búsqueda en el juego",
   "settings.cardSearch.searchButtonOn": "Una lupa junto al libro de la lista de cartas del juego abre y cierra la búsqueda.",
   "settings.cardSearch.searchButtonOff": "Botón de búsqueda en el juego desactivado.",
   "settings.app.arrangeBellTitle": "Ubicar la campana de notificaciones",

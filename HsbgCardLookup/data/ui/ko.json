@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "오버레이 열기",
   "settings.cardSearch.keyToggleGolden": "황금 전환",
   "settings.cardSearch.keyFocusSearch": "검색창 포커스",
-  "settings.cardSearch.searchButton": "게임 내 검색 버튼 (카드 목록 옆)",
+  "settings.cardSearch.searchButton": "게임 내 검색 버튼",
   "settings.cardSearch.searchButtonOn": "게임의 카드 목록 책 옆 돋보기로 검색을 켜고 끕니다.",
   "settings.cardSearch.searchButtonOff": "게임 내 검색 버튼 꺼짐.",
   "settings.app.arrangeBellTitle": "알림 벨 위치 조정",

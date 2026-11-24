@@ -189,7 +189,7 @@
   "settings.cardSearch.keyOpenOverlay": "Open overlay",
   "settings.cardSearch.keyToggleGolden": "Toggle golden",
   "settings.cardSearch.keyFocusSearch": "Focus search",
-  "settings.cardSearch.searchButton": "In-game search button (by the card list)",
+  "settings.cardSearch.searchButton": "In-game search button",
   "settings.cardSearch.searchButtonOn": "Magnifying glass next to the game's card-list book toggles the search.",
   "settings.cardSearch.searchButtonOff": "In-game search button off.",
   "settings.cardSearch.showDuos": "Show Duos cards",

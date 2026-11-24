@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "Ouvrir l’overlay",
   "settings.cardSearch.keyToggleGolden": "Basculer la version dorée",
   "settings.cardSearch.keyFocusSearch": "Activer la recherche",
-  "settings.cardSearch.searchButton": "Bouton de recherche en jeu (près de la liste des cartes)",
+  "settings.cardSearch.searchButton": "Bouton de recherche en jeu",
   "settings.cardSearch.searchButtonOn": "Une loupe à côté du livre de la liste des cartes du jeu ouvre et ferme la recherche.",
   "settings.cardSearch.searchButtonOff": "Bouton de recherche en jeu désactivé.",
   "settings.app.arrangeBellTitle": "Placer la cloche des notifications",

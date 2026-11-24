@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "打开悬浮窗",
   "settings.cardSearch.keyToggleGolden": "切换金色",
   "settings.cardSearch.keyFocusSearch": "聚焦搜索",
-  "settings.cardSearch.searchButton": "游戏内搜索按钮（卡牌列表旁）",
+  "settings.cardSearch.searchButton": "游戏内搜索按钮",
   "settings.cardSearch.searchButtonOn": "游戏卡牌列表书本旁的放大镜可切换搜索。",
   "settings.cardSearch.searchButtonOff": "游戏内搜索按钮已关闭。",
   "settings.app.arrangeBellTitle": "调整通知铃铛位置",

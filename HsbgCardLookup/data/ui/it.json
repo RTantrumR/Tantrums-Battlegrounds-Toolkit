@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "Apri overlay",
   "settings.cardSearch.keyToggleGolden": "Alterna dorata",
   "settings.cardSearch.keyFocusSearch": "Vai alla ricerca",
-  "settings.cardSearch.searchButton": "Pulsante di ricerca in gioco (accanto all'elenco carte)",
+  "settings.cardSearch.searchButton": "Pulsante di ricerca in gioco",
   "settings.cardSearch.searchButtonOn": "Una lente accanto al libro dell'elenco carte del gioco apre e chiude la ricerca.",
   "settings.cardSearch.searchButtonOff": "Pulsante di ricerca in gioco disattivato.",
   "settings.app.arrangeBellTitle": "Posiziona la campanella delle notifiche",

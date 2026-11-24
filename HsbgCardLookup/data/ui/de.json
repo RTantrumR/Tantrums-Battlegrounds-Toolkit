@@ -159,7 +159,7 @@
   "settings.cardSearch.keyOpenOverlay": "Overlay öffnen",
   "settings.cardSearch.keyToggleGolden": "Golden umschalten",
   "settings.cardSearch.keyFocusSearch": "Suche fokussieren",
-  "settings.cardSearch.searchButton": "Suchknopf im Spiel (neben der Kartenliste)",
+  "settings.cardSearch.searchButton": "Suchknopf im Spiel",
   "settings.cardSearch.searchButtonOn": "Eine Lupe neben dem Kartenlisten-Buch des Spiels schaltet die Suche um.",
   "settings.cardSearch.searchButtonOff": "Suchknopf im Spiel aus.",
   "settings.app.arrangeBellTitle": "Benachrichtigungsglocke platzieren",
