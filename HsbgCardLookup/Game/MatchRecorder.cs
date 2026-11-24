@@ -171,6 +171,9 @@ namespace HsbgCardLookup.Game
         private int[] _ratingSeen;         // what the game last reported, so one report is taken once
         /// <summary>Match start → { season, rating season }; null when the host has no season calendar.</summary>
         public Func<DateTime, int[]> SeasonOf;
+        /// <summary>A match was closed and written, and again when its rating arrives after that.</summary>
+        public Action<MatchRecord> Saved;
+        private const int KeepRecords = 200;   // the newest stay; a record is ~26 KB
 
         private MatchRecord _rec;          // the match in progress
         private RecordedTurn _turn;        // its round in progress (the shop is open or the fight is on)
@@ -227,6 +230,7 @@ namespace HsbgCardLookup.Game
             if (rec == null) return;
             rec.RatingAfter = rating; rec.RatingChange = change;
             Write(rec, path);
+            if (_rec == null) { try { Saved?.Invoke(rec); } catch { } }
         }
 
         private void Observe()
@@ -519,7 +523,19 @@ namespace HsbgCardLookup.Game
             if (rec.Turns.Count == 0) { _log?.Invoke("[recorder] match " + rec.Id + " had no rounds: not kept"); return; }
             Write(rec, path);
             _last = rec; _lastPath = path;
+            Prune();
+            try { Saved?.Invoke(rec); } catch { }
             _log?.Invoke("[recorder] match " + rec.Id + " " + (rec.Finished ? "finished" : "cut short") + ": place " + rec.Place + ", " + rec.Turns.Count + " rounds");
+        }
+
+        private void Prune()
+        {
+            try
+            {
+                var files = Directory.GetFiles(_folder, "*.json").OrderBy(f => f, StringComparer.Ordinal).ToList();
+                for (int i = 0; i < files.Count - KeepRecords; i++) File.Delete(files[i]);
+            }
+            catch { }
         }
 
         private void Write(MatchRecord rec, string path)

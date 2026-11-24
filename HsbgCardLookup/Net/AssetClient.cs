@@ -108,5 +108,30 @@ namespace HsbgCardLookup.Net
             catch { return false; }
         }
 
+        /// <summary>POST a JSON body gzipped (Content-Encoding: gzip); the HTTP status, 0 when no response arrived.</summary>
+        public static async Task<int> PostJsonGzipAsync(string url, string json)
+        {
+            try
+            {
+                byte[] body;
+                using (var ms = new MemoryStream())
+                {
+                    using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.Optimal, true))
+                    {
+                        var raw = System.Text.Encoding.UTF8.GetBytes(json);
+                        gz.Write(raw, 0, raw.Length);
+                    }
+                    body = ms.ToArray();
+                }
+                using (var content = new ByteArrayContent(body))
+                {
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                    content.Headers.ContentEncoding.Add("gzip");
+                    using (var resp = await Http.PostAsync(url, content).ConfigureAwait(false))
+                        return (int)resp.StatusCode;
+                }
+            }
+            catch { return 0; }
+        }
     }
 }

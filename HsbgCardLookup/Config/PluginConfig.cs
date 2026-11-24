@@ -160,6 +160,9 @@ namespace HsbgCardLookup.Config
         // One JSON record per Battlegrounds match in the data folder's match-records\ (Game\MatchRecorder.cs).
         // Local only; the stats pages read them.
         public bool RecordMatches { get; set; } = true;
+        // A report of each finished ranked match goes to the site's community stats, with no names in it
+        // (Game\MatchUpload.cs). The Setup's page hands its answer over in setup-share.txt.
+        public bool ShareMatchData { get; set; } = true;
 
         public bool ShowOpponentBoards { get; set; } = true;
         public bool BoardPinOnClick { get; set; }
@@ -278,6 +281,7 @@ namespace HsbgCardLookup.Config
                 config.Migrate();
             }
             config.ApplySetupLanguage();
+            config.ApplySetupShare();
             config.Welcome = TakeWelcome();
             return config;
         }
@@ -316,6 +320,23 @@ namespace HsbgCardLookup.Config
                     Language = code.ToLowerInvariant();
                     Save();
                 }
+            }
+            catch { /* never throw from a plugin */ }
+        }
+
+        /// <summary>The Setup wizard's "Match data" page: setup-share.txt holds "1" or "0", applied once and
+        /// deleted, like the language.</summary>
+        private void ApplySetupShare()
+        {
+            try
+            {
+                var file = Path.Combine(Dir, "setup-share.txt");
+                if (!File.Exists(file)) return;
+                string v = File.ReadAllText(file).Trim();
+                File.Delete(file);
+                if (v != "0" && v != "1") return;
+                ShareMatchData = v == "1";
+                Save();
             }
             catch { /* never throw from a plugin */ }
         }

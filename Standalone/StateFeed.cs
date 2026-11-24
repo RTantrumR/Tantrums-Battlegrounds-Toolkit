@@ -26,6 +26,10 @@ namespace Toolkit.Standalone
             var calendar = args.Length > i + 3 ? SeasonCalendar.Load(args[i + 3]) : null;
             var log = new List<string>();
             int games = 0, addr = 0;
+            // The reports the matches would send: written to <output>\match-uploads, and POSTed when
+            // TOOLKIT_UPLOAD_URL names a (test) address.
+            string uploadUrl = Environment.GetEnvironmentVariable("TOOLKIT_UPLOAD_URL");
+            var uploader = new MatchUploader(output, "feed", () => true, log.Add, uploadUrl);
             foreach (string file in Directory.GetFiles(input, "*.states.jsonl.gz").OrderBy(f => f))
             {
                 var game = new StandaloneGameState();
@@ -33,6 +37,7 @@ namespace Toolkit.Standalone
                 DateTime clock = DateTime.MinValue;
                 var recorder = new MatchRecorder(game, memory, output, log.Add) { UtcNow = () => clock };
                 if (calendar != null) recorder.SeasonOf = calendar.Of;
+                recorder.Saved = uploader.Enqueue;
 
                 var entities = new Dictionary<int, EntitySnap>();
                 int gameEntity = 0, local = 0, opponent = 0, friendly = 0, lastPublish = -PollMs, gameType = 0;
@@ -107,6 +112,13 @@ namespace Toolkit.Standalone
                 if (rating != null) recorder.RatingChanged(rating.Value, change ?? 0);
                 addr++;
                 games++;
+            }
+            if (!string.IsNullOrEmpty(uploadUrl))
+            {
+                uploader.Tick();
+                string waiting = Path.Combine(output, MatchUploader.FolderName);
+                for (int n = 0; n < 200 && Directory.Exists(waiting) && Directory.GetFiles(waiting, "*.json").Length > 0; n++)
+                    System.Threading.Thread.Sleep(100);
             }
             File.WriteAllLines(Path.Combine(output, "feed.log"), log);
             return games > 0 ? 0 : 1;

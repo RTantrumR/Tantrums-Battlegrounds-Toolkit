@@ -42,6 +42,7 @@ namespace HsbgCardLookup
         private FloatingCardManager _floating;
         private Game.BgHud _bgHud;                               // always-on trinkets/anomaly HUD
         private Game.BgMmr _bgMmr;                                // opt-in in-match opponent-MMR reader
+        private Game.MatchUploader _matchUploader;                // its report to the site's community stats
         private Game.MatchRecorder _matchRecorder;                // one JSON record per match (local; no display)
         private Game.SeasonCalendar _seasons;
         private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
@@ -148,6 +149,16 @@ namespace HsbgCardLookup
                     SeasonOf = SeasonOf, BuildSource = GameBuild,
                     RecordSpectated = Environment.GetEnvironmentVariable("TOOLKIT_RECORD_SPECTATED") == "1",
                 };
+            if (_matchRecorder != null)
+            {
+                // A watched game recorded for a test leaves only when a test address is given.
+                string testUrl = Environment.GetEnvironmentVariable("TOOLKIT_UPLOAD_URL");
+                if (!_matchRecorder.RecordSpectated || !string.IsNullOrEmpty(testUrl))
+                {
+                    _matchUploader = new Game.MatchUploader(PluginConfig.DataDir, _version.ToString(), () => _config.ShareMatchData, Log, testUrl);
+                    _matchRecorder.Saved = _matchUploader.Enqueue;
+                }
+            }
             _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards, Log);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
             _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
@@ -183,6 +194,7 @@ namespace HsbgCardLookup
             _bgHud?.Poll();      // throttled read of trinkets/anomaly → always-on HUD
             _bgMmr?.Poll();      // opt-in in-match opponent-MMR reader
             _opponentBoards?.Poll(); // remembers each opponent's board as a fight begins
+            _matchUploader?.Tick();
             _matchRecorder?.Poll();  // the match record
             _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
