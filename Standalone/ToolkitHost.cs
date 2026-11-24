@@ -63,17 +63,15 @@ namespace Toolkit.Standalone
                     Shared.Log("settings closing: tray icon at " + (place.HasValue ? place.Value.ToString() : "unknown") + " (" + TrayPlace.Found + ")");
                     return place;
                 };
-                Forms.ToolStripItem searchItem = null, settingsItem = null, statsItem = null, exitItem = null;
+                Forms.ToolStripItem searchItem = null, settingsItem = null, exitItem = null;
                 Action relabel = () =>
                 {
                     searchItem.Text = Strings.T("plugin.menu.openOverlay");
                     settingsItem.Text = Strings.T("plugin.settings");
-                    statsItem.Text = Strings.T("plugin.stats");
                     exitItem.Text = Strings.T("standalone.tray.exit");
                 };
                 searchItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => toolkit.ToggleSearch());
                 settingsItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
-                statsItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => ui.BeginInvoke(new Action(toolkit.OpenStats)));
                 exitItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => app.Shutdown());
                 tray.DoubleClick += (s, e) => toolkit.ToggleSearch();
                 toolkit.LanguageChanged += relabel;

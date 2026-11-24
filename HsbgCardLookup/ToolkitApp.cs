@@ -42,7 +42,7 @@ namespace HsbgCardLookup
         private FloatingCardManager _floating;
         private Game.BgHud _bgHud;                               // always-on trinkets/anomaly HUD
         private Game.BgMmr _bgMmr;                                // opt-in in-match opponent-MMR reader
-        private Game.MatchRecorder _matchRecorder;                // one JSON record per match, for the stats pages
+        private Game.MatchRecorder _matchRecorder;                // one JSON record per match (local; no display)
         private Game.SeasonCalendar _seasons;
         private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
         private Ui.OpponentBoardPanel _boardPanel;                // …shown from the leaderboard portraits
@@ -660,21 +660,6 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
-            if (search != null && (search == "stats" || search.StartsWith("stats ", StringComparison.Ordinal)))
-            {
-                // The stats window. "stats snap [overview|heroes|matches|match [id]]" opens that page and saves
-                // the whole of it as stats-<page>.png beside the program.
-                var words = search.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                bool statsSnap = words.Length > 1 && words[1] == "snap";
-                OpenStats(statsSnap);
-                if (statsSnap && _stats != null)
-                {
-                    string page = words.Length > 2 ? words[2] : "overview";
-                    _stats.Go(page, words.Length > 3 ? words[3] : null);
-                    _stats.TestSnap(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "stats-" + page + ".png"));
-                }
-                return;
-            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).
@@ -694,56 +679,6 @@ namespace HsbgCardLookup
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
         private bool _quietOpen;
-
-        private StatsWindow _stats;
-
-        /// <summary>The player's match history (tray menu). UI thread.</summary>
-        public void OpenStats() => OpenStats(false);
-
-        /// <summary>Dev (--stats-snap): every stats page drawn off screen from a folder of records and saved
-        /// as stats-&lt;page&gt;.png, with no overlay, hooks or game. Runs its own message loop; UI thread.</summary>
-        public static int SnapStats(string folder, string outDir, string matchId)
-        {
-            Localization.Strings.Load();
-            var store = new CardStore();
-            store.Load();
-            var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            var win = new StatsWindow(store, folder)
-            {
-                ShowActivated = false, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = 0
-            };
-            win.Show();
-            var pages = new Queue<string>(new[] { "overview", "heroes", "matches", "match" });
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(0.2) };
-            timer.Tick += (s, e) =>
-            {
-                timer.Interval = TimeSpan.FromSeconds(5);
-                if (pages.Count == 0) { timer.Stop(); app.Shutdown(); return; }
-                string page = pages.Dequeue();
-                win.Go(page, page == "match" ? matchId : null);
-                win.TestSnap(System.IO.Path.Combine(outDir, "stats-" + page + ".png"), 3.5);
-            };
-            timer.Start();
-            app.Run();
-            return 0;
-        }
-
-        /// <summary>quiet (the test snapshot): off screen, no focus taken, no taskbar button.</summary>
-        private void OpenStats(bool quiet)
-        {
-            if (_stats != null) { if (!quiet) { _stats.Show(); _stats.Activate(); } return; }
-            // Dev: TOOLKIT_STATS_DIR points the page at another folder of records.
-            string folder = Environment.GetEnvironmentVariable("TOOLKIT_STATS_DIR");
-            if (string.IsNullOrEmpty(folder)) folder = System.IO.Path.Combine(PluginConfig.DataDir, Game.MatchRecorder.FolderName);
-            _stats = new StatsWindow(_store, folder);
-            _stats.Closed += (s, e) => _stats = null;
-            if (quiet)
-            {
-                _stats.ShowActivated = false; _stats.ShowInTaskbar = false;
-                _stats.WindowStartupLocation = WindowStartupLocation.Manual; _stats.Left = -20000; _stats.Top = 0;
-            }
-            _stats.Show();
-        }
 
         public void OpenSettings()
         {
