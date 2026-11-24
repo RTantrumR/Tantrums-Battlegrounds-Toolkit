@@ -74,6 +74,27 @@ namespace HsbgCardLookup.Game
         [JsonProperty("playerTags")] public Dictionary<int, int> PlayerTags = new Dictionary<int, int>();
     }
 
+    /// <summary>One card the Timewarped Tavern put on offer, and whether we took it.</summary>
+    public sealed class RecordedTimewarpOffer
+    {
+        [JsonProperty("card")] public string Card;
+        /// <summary>Its price in Chronum.</summary>
+        [JsonProperty("cost")] public int Cost;
+        [JsonProperty("bought", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Bought;
+    }
+
+    /// <summary>One visit to the Timewarped Tavern: the lobby's own (the Minor one, then the Major one) or
+    /// a hero power's.</summary>
+    public sealed class RecordedTimewarp
+    {
+        [JsonProperty("n")] public int Round;
+        /// <summary>The game's count of our visits so far: 1 was the Minor Timewarp, 2 the Major, in the games seen.</summary>
+        [JsonProperty("kind")] public int Kind;
+        /// <summary>Chronum in hand as the tavern opened.</summary>
+        [JsonProperty("chronum")] public int Chronum;
+        [JsonProperty("offers")] public List<RecordedTimewarpOffer> Offers = new List<RecordedTimewarpOffer>();
+    }
+
     public sealed class RecordedPlayer
     {
         [JsonProperty("id")] public int PlayerId;
@@ -131,6 +152,8 @@ namespace HsbgCardLookup.Game
         /// so a mechanic nobody named yet can still be read out of old records.</summary>
         [JsonProperty("gameTagsStart")] public Dictionary<int, int> GameTagsStart = new Dictionary<int, int>();
         [JsonProperty("gameTags")] public Dictionary<int, int> GameTags = new Dictionary<int, int>();
+        /// <summary>Our visits to the Timewarped Tavern, with what each offered and what we bought.</summary>
+        [JsonProperty("timewarps", NullValueHandling = NullValueHandling.Ignore)] public List<RecordedTimewarp> Timewarps;
         [JsonProperty("players")] public List<RecordedPlayer> Players = new List<RecordedPlayer>();
         [JsonProperty("turns")] public List<RecordedTurn> Turns = new List<RecordedTurn>();
         /// <summary>The board as the match ended, with what the last fight left on it for good (the game's own
@@ -156,6 +179,10 @@ namespace HsbgCardLookup.Game
         private const int CardTypeGame = 1, CardTypePlayer = 2, CardTypeHero = 3, CardTypeMinion = 4, CardTypeEnchantment = 6, CardTypeHeroPower = 10;
         private const int ZoneHand = 3;
         private const int TagState = 204, StateComplete = 3;   // the game entity's STATE: 3 once the match is over for us
+        // The Timewarped Tavern: the game entity's switch while it is open and its count of our visits; our
+        // Player's Chronum; an offer's price. Tag numbers read off recorded Season 12 games (no names for them yet).
+        private const int TagTimewarpOpen = 4526, TagTimewarpVisit = 4514, TagChronum = 4443, TagOfferCost = 466, TagCost = 48;
+        private const int ZonePlay = 1, ZoneGraveyard = 4, ZoneRemoved = 5, ZoneSetAside = 6, ZoneSecret = 7;
         private const int ResumeHours = 3;                     // an unfinished record older than this is never continued
         private const int TagBuddyEnabled = 2518, TagQuestsActive = 2468, TagTrinketsActive = 3740, TagDarkGiftsActive = 4845,
             TagAltTavernActive = 4519, TagAnomaly1 = 3182, TagAnomaly2 = 3183, TagDamageCap = 2089, TagDamageCapEnabled = 3403;
@@ -187,6 +214,10 @@ namespace HsbgCardLookup.Game
         private bool _armed;               // a game began and has not ended: a record may start
         private bool _rejoinCheck;         // a game began while a record was open: the same match, or a new one?
         private bool _over;                // the game itself said the match is over (not just gone from memory)
+        private bool _twOpen;              // the Timewarped Tavern is open
+        private int _twMaxId;              // the highest entity id seen before it opened: its offers are made after
+        private RecordedTimewarp _twVisit; // the visit in progress (or the last one)
+        private readonly Dictionary<int, RecordedTimewarpOffer> _twOffers = new Dictionary<int, RecordedTimewarpOffer>();   // offer entity -> its row
         private MatchRecord _last;         // the match just written, for a rating that arrives after it
         private string _lastPath;
         private readonly IRaceReader _races;   // the leaderboard tiles' minion types, as the portraits show them
@@ -211,6 +242,7 @@ namespace HsbgCardLookup.Game
                 if (_started)
                 {
                     _started = false; _armed = true; _ratingSeen = null; _over = false;
+                    _twOpen = false; _twMaxId = 0;
                     _offers.Clear(); _lastRaceRead = DateTime.MinValue;
                     try { _races?.ResetMatch(); } catch { }
                     // A rejoin raises the start again; which it is shows once the board is readable.
@@ -293,6 +325,7 @@ namespace HsbgCardLookup.Game
                 if (s != null && s.Length == 2) { _rec.Season = s[0]; _rec.RatingSeason = s[1]; }
                 _path = Path.Combine(_folder, _rec.Id + ".json");
                 _turn = null;
+                _twOffers.Clear(); _twVisit = null;
                 _log?.Invoke("[recorder] match " + _rec.Id);
             }
 
@@ -311,6 +344,7 @@ namespace HsbgCardLookup.Game
             foreach (var t in _game.PlayerTrinkets())
                 if (!string.IsNullOrEmpty(t.CardId) && !_rec.Trinkets.Contains(t.CardId)) _rec.Trinkets.Add(t.CardId);
             UpdatePlayers(heroes, pid);
+            TrackTimewarp(gameEntity, me, pid, turn);
             if (_rec.HeroOffers.Count == 0 && _offers.Count > 0)
                 _rec.HeroOffers = _offers.Values.OrderBy(o => o.Key).Select(o => o.Value.ToList()).ToList();
             ReadTypes(heroes);
@@ -353,6 +387,47 @@ namespace HsbgCardLookup.Game
             _rec.HeroPowers = _game.Entities()
                 .Where(e => e.GetTag(Tags.CARDTYPE) == CardTypeHeroPower && e.GetTag(Tags.CONTROLLER) == pid && e.IsInPlay && !string.IsNullOrEmpty(e.CardId))
                 .OrderBy(e => e.Id).Select(e => e.CardId).Distinct().ToList();
+        }
+
+        // The Timewarped Tavern. As it opens, the game makes its offers as cards of OURS, set aside, each with
+        // a price in Chronum. Buying one zeroes its price and moves it to the hand (a "Casts When Bought"
+        // spell is cast and removed on the spot); what is not bought is removed later, price untouched.
+        private void TrackTimewarp(IGameEntity g, IGameEntity me, int pid, int turn)
+        {
+            if (g == null) return;
+            bool open = g.GetTag(TagTimewarpOpen) == 1;
+            if (!open && !_twOpen) { foreach (var e in _game.Entities()) if (e.Id > _twMaxId) _twMaxId = e.Id; }
+            if (open && !_twOpen)
+            {
+                _twVisit = new RecordedTimewarp { Round = turn, Kind = g.GetTag(TagTimewarpVisit), Chronum = me.GetTag(TagChronum) };
+                if (_rec.Timewarps == null) _rec.Timewarps = new List<RecordedTimewarp>();
+                _rec.Timewarps.Add(_twVisit);
+            }
+            if (open && _twVisit != null && _twVisit.Offers.Count == 0)
+            {
+                foreach (var e in _game.Entities().OrderBy(x => x.Id))
+                {
+                    if (e.Id <= _twMaxId || e.GetTag(Tags.CONTROLLER) != pid || e.GetTag(Tags.ZONE) != ZoneSetAside) continue;
+                    int cost = e.GetTag(TagOfferCost);
+                    if (cost <= 0 || string.IsNullOrEmpty(e.CardId) || _twOffers.ContainsKey(e.Id)) continue;
+                    var offer = new RecordedTimewarpOffer { Card = e.CardId, Cost = cost };
+                    _twVisit.Offers.Add(offer); _twOffers[e.Id] = offer;
+                }
+                if (_twVisit.Chronum == 0) _twVisit.Chronum = me.GetTag(TagChronum);
+            }
+            foreach (var kv in _twOffers)
+            {
+                if (kv.Value.Bought) continue;
+                var e = _game.Entity(kv.Key);
+                if (e == null) continue;
+                int zone = e.GetTag(Tags.ZONE);
+                bool taken = zone == ZoneHand || zone == ZonePlay || zone == ZoneGraveyard || zone == ZoneSecret;
+                bool paid = e.GetTag(TagCost) == 0;
+                bool castOnTheSpot = zone == ZoneRemoved && open && _twVisit != null && _twVisit.Offers.Contains(kv.Value);
+                if (taken || (paid && zone != ZoneSetAside) || castOnTheSpot) kv.Value.Bought = true;
+            }
+            if (!open && _twOpen) { foreach (var e in _game.Entities()) if (e.Id > _twMaxId) _twMaxId = e.Id; }
+            _twOpen = open;
         }
 
         private bool GameOver()

@@ -83,6 +83,7 @@ namespace HsbgCardLookup.Game
             }
             o["players"] = players;
             o["finalBoard"] = JToken.FromObject(r.FinalBoard);
+            if (r.Timewarps != null && r.Timewarps.Count > 0) o["timewarps"] = JToken.FromObject(r.Timewarps);
             return o;
         }
     }
