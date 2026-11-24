@@ -30,14 +30,26 @@ namespace Toolkit.Standalone
             // TOOLKIT_UPLOAD_URL names a (test) address.
             string uploadUrl = Environment.GetEnvironmentVariable("TOOLKIT_UPLOAD_URL");
             var uploader = new MatchUploader(output, "feed", () => true, log.Add, uploadUrl);
+            // TOOLKIT_FEED_CUT=<round>[,<rounds away>]: the game vanishes at that round's start and comes back
+            // that many rounds later (default 0: the same round). TOOLKIT_FEED_RESTART=1: the toolkit restarts too.
+            int cutAt = 0, cutAway = 0;
+            string cut = Environment.GetEnvironmentVariable("TOOLKIT_FEED_CUT");
+            if (!string.IsNullOrEmpty(cut)) { var c = cut.Split(','); int.TryParse(c[0], out cutAt); if (c.Length > 1) int.TryParse(c[1], out cutAway); }
+            bool cutRestart = Environment.GetEnvironmentVariable("TOOLKIT_FEED_RESTART") == "1";
             foreach (string file in Directory.GetFiles(input, "*.states.jsonl.gz").OrderBy(f => f))
             {
                 var game = new StandaloneGameState();
                 var memory = new StandaloneMemory(game);
                 DateTime clock = DateTime.MinValue;
-                var recorder = new MatchRecorder(game, memory, output, log.Add) { UtcNow = () => clock };
-                if (calendar != null) recorder.SeasonOf = calendar.Of;
-                recorder.Saved = uploader.Enqueue;
+                Func<MatchRecorder> newRecorder = () =>
+                {
+                    var r = new MatchRecorder(game, memory, output, log.Add) { UtcNow = () => clock };
+                    if (calendar != null) r.SeasonOf = calendar.Of;
+                    r.Saved = uploader.Enqueue;
+                    return r;
+                };
+                var recorder = newRecorder();
+                int cutState = 0;      // 0 = not yet, 1 = away, 2 = back
 
                 var entities = new Dictionary<int, EntitySnap>();
                 int gameEntity = 0, local = 0, opponent = 0, friendly = 0, lastPublish = -PollMs, gameType = 0;
@@ -47,6 +59,20 @@ namespace Toolkit.Standalone
                 Action<int> publish = ms =>
                 {
                     clock = start.AddMilliseconds(ms);
+                    if (cutAt > 0 && cutState < 2)
+                    {
+                        EntitySnap ge; int tag = 0;
+                        if (entities.TryGetValue(gameEntity, out ge)) ge.Tags.TryGetValue(20, out tag);
+                        int round = (tag + 1) / 2;
+                        if (cutState == 0 && round >= cutAt)
+                        {
+                            cutState = 1;
+                            game.Publish(new Snapshot()); recorder.Poll();          // the game is gone
+                            if (cutRestart) { game = new StandaloneGameState(); memory = new StandaloneMemory(game); recorder = newRecorder(); }
+                            addr++;
+                        }
+                        if (cutState == 1) { if (round < cutAt + cutAway) { lastPublish = ms; return; } cutState = 2; }
+                    }
                     var s = new Snapshot { GameStateAddr = addr, GameEntityId = gameEntity, LocalPlayerEntityId = local, OpponentPlayerEntityId = opponent, Entities = entities, GameType = gameType };
                     for (int t = 0; t < 8; t++) s.Tiles.Add(new TileSnap());
                     // Enchantments in play, by the entity they sit on (CARDTYPE 6, ZONE play, ATTACHED).

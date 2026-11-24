@@ -102,6 +102,9 @@ namespace HsbgCardLookup.Game
         [JsonProperty("endUtc")] public DateTime? EndUtc;
         /// <summary>False while the match runs (the file is rewritten every round) and for one cut short.</summary>
         [JsonProperty("finished")] public bool Finished;
+        /// <summary>How many times the match was left and rejoined (a lost connection, a restarted game); the
+        /// rounds played meanwhile are missing from <see cref="Turns"/>.</summary>
+        [JsonProperty("reconnects", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Reconnects;
         [JsonProperty("build", NullValueHandling = NullValueHandling.Ignore)] public string Build;
         [JsonProperty("region", NullValueHandling = NullValueHandling.Ignore)] public string Region;
         [JsonProperty("duos", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Duos;
@@ -152,6 +155,8 @@ namespace HsbgCardLookup.Game
         private const int TagHeroEntity = 27, TagArmor = 292, TagAnomalyDbId = 2897;
         private const int CardTypeGame = 1, CardTypePlayer = 2, CardTypeHero = 3, CardTypeMinion = 4, CardTypeEnchantment = 6, CardTypeHeroPower = 10;
         private const int ZoneHand = 3;
+        private const int TagState = 204, StateComplete = 3;   // the game entity's STATE: 3 once the match is over for us
+        private const int ResumeHours = 3;                     // an unfinished record older than this is never continued
         private const int TagBuddyEnabled = 2518, TagQuestsActive = 2468, TagTrinketsActive = 3740, TagDarkGiftsActive = 4845,
             TagAltTavernActive = 4519, TagAnomaly1 = 3182, TagAnomaly2 = 3183, TagDamageCap = 2089, TagDamageCapEnabled = 3403;
         private const int RaceMs = 2000;                        // the tiles' minion types, read at most this often
@@ -181,6 +186,7 @@ namespace HsbgCardLookup.Game
         private bool _started, _ended;
         private bool _armed;               // a game began and has not ended: a record may start
         private bool _rejoinCheck;         // a game began while a record was open: the same match, or a new one?
+        private bool _over;                // the game itself said the match is over (not just gone from memory)
         private MatchRecord _last;         // the match just written, for a rating that arrives after it
         private string _lastPath;
         private readonly IRaceReader _races;   // the leaderboard tiles' minion types, as the portraits show them
@@ -204,14 +210,27 @@ namespace HsbgCardLookup.Game
             {
                 if (_started)
                 {
-                    _started = false; _armed = true; _ratingSeen = null;
+                    _started = false; _armed = true; _ratingSeen = null; _over = false;
                     _offers.Clear(); _lastRaceRead = DateTime.MinValue;
                     try { _races?.ResetMatch(); } catch { }
                     // A rejoin raises the start again; which it is shows once the board is readable.
                     _rejoinCheck = _rec != null;
                 }
                 // The game object outlives the match (the end screen): nothing more is recorded from it.
-                if (_ended) { _ended = false; _armed = false; if (_rec != null) { if (!_rejoinCheck) Observe(); Close(true); } return; }
+                // A game that is gone WITHOUT having said it was over is a lost connection or a closed
+                // client: the record stays open (on disk as unfinished) for the rejoin.
+                if (_ended)
+                {
+                    _ended = false; _armed = false;
+                    if (_rec != null)
+                    {
+                        bool over = _over || GameOver();
+                        if (!_rejoinCheck) Observe();
+                        if (over || _over) Close(true);
+                        else { Write(_rec, _path); _log?.Invoke("[recorder] match " + _rec.Id + " left unfinished at round " + (_turn?.Number ?? 0) + ": waiting for a rejoin"); }
+                    }
+                    return;
+                }
                 if (_armed) Observe();
                 var rating = _memory?.MatchRatingChange();
                 if (rating != null && rating.Length == 2 && (_ratingSeen == null || _ratingSeen[0] != rating[0] || _ratingSeen[1] != rating[1]))
@@ -249,13 +268,20 @@ namespace HsbgCardLookup.Game
             IGameEntity mine;
             if (!heroes.TryGetValue(pid, out mine)) return;
 
+            if (gameEntity != null && gameEntity.GetTag(TagState) == StateComplete) _over = true;
+
             if (_rejoinCheck)
             {
                 _rejoinCheck = false;
                 // The same match shows the same hero again, no earlier than the round it was left in.
-                bool same = _rec != null && mine.CardId == _rec.Hero && _turn != null && turn >= _turn.Number;
+                bool same = _rec != null && mine.CardId == _rec.Hero && _turn != null && turn >= _turn.Number && SameLobby(_rec, heroes);
                 if (_rec != null && !same) Close(false);
+                else if (_rec != null) Rejoined(turn);
             }
+
+            // A match already under way with no record open: the client (or the toolkit) was restarted in
+            // it. Its record so far is on disk.
+            if (_rec == null && turn > 1) Resume(mine.CardId, turn, heroes);
 
             if (_rec == null)
             {
@@ -327,6 +353,62 @@ namespace HsbgCardLookup.Game
             _rec.HeroPowers = _game.Entities()
                 .Where(e => e.GetTag(Tags.CARDTYPE) == CardTypeHeroPower && e.GetTag(Tags.CONTROLLER) == pid && e.IsInPlay && !string.IsNullOrEmpty(e.CardId))
                 .OrderBy(e => e.Id).Select(e => e.CardId).Distinct().ToList();
+        }
+
+        private bool GameOver()
+        {
+            try
+            {
+                var g = _game.Entities().FirstOrDefault(e => e.GetTag(Tags.CARDTYPE) == CardTypeGame);
+                return g != null && g.GetTag(TagState) == StateComplete;
+            }
+            catch { return false; }
+        }
+
+        // The seats of a lobby keep their heroes: every player the record knows sits where it did.
+        private static bool SameLobby(MatchRecord rec, Dictionary<int, IGameEntity> heroes)
+        {
+            int known = 0;
+            foreach (var p in rec.Players)
+            {
+                IGameEntity h;
+                if (!heroes.TryGetValue(p.PlayerId, out h)) continue;
+                if (h.CardId != p.Hero && h.CardId != p.Picked) return false;
+                known++;
+            }
+            return known >= Math.Min(4, rec.Players.Count);
+        }
+
+        // Back in the match after a gap. Back in the next round: one fight happened meanwhile, the one of
+        // the round we left, and its cost still reads from the healths. Later than that: rounds were not
+        // seen, and the round left open keeps no result (its fight's cost can't be told from theirs).
+        private void Rejoined(int turn)
+        {
+            _rec.Reconnects++;
+            if (_turn != null && turn > _turn.Number + 1) { CloseTurnTags(); _turn = null; }
+            _log?.Invoke("[recorder] match " + _rec.Id + " rejoined at round " + turn);
+        }
+
+        // The newest unfinished record of this very lobby, picked up from disk.
+        private void Resume(string hero, int turn, Dictionary<int, IGameEntity> heroes)
+        {
+            try
+            {
+                if (!Directory.Exists(_folder)) return;
+                string file = Directory.GetFiles(_folder, "*.json").OrderByDescending(f => f, StringComparer.Ordinal).FirstOrDefault();
+                if (file == null) return;
+                var rec = JsonConvert.DeserializeObject<MatchRecord>(File.ReadAllText(file));
+                if (rec == null || rec.Finished || rec.Version != MatchRecord.CurrentVersion || rec.Hero != hero || rec.Turns.Count == 0) return;
+                var now = UtcNow();
+                if (now < rec.StartUtc || (now - rec.StartUtc).TotalHours > ResumeHours) return;
+                if (rec.Turns[rec.Turns.Count - 1].Number > turn || !SameLobby(rec, heroes)) return;
+                _rec = rec; _path = file;
+                _turn = rec.Turns[rec.Turns.Count - 1];
+                rec.EndUtc = null;
+                _playerNow = _playerBase = null;
+                Rejoined(turn);
+            }
+            catch (Exception e) { _log?.Invoke("[recorder] resume failed: " + e.Message); }
         }
 
         // The hero choice is our hero cards in hand; a reroll changes the card of the same entity.

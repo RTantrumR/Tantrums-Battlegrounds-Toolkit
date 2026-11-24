@@ -49,7 +49,10 @@ namespace HsbgCardLookup.Game
             o["place"] = r.Place;
             if (r.RatingAfter != null) o["rating"] = r.RatingAfter.Value;
             if (r.RatingChange != null) o["ratingChange"] = r.RatingChange.Value;
-            o["rounds"] = r.Turns.Count;
+            // The round the match ended in. After a rejoin some rounds were not seen: the fights and
+            // tier timings below then cover only the rounds that were.
+            o["rounds"] = r.Turns[r.Turns.Count - 1].Number;
+            if (r.Reconnects > 0) { o["reconnects"] = r.Reconnects; o["roundsSeen"] = r.Turns.Count; }
 
             int won = 0, lost = 0, tied = 0;
             var tierTurns = new JObject();
