@@ -976,7 +976,6 @@ namespace HsbgCardLookup.Ui
                 Changed();
                 UpdateArrangeRow();
             }, demo: arrangeSearch));
-            stack.Children.Add(ArrangeHint(new Thickness(0, -2, 0, 8)));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.showDuos"), _config.ShowDuos, v =>
             {
@@ -2049,10 +2048,11 @@ namespace HsbgCardLookup.Ui
             DockPanel.SetDock(btn, Dock.Right);
             dock.Children.Add(btn);
 
-            var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-            left.Children.Add(new TextBlock { Text = title, Foreground = UiKit.TextPrimary, FontSize = 15 });
-            left.Children.Add(ArrangeHint(new Thickness(0)));
-            dock.Children.Add(left);
+            dock.Children.Add(new TextBlock
+            {
+                Text = title, Foreground = UiKit.TextPrimary, FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), TextWrapping = TextWrapping.Wrap
+            });
             return dock;
         }
 
@@ -2069,15 +2069,10 @@ namespace HsbgCardLookup.Ui
                 Width = ControlW, Child = _arrangeBtnLabel, VerticalAlignment = VerticalAlignment.Center
             };
             _arrangeBtn.MouseLeftButtonUp += (s, e) => ToggleArrange();
+            Tip.Set(_arrangeBtn, Strings.T("settings.common.arrangeHint"));   // how an arrange works, the same everywhere
             UpdateArrangeRow();
             return _arrangeBtn;
         }
-
-        private static TextBlock ArrangeHint(Thickness margin) => new TextBlock
-        {
-            Text = Strings.T("settings.common.arrangeHint"),
-            Foreground = UiKit.TextMuted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, Margin = margin
-        };
 
         private void ToggleArrange()
         {
