@@ -32,7 +32,9 @@
 ; data folder (plugins.xml). A /DIR test is not fully throwaway: it rewrites the per-user Apps & features
 ; entry (HKCU\...\Uninstall\{9B1E4C7A-5D62-4F0B-8E3C-2A7F6D9C1B45}_is1) to point at the test folder —
 ; put App Path, InstallLocation, DisplayIcon, (Quiet)UninstallString and DisplayVersion back after, and
-; never run the test folder's uninstaller (it deletes the real entry).
+; never run the test folder's uninstaller (it deletes the real entry). It also points the REAL Start menu
+; and desktop shortcuts at the test folder, and /AUTOSTART=no deletes the real HKCU Run value (seen
+; 2026-11-24): put those back too (reg export the Uninstall key and the Run key first).
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
