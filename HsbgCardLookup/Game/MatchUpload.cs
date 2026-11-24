@@ -108,6 +108,19 @@ namespace HsbgCardLookup.Game
 
         public static bool Available => !string.IsNullOrEmpty(Endpoint);
 
+        /// <summary>The site's page of everyone's statistics, open without a sign-in. Empty until the site
+        /// has it: the button is not shown.</summary>
+        public const string DefaultCommunityUrl = "";
+
+        public static string CommunityUrl
+        {
+            get
+            {
+                string test = Environment.GetEnvironmentVariable("TOOLKIT_STATS_URL");
+                return string.IsNullOrEmpty(test) ? DefaultCommunityUrl : test;
+            }
+        }
+
         /// <summary>The address to open, or null when the site didn't give a usable one.</summary>
         public static async Task<string> RequestAsync(string dataDir, string client)
         {

@@ -1357,11 +1357,29 @@ namespace HsbgCardLookup.Ui
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
 
-            // "My stats": the site's page of this PC's matches, behind a sign-in there. Shown once the site has it.
+            // Everyone's statistics: a plain page of the site. Shown once the site has it.
+            if (!string.IsNullOrEmpty(Game.MatchLink.CommunityUrl) || _indexing)
+            {
+                var open = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 6) };
+                open.Children.Add(SmallButton(Strings.T("settings.share.community"), () =>
+                {
+                    OpenUrl(Game.MatchLink.CommunityUrl);
+                    _status.Text = Strings.T("settings.share.statsOpened");
+                }));
+                stack.Children.Add(open);
+                stack.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.share.communityHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+                });
+            }
+
+            // "My account": the player's own matches, behind a sign-in on the site, which also ties this
+            // install to that account. Shown once the site has it.
             if (Game.MatchLink.Available || _indexing)
             {
                 bool asking = false;
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 6) };
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 6) };
                 row.Children.Add(SmallButton(Strings.T("settings.share.stats"), () =>
                 {
                     if (asking) return;
