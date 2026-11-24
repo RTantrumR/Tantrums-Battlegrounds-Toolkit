@@ -143,6 +143,7 @@
     <Compile Include="Ui\ArrangeBanner.cs" />
     <Compile Include="Ui\MmrPanelPreview.cs" />
     <Compile Include="Ui\PortraitsPreview.cs" />
+    <Compile Include="Ui\Tip.cs" />
     <Compile Include="Ui\TrayFlight.cs" />
     <Compile Include="Ui\SettingsDemos.cs" />
     <Compile Include="Ui\PreviewStage.cs" />
@@ -204,6 +205,10 @@
     </None>
     <!-- Bundled tier/tribe icons (small, shipped so distributed users have them offline). -->
     <None Include="data\board\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Other trackers' own marks, for the Ready-made configs list. -->
+    <None Include="data\logos\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="data\tiers\*.png">

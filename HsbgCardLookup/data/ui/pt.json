@@ -299,7 +299,6 @@
   "settings.support": "Apoiar o projeto",
   "settings.config.title": "Config",
   "settings.config.warning": "Importe uma config só de alguém em quem você confie totalmente. O arquivo é verificado antes de qualquer coisa ser aplicada, mas uma verificação pode ser enganada.",
-  "settings.config.fileHeader": "Arquivo de config",
   "settings.config.openFolder": "Abrir pasta",
   "settings.config.shareHeader": "Compartilhar",
   "settings.config.export": "Exportar config…",

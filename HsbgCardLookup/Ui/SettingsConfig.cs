@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using HsbgCardLookup.Config;
+using HsbgCardLookup.Data;
 using HsbgCardLookup.Localization;
 
 namespace HsbgCardLookup.Ui
@@ -26,43 +29,59 @@ namespace HsbgCardLookup.Ui
             _currentPage = BuildConfig;
             var stack = NewPage(Strings.T("settings.config.title"), sub: true);
 
-            stack.Children.Add(new Border
-            {
-                Background = UiKit.Br(Color.FromArgb(0x26, 0xFF, 0x4D, 0x4D)), BorderBrush = UiKit.Br(Color.FromRgb(0xB8, 0x3A, 0x3A)),
-                BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 9, 12, 10),
-                Margin = new Thickness(0, 0, 0, 6),
-                Child = new TextBlock
-                {
-                    Text = Strings.T("settings.config.warning"), Foreground = UiKit.Br(WarnRed), FontSize = 13.5,
-                    FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap
-                }
-            });
-
-            // ── The file ──
-            stack.Children.Add(GroupHeader(Strings.T("settings.config.fileHeader")));
+            // The trust warning and the config folder sit by the title as icons: both are worth a look
+            // once, neither needs a row of the page every time.
             string file = Path.Combine(PluginConfig.DataDir, "config.xml");
-            var fileRow = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 4) };
-            var open = SmallButton(Strings.T("settings.config.openFolder"), () => OpenUrl(PluginConfig.DataDir));
-            open.Margin = new Thickness(10, 0, 0, 0);
-            DockPanel.SetDock(open, Dock.Right);
-            fileRow.Children.Add(open);
-            fileRow.Children.Add(new TextBlock
+            if (stack.Children.Count > 0 && stack.Children[0] is DockPanel head)
             {
-                Text = file, ToolTip = file, Foreground = UiKit.TextSecondary, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            });
-            stack.Children.Add(fileRow);
+                var folder = IconButton("", null, () => OpenUrl(PluginConfig.DataDir));
+                Tip.Set(folder, file, title: Strings.T("settings.config.openFolder"));
+                // A drawn folder: the icon font's folder glyphs read as a door or a page at this size.
+                var shape = new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M1.5,3.5 L6,3.5 L7.5,5 L14.5,5 L14.5,12.5 L1.5,12.5 Z"), Stroke = UiKit.TextSecondary, StrokeThickness = 1.3,
+                    StrokeLineJoin = PenLineJoin.Round, Width = 16, Height = 16, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                };
+                folder.Child = shape;
+                folder.MouseEnter += (s, e) => shape.Stroke = UiKit.AccentBrush;
+                folder.MouseLeave += (s, e) => shape.Stroke = UiKit.TextSecondary;
+                folder.VerticalAlignment = VerticalAlignment.Center;
+                DockPanel.SetDock(folder, Dock.Right);
+                head.Children.Insert(0, folder);
+                var hazard = new Border
+                {
+                    Width = 32, Height = 32, Background = Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(4, 0, 0, 0),
+                    Child = new TextBlock
+                    {
+                        Text = "\uE7BA", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 18, Foreground = UiKit.Br(WarnRed),
+                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                Tip.Set(hazard, Strings.T("settings.config.warning"), TipKind.Warning);
+                DockPanel.SetDock(hazard, Dock.Right);
+                head.Children.Insert(0, hazard);
+            }
 
             // ── Out to a file, in from one ──
-            stack.Children.Add(GroupHeader(Strings.T("settings.config.shareHeader")));
-            var share = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            var shareHead = new StackPanel { Orientation = Orientation.Horizontal };
+            var shareLabel = GroupHeader(Strings.T("settings.config.shareHeader"), first: true);
+            shareHead.Children.Add(shareLabel);
+            shareHead.Children.Add(HelpDot(Strings.T("settings.config.shareHint"), shareLabel.Margin));
+            stack.Children.Add(shareHead);
+            var share = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
             share.Children.Add(SmallButton(Strings.T("settings.config.export"), ExportConfig));
             share.Children.Add(SmallButton(Strings.T("settings.config.import"), ImportConfig));
             stack.Children.Add(share);
+
+            // ── Ready-made configs: a list like the mods page, the other trackers pinned first ──
+            stack.Children.Add(GroupHeader(Strings.T("settings.config.readyHeader")));
             stack.Children.Add(new TextBlock
             {
-                Text = Strings.T("settings.config.shareHint"), Foreground = UiKit.TextMuted, FontSize = 12.5, TextWrapping = TextWrapping.Wrap
+                Text = Strings.T("settings.config.readyHint"), Foreground = UiKit.TextPrimary, FontSize = 13,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
+            foreach (var r in ReadyConfigs.OrderByDescending(r => r.Pinned)) stack.Children.Add(ReadyCard(r));
 
             // ── Presets ──
             stack.Children.Add(GroupHeader(Strings.T("settings.config.presetsHeader")));
@@ -100,7 +119,7 @@ namespace HsbgCardLookup.Ui
 
             var presets = ConfigShare.Presets();
             if (presets.Count == 0)
-                stack.Children.Add(new TextBlock { Text = Strings.T("settings.config.presetsNone"), Foreground = UiKit.TextMuted, FontSize = 13 });
+                stack.Children.Add(new TextBlock { Text = Strings.T("settings.config.presetsNone"), Foreground = UiKit.TextPrimary, FontSize = 13 });
             foreach (string name in presets)
             {
                 string preset = name;
@@ -126,6 +145,132 @@ namespace HsbgCardLookup.Ui
             }
 
             ShowPage();
+        }
+
+        // ── Ready-made configs ──
+        // Each one changes only the switches it lists. The other trackers' entries turn off what that
+        // app draws itself out of the box (docs/research/compat-firestone-hdt.md): Firestone 19.4.7's
+        // settings defaults, HDT 1.60.7's overlay code.
+
+        private sealed class ReadyConfig
+        {
+            public string Name;        // a product name, shown as it is
+            public string ForKey;      // who it is for, one line
+            public bool Pinned;
+            public string Logo;        // data\logos\<Logo>.png, the app's own mark
+            public Color Fill, FillDark, Rim, Accent, Text;   // the card in that app's own colours
+            public KeyValuePair<string, Action<PluginConfig>>[] Off;   // label key → the switch it turns off
+        }
+
+        private static KeyValuePair<string, Action<PluginConfig>> Part(string key, Action<PluginConfig> off) =>
+            new KeyValuePair<string, Action<PluginConfig>>(key, off);
+
+        private static readonly ReadyConfig[] ReadyConfigs =
+        {
+            // Firestone's launcher icon: the flame's amber on its brown, framed in its gold-brown.
+            new ReadyConfig
+            {
+                Name = "Firestone", ForKey = "settings.config.ready.firestone", Pinned = true, Logo = "firestone",
+                Fill = Color.FromRgb(0x43, 0x29, 0x1D), FillDark = Color.FromRgb(0x28, 0x15, 0x10), Rim = Color.FromRgb(0x8E, 0x5B, 0x23),
+                Accent = Color.FromRgb(0xFF, 0xB9, 0x48), Text = Color.FromRgb(0xF0, 0xE2, 0xD0),
+                Off = new[]
+                {
+                    Part("settings.darkGifts.title", c => c.ShowDarkGifts = false),
+                    Part("settings.general.turnCounter", c => c.ShowTurnCounter = false),
+                    Part("settings.lobbyTribes.label", c => c.ShowLobbyTribes = false),
+                    Part("settings.config.ready.lastOpponent", c => c.ShowLastOpponent = false),
+                    Part("settings.boards.label", c => c.ShowOpponentBoards = false),
+                }
+            },
+            // HDT: its black-and-white mark, on its overlay's panel greys.
+            new ReadyConfig
+            {
+                Name = "Hearthstone Deck Tracker", ForKey = "settings.config.ready.hdt", Pinned = true, Logo = "hdt",
+                Fill = Color.FromRgb(0x3A, 0x40, 0x45), FillDark = Color.FromRgb(0x23, 0x27, 0x2A), Rim = Color.FromRgb(0x58, 0x5F, 0x64),
+                Accent = Color.FromRgb(0xEE, 0xF1, 0xF4), Text = Color.FromRgb(0xE2, 0xE6, 0xEA),
+                Off = new[]
+                {
+                    Part("settings.general.turnCounter", c => c.ShowTurnCounter = false),
+                    Part("settings.lobbyTribes.label", c => c.ShowLobbyTribes = false),
+                    Part("settings.boards.label", c => c.ShowOpponentBoards = false),
+                }
+            },
+        };
+
+        private UIElement ReadyCard(ReadyConfig r)
+        {
+            var col = new StackPanel();
+            var name = new StackPanel { Orientation = Orientation.Horizontal };
+            if (r.Pinned)
+                name.Children.Add(new TextBlock
+                {
+                    Text = "", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 13, Foreground = new SolidColorBrush(r.Accent),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1, 7, 0)
+                });
+            name.Children.Add(new TextBlock { Text = r.Name, FontSize = 15, FontWeight = FontWeights.Bold, Foreground = new SolidColorBrush(r.Accent) });
+            col.Children.Add(name);
+            col.Children.Add(new TextBlock
+            {
+                Text = Strings.T(r.ForKey), FontSize = 12.5, Foreground = new SolidColorBrush(r.Text), TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+
+            Func<byte, Brush> tint = a => new SolidColorBrush(Color.FromArgb(a, r.Accent.R, r.Accent.G, r.Accent.B));
+            var apply = new Border
+            {
+                Background = tint(0x26), BorderBrush = new SolidColorBrush(r.Accent), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(14, 6, 14, 6), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0),
+                Child = new TextBlock { Text = Strings.T("settings.config.ready.apply"), FontSize = 13.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(r.Accent) }
+            };
+            Tip.Set(apply, string.Join("\n", r.Off.Select(part => Strings.T(part.Key))), title: Strings.T("settings.config.ready.turnsOff"));
+            apply.MouseEnter += (s, e) => apply.Background = tint(0x4D);
+            apply.MouseLeave += (s, e) => apply.Background = tint(0x26);
+            apply.MouseLeftButtonUp += (s, e) => { e.Handled = true; ApplyReady(r); };
+
+            var dock = new DockPanel();
+            DockPanel.SetDock(apply, Dock.Right);
+            dock.Children.Add(apply);
+            ImageSource logo = null;
+            try { if (r.Logo != null) logo = ImageCache.Load(CardStore.LogoPath(r.Logo), 0); } catch { }
+            if (logo != null)
+            {
+                var mark = new Image { Source = logo, Width = 34, Height = 34, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
+                RenderOptions.SetBitmapScalingMode(mark, BitmapScalingMode.HighQuality);
+                DockPanel.SetDock(mark, Dock.Left);
+                dock.Children.Add(mark);
+            }
+            dock.Children.Add(col);
+            return new Border
+            {
+                Background = new LinearGradientBrush(r.Fill, r.FillDark, 90), BorderBrush = new SolidColorBrush(r.Rim), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 11, 12, 11), Margin = new Thickness(0, 0, 0, 8), Child = dock
+            };
+        }
+
+        // A small round "?" beside a group header; what the group does is in its tooltip.
+        private static Border HelpDot(string tip, Thickness besideHeader)
+        {
+            var dot = new Border
+            {
+                Width = 16, Height = 16, CornerRadius = new CornerRadius(8), BorderBrush = UiKit.TextSecondary, BorderThickness = new Thickness(1),
+                Background = Brushes.Transparent, Cursor = Cursors.Help, VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(7, besideHeader.Top - 1, 0, 0),
+                Child = new TextBlock
+                {
+                    Text = "?", FontSize = 10.5, FontWeight = FontWeights.Bold, Foreground = UiKit.TextSecondary,
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            Tip.Set(dot, tip);
+            return dot;
+        }
+
+        private void ApplyReady(ReadyConfig r)
+        {
+            FlushPending();
+            foreach (var part in r.Off) part.Value(_config);
+            Changed();
+            _status.Text = Strings.F("settings.config.readyApplied", r.Name);
         }
 
         private void ExportConfig()

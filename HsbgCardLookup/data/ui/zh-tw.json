@@ -299,7 +299,6 @@
   "settings.support": "支持本專案",
   "settings.config.title": "設定檔",
   "settings.config.warning": "只匯入你完全信任的人提供的設定檔。檔案在套用前會先經過檢查，但檢查仍可能被繞過。",
-  "settings.config.fileHeader": "設定檔",
   "settings.config.openFolder": "開啟資料夾",
   "settings.config.shareHeader": "分享",
   "settings.config.export": "匯出設定…",

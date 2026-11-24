@@ -98,7 +98,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>The plugin language changed: re-set the tooltip and redraw an open menu.</summary>
         public void Relabel() => OnCanvas(() =>
         {
-            if (_root != null) _root.ToolTip = Strings.T("overlay.bell.tooltip");
+            if (_root != null) Tip.Set(_root, Strings.T("overlay.bell.tooltip"));
             if (_menuOpen) { BuildMenuContent(); Layout(); }
         });
 
@@ -182,8 +182,8 @@ namespace HsbgCardLookup.Ui
                 BorderBrush = new SolidColorBrush(RimColor),
                 Child = face,
                 Cursor = Cursors.Hand,
-                ToolTip = Strings.T("overlay.bell.tooltip"),
             };
+            Tip.Set(_root, Strings.T("overlay.bell.tooltip"));
             _root.MouseLeftButtonUp += (s, e) =>
             {
                 e.Handled = true;

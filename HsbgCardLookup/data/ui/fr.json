@@ -299,7 +299,6 @@
   "settings.support": "Soutenir le projet",
   "settings.config.title": "Config",
   "settings.config.warning": "N’importez une config que si elle vient de quelqu’un en qui vous avez une confiance totale. Le fichier est vérifié avant toute application, mais une vérification peut être déjouée.",
-  "settings.config.fileHeader": "Fichier de config",
   "settings.config.openFolder": "Ouvrir le dossier",
   "settings.config.shareHeader": "Partager",
   "settings.config.export": "Exporter la config…",

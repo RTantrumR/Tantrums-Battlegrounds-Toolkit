@@ -42,6 +42,65 @@ namespace HsbgCardLookup.Ui
             return _searchField;
         }
 
+        /// <summary>Test aid: open the n-th (0-based) styled tooltip on the page under its element, as a
+        /// hover would, and close the others; n &lt; 0 closes them all.</summary>
+        public void TestTip(int n)
+        {
+            int i = 0;
+            Action<DependencyObject> walk = null;
+            walk = d =>
+            {
+                if (d is FrameworkElement fe && fe.ToolTip is ToolTip tt && tt.Content is Border)
+                {
+                    tt.PlacementTarget = fe;
+                    tt.IsOpen = i++ == n;
+                }
+                for (int c = 0; c < VisualTreeHelper.GetChildrenCount(d); c++) walk(VisualTreeHelper.GetChild(d, c));
+            };
+            if (_pageRoot != null) walk(_pageRoot);
+        }
+
+        /// <summary>Test aid: render the "Assemble panels" picture's whole loop as numbered PNG frames
+        /// (frame00000.png…) into <paramref name="dir"/>, at <paramref name="fps"/> and <paramref name="scale"/>
+        /// times its size, by holding its storyboard at each frame's time. Writes done.txt last.</summary>
+        public void TestFrames(string dir, int fps, double scale)
+        {
+            SettingsDemos.AssembleSeek = null;
+            BuildPanels();
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                try
+                {
+                    var seek = SettingsDemos.AssembleSeek; var view = SettingsDemos.AssembleView;
+                    if (seek == null || view == null) { System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "done.txt"), "no picture"); return; }
+                    System.IO.Directory.CreateDirectory(dir);
+                    int count = (int)Math.Round(SettingsDemos.AssembleLength * fps);
+                    int w = (int)Math.Ceiling(view.ActualWidth * scale), h = (int)Math.Ceiling(view.ActualHeight * scale);
+                    for (int i = 0; i < count; i++)
+                    {
+                        seek(i / (double)fps);
+                        view.UpdateLayout();
+                        var shot = new DrawingVisual();
+                        using (var dc = shot.RenderOpen())
+                        {
+                            dc.PushTransform(new ScaleTransform(scale, scale));
+                            dc.DrawRectangle(new VisualBrush(view) { Stretch = Stretch.None }, null, new Rect(0, 0, view.ActualWidth, view.ActualHeight));
+                        }
+                        var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                        bmp.Render(shot);
+                        var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                        png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                        using (var fs = System.IO.File.Create(System.IO.Path.Combine(dir, "frame" + i.ToString("00000") + ".png"))) png.Save(fs);
+                    }
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "done.txt"), count + " frames " + w + "x" + h);
+                }
+                catch (Exception ex) { try { System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "done.txt"), "failed: " + ex.Message); } catch { } }
+            };
+            timer.Start();
+        }
+
         /// <summary>Test aid: as if typed into the search box.</summary>
         public void TestSearch(string term) { SearchBox(); _searchBox.Text = term ?? ""; if (_searchField.Parent == null) _currentPage?.Invoke(); }
 
@@ -58,7 +117,7 @@ namespace HsbgCardLookup.Ui
                 page = page.Substring(0, at);
             }
             if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
-            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts();
+            else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig();
             else if (page == "trinkets") BuildTrinkets(); else if (page == "anomaly") BuildAnomaly(); else BuildPanels();
             Action shoot = null;
             if (wait > 0)

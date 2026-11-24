@@ -650,13 +650,29 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search.StartsWith("frames ", StringComparison.Ordinal))
+            {
+                // "frames <fps> <scale> <folder>": the Assemble panels picture's loop as PNG frames.
+                var a = search.Substring(7).Trim().Split(new[] { ' ' }, 3);
+                int fps; double scale;
+                if (a.Length == 3 && int.TryParse(a[0], out fps) && double.TryParse(a[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale))
+                    try { _settings?.TestFrames(a[2], fps, scale); } catch { }
+                return;
+            }
+            if (search.StartsWith("tip ", StringComparison.Ordinal))
+            {
+                // The n-th styled tooltip on the open page, opened as a hover would (to picture it).
+                int n; if (int.TryParse(search.Substring(4).Trim(), out n)) try { _settings?.TestTip(n); } catch { }
+                return;
+            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).
                 try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
                 return;
             }
-            if (search.StartsWith("snap ", StringComparison.Ordinal))
+            bool snap = search.StartsWith("snap ", StringComparison.Ordinal);
+            if (snap)
             {
                 // A snap never takes the focus and is never seen: opened quietly outside every screen (the
                 // picture is rendered from the window's visuals), or left as it is when already open.
@@ -665,7 +681,7 @@ namespace HsbgCardLookup
             else OpenSettings();
             try
             {
-                if (search.StartsWith("snap ", StringComparison.Ordinal))
+                if (snap)
                     _settings?.TestSnap(search.Substring(5).Trim(), System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png"));
                 else _settings?.TestSearch(search);
             }
