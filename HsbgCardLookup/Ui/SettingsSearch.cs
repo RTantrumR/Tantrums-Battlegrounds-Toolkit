@@ -120,6 +120,8 @@ namespace HsbgCardLookup.Ui
             else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig(); else if (page == "data") BuildMatchData();
             else if (page == "trinkets") BuildTrinkets(); else if (page == "anomaly") BuildAnomaly(); else BuildPanels();
             Action shoot = null;
+            // Never on "application idle": the window is not idle while a language or art loads, and the shot never came.
+            if (wait <= 0) wait = 0.4;
             if (wait > 0)
             {
                 var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(wait) };
@@ -145,7 +147,7 @@ namespace HsbgCardLookup.Ui
                     png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
                     using (var fs = System.IO.File.Create(path)) png.Save(fs);
                 }
-                catch { }
+                catch (Exception e) { try { System.IO.File.WriteAllText(path + ".err", e.ToString()); } catch { } }
             };
         }
 

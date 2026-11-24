@@ -740,7 +740,7 @@ namespace HsbgCardLookup
                     _settings?.TestSnap(search.Substring(5).Trim(), System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png"));
                 else _settings?.TestSearch(search);
             }
-            catch { }
+            catch (Exception e) { Log("settings trigger failed: " + e); }
         }
 
         /// <summary>The settings window has closed. UI thread.</summary>
