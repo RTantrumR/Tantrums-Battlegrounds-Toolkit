@@ -32,6 +32,11 @@ v1.0.1
 - The tray icon's right-click menu is drawn in the toolkit's dark colours instead of Windows' light one.
 - The overlay no longer draws over Hearthstone's friends list or its Esc menu. While either is open, that part of the screen belongs to the game, and the toolkit's elements there disappear until it closes.
 
+### Match data
+- After each ranked Battlegrounds match the toolkit prepares a short report for community statistics on hsbg.cards: the lobby's heroes, minion types and places, your rating and your final board. No names are in it, neither yours nor your opponents'.
+- The Setup asks about it on its own page, ticked by default. Settings, App & updates, has the same switch; turn it off and nothing is sent.
+- The toolkit keeps a record of your last 200 matches in its data folder.
+
 ### Setup
 - The Setup and the toolkit's own files now name the toolkit's author (TantrumUA) and publisher (hsbg.cards) and carry a signature. Windows still shows "Unknown publisher": the signature comes from our own certificate, which no authority vouches for.
 - The Setup installs the standalone program only. Hearthstone Deck Tracker stops running plugins on November 30, so the "Install as HDT plugin" choice is gone. If the HDT plugin is still switched on, the Setup switches it off so the toolkit doesn't run twice.
