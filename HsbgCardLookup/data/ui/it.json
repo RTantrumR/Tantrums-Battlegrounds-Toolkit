@@ -286,7 +286,7 @@
   "settings.autostart.hint": "Resta in attesa nell'area di notifica, senza quasi consumare risorse, finché Hearthstone non si avvia; poi il toolkit si apre e si richiude insieme al gioco.",
   "settings.share.header": "Dati delle partite",
   "settings.share.label": "Condividi dati anonimi delle partite",
-  "settings.share.hint": "Dopo ogni partita classificata il toolkit invia il risultato a hsbg.cards per le statistiche della community: eroi, tipi di servitori e piazzamenti della lobby, il tuo indice e la tua plancia finale. Non viene inviato alcun nome, né il tuo né quello degli avversari.",
+  "settings.share.hint": "Dopo ogni partita in Solo il toolkit invia il risultato a hsbg.cards per le statistiche della community: eroi, tipi di servitori e piazzamenti della lobby, il tuo indice e la tua plancia finale. Non viene inviato alcun nome, né il tuo né quello degli avversari.",
   "settings.share.on": "I dati delle partite vengono condivisi, senza nomi.",
   "settings.share.off": "I dati delle partite restano su questo PC.",
   "settings.autostart.on": "Si avvia con Windows.",

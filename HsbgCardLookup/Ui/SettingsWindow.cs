@@ -370,6 +370,7 @@ namespace HsbgCardLookup.Ui
             tabs.Children.Add(NavTab(Strings.T("settings.anomaly.title"), BuildAnomaly, () => _config.ShowAnomaly));
             tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
             tabs.Children.Add(NavTab(Strings.T("settings.config.title"), BuildConfig, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.share.header"), BuildMatchData, () => _config.ShareMatchData));
             tabs.Children.Add(NavTab(Strings.T("settings.app.title"), BuildUpdates, null));
             tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
             _navNone = new TextBlock
@@ -1340,6 +1341,24 @@ namespace HsbgCardLookup.Ui
             return Strings.F("settings.updates.currentHint", _currentVersion);
         }
 
+        // What the toolkit tells the site about the player's matches.
+        private void BuildMatchData()
+        {
+            _currentPage = BuildMatchData;
+            var stack = NewPage(Strings.T("settings.share.header"), sub: true);
+            stack.Children.Add(ToggleRow(Strings.T("settings.share.label"), _config.ShareMatchData, v =>
+            {
+                _config.ShareMatchData = v;
+                _status.Text = v ? Strings.T("settings.share.on") : Strings.T("settings.share.off");
+                Changed();
+            }));
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.T("settings.share.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+            });
+        }
+
         private void BuildUpdates()
         {
             _currentPage = BuildUpdates;
@@ -1364,20 +1383,7 @@ namespace HsbgCardLookup.Ui
                 });
             }
 
-            stack.Children.Add(GroupHeader(Strings.T("settings.share.header"), first: !autostart.HasValue));
-            stack.Children.Add(ToggleRow(Strings.T("settings.share.label"), _config.ShareMatchData, v =>
-            {
-                _config.ShareMatchData = v;
-                _status.Text = v ? Strings.T("settings.share.on") : Strings.T("settings.share.off");
-                Changed();
-            }));
-            stack.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.share.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
-                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
-            });
-
-            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title")));
+            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));
 
             stack.Children.Add(new TextBlock
             {

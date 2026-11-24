@@ -60,7 +60,7 @@
     "SharePageCaption": "Datos de partidas",
     "SharePageDescription": "Ayuda a crear las estadísticas de la comunidad.",
     "ShareCheck": "Compartir datos anónimos de partidas",
-    "ShareHint": "Tras cada partida clasificatoria, el toolkit envía el resultado a hsbg.cards para las estadísticas de la comunidad: los héroes, tipos de esbirro y puestos de la sala, tu índice y tu tablero final. No se envía ningún nombre, ni el tuyo ni el de tus rivales. Puedes desactivarlo cuando quieras en los ajustes del toolkit.",
+    "ShareHint": "Tras cada partida en Solo, el toolkit envía el resultado a hsbg.cards para las estadísticas de la comunidad: los héroes, tipos de esbirro y puestos de la sala, tu índice y tu tablero final. No se envía ningún nombre, ni el tuyo ni el de tus rivales. Puedes desactivarlo cuando quieras en los ajustes del toolkit.",
     "ReadyShare": "Datos de partidas:",
     "ReadyShareYes": "se comparten sin nombres",
     "ReadyShareNo": "no se comparten",

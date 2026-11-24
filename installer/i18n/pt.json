@@ -60,7 +60,7 @@
     "SharePageCaption": "Dados das partidas",
     "SharePageDescription": "Ajude a construir as estatísticas da comunidade.",
     "ShareCheck": "Compartilhar dados anônimos das partidas",
-    "ShareHint": "Depois de cada partida ranqueada, o toolkit envia o resultado ao hsbg.cards para as estatísticas da comunidade: os heróis, tipos de lacaio e colocações do lobby, a sua classificação e o seu tabuleiro final. Nenhum nome é enviado, nem o seu nem o dos adversários. Você pode desativar isso a qualquer momento nas configurações do toolkit.",
+    "ShareHint": "Depois de cada partida Solo, o toolkit envia o resultado ao hsbg.cards para as estatísticas da comunidade: os heróis, tipos de lacaio e colocações do lobby, a sua classificação e o seu tabuleiro final. Nenhum nome é enviado, nem o seu nem o dos adversários. Você pode desativar isso a qualquer momento nas configurações do toolkit.",
     "ReadyShare": "Dados das partidas:",
     "ReadyShareYes": "compartilhados, sem nomes",
     "ReadyShareNo": "não compartilhados",

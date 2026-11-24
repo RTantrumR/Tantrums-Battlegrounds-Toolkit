@@ -286,7 +286,7 @@
   "settings.autostart.hint": "하스스톤이 시작될 때까지 트레이에서 거의 자원을 쓰지 않고 대기하다가, 시작되면 툴킷이 나타나고 게임이 종료되면 함께 닫힙니다.",
   "settings.share.header": "대전 데이터",
   "settings.share.label": "익명 대전 데이터 공유",
-  "settings.share.hint": "등급전이 끝날 때마다 툴킷이 커뮤니티 통계를 위해 결과를 hsbg.cards로 보냅니다. 로비의 영웅, 하수인 유형, 순위, 내 등급 점수와 최종 전장이 포함됩니다. 내 이름도 상대의 이름도 보내지 않습니다.",
+  "settings.share.hint": "솔로 대전이 끝날 때마다 툴킷이 커뮤니티 통계를 위해 결과를 hsbg.cards로 보냅니다. 로비의 영웅, 하수인 유형, 순위, 내 등급 점수와 최종 전장이 포함됩니다. 내 이름도 상대의 이름도 보내지 않습니다.",
   "settings.share.on": "대전 데이터를 이름 없이 공유합니다.",
   "settings.share.off": "대전 데이터는 이 PC에만 남습니다.",
   "settings.autostart.on": "Windows와 함께 시작합니다.",
