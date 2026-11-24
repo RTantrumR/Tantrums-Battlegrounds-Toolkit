@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "Demande à hsbg.cards…",
   "settings.share.statsOpened": "Ouvert dans le navigateur.",
   "settings.share.statsFailed": "Impossible de joindre hsbg.cards. Réessayez plus tard.",
-  "settings.share.linkHint": "Vous connecte avec Battle.net sur hsbg.cards. Tant que vous n’êtes pas connecté, vos parties sont enregistrées sans nom. Ensuite, vous seul les voyez comme les vôtres ; les autres ne reçoivent toujours que les statistiques sans noms. La connexion associe ce PC à votre compte : à partir de là, les parties qu’il envoie y sont ajoutées. Connectez-vous depuis chaque PC sur lequel vous jouez, et tous alimentent le même compte.",
+  "settings.share.linkHint": "Vous connecte avec Battle.net sur hsbg.cards. Tant que vous n’êtes pas connecté, vos parties sont enregistrées sans nom. Ensuite, vous seul les voyez comme les vôtres ; les autres ne reçoivent toujours que les statistiques sans noms. La connexion associe ce PC à votre compte, et ses parties y sont ajoutées. Connectez-vous depuis un autre PC sur lequel vous jouez, et ses parties sont elles aussi ajoutées à votre compte.",
   "settings.share.community": "Statistiques de la communauté",
   "settings.share.communityHint": "Ce que donnent ensemble les parties partagées par tous : héros, types de serviteurs, places. Ouvert à tous, sans connexion.",
   "settings.autostart.on": "Se lance avec Windows.",

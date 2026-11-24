@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "正在連線 hsbg.cards…",
   "settings.share.statsOpened": "已在瀏覽器中開啟。",
   "settings.share.statsFailed": "無法連線 hsbg.cards，請稍後再試。",
-  "settings.share.linkHint": "在 hsbg.cards 上用 Battle.net 登入。登入之前，你的對戰以不含名字的方式儲存。登入之後，只有你能看到哪些是你的對戰；其他人仍然只會得到不含名字的統計。登入會把這台電腦連結到你的帳號：從那時起，它傳送的對戰都會加入你的帳號。在你玩遊戲的每台電腦上登入，它們都會計入同一個帳號。",
+  "settings.share.linkHint": "在 hsbg.cards 上用 Battle.net 登入。登入之前，你的對戰以不含名字的方式儲存。登入之後，只有你能看到哪些是你的對戰；其他人仍然只會得到不含名字的統計。登入會把這台電腦連結到你的帳號，它的對戰會加入你的帳號。在你玩遊戲的另一台電腦上登入，那台電腦的對戰也會加入你的帳號。",
   "settings.share.community": "社群統計",
   "settings.share.communityHint": "所有人分享的對戰彙總：英雄、手下類型、名次。不需登入，人人可看。",
   "settings.autostart.on": "隨 Windows 啟動。",

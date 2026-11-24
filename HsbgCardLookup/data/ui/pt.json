@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "Consultando o hsbg.cards…",
   "settings.share.statsOpened": "Aberto no navegador.",
   "settings.share.statsFailed": "Não foi possível acessar o hsbg.cards. Tente de novo mais tarde.",
-  "settings.share.linkHint": "Faz login com a Battle.net no hsbg.cards. Até você entrar, suas partidas são guardadas sem nome. Depois, só você as vê como suas; todos os outros continuam recebendo apenas as estatísticas sem nomes. Entrar vincula este PC à sua conta: a partir daí, as partidas que ele envia são adicionadas a ela. Entre de cada PC em que você joga e todos somam na mesma conta.",
+  "settings.share.linkHint": "Faz login com a Battle.net no hsbg.cards. Até você entrar, suas partidas são guardadas sem nome. Depois, só você as vê como suas; todos os outros continuam recebendo apenas as estatísticas sem nomes. Entrar vincula este PC à sua conta, e as partidas dele são adicionadas a ela. Entre de outro PC em que você joga, e as partidas dele também são adicionadas à sua conta.",
   "settings.share.community": "Estatísticas da comunidade",
   "settings.share.communityHint": "O que somam as partidas compartilhadas por todos: heróis, tipos de lacaio, colocações. Aberto a todos, sem login.",
   "settings.autostart.on": "Inicia com o Windows.",

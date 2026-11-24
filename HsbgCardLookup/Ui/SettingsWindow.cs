@@ -1361,7 +1361,8 @@ namespace HsbgCardLookup.Ui
             if (!string.IsNullOrEmpty(Game.MatchLink.CommunityUrl) || _indexing)
             {
                 var open = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 6) };
-                open.Children.Add(SmallButton(Strings.T("settings.share.community"), () =>
+                open.Children.Add(LinkButton(Strings.T("settings.share.community"), StatsGlyph, UiKit.AccentBrush,
+                    Color.FromRgb(0x24, 0x2E, 0x42), Color.FromRgb(0x16, 0x1C, 0x28), UiKit.Accent, Color.FromRgb(0xFF, 0xD9, 0x7A), UiKit.TextPrimary, () =>
                 {
                     OpenUrl(Game.MatchLink.CommunityUrl);
                     _status.Text = Strings.T("settings.share.statsOpened");
@@ -1380,7 +1381,8 @@ namespace HsbgCardLookup.Ui
             {
                 bool asking = false;
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 6) };
-                row.Children.Add(SmallButton(Strings.T("settings.share.stats"), () =>
+                row.Children.Add(LinkButton(Strings.T("settings.share.stats"), AccountGlyph, Brushes.White,
+                    AccountBlue, AccountBlueDeep, AccountRim, Color.FromRgb(0x6C, 0xC0, 0xFF), Brushes.White, () =>
                 {
                     if (asking) return;
                     asking = true;
@@ -1493,6 +1495,28 @@ namespace HsbgCardLookup.Ui
                 _status.Text = Strings.T("settings.updates.checking");
                 _checkForUpdates();
             }));
+        }
+
+        // The Match data page's two ways out to the site, each in its own colours: a small picture, then the words.
+        private static readonly Geometry StatsGlyph = Geometry.Parse("M0,10 h3.4 v6 h-3.4 z M5.3,5 h3.4 v11 h-3.4 z M10.6,0 h3.4 v16 h-3.4 z");
+        private static readonly Geometry AccountGlyph = Geometry.Parse("M7,0 a3.8,3.8 0 1 1 0,7.6 a3.8,3.8 0 1 1 0,-7.6 z M0,16 a7,6.4 0 0 1 14,0 z");
+        private static readonly Color AccountBlue = Color.FromRgb(0x10, 0x4E, 0x9E), AccountBlueDeep = Color.FromRgb(0x0A, 0x2A, 0x5C),
+            AccountRim = Color.FromRgb(0x14, 0x8E, 0xFF);
+
+        private static Border LinkButton(string text, Geometry glyph, Brush glyphFill, Color top, Color bottom, Color rim, Color rimHover, Brush words, Action onClick)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new System.Windows.Shapes.Path { Data = glyph, Fill = glyphFill, Width = 14, Height = 16, Stretch = Stretch.Uniform, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 9, 0) });
+            row.Children.Add(new TextBlock { Text = text, Foreground = words, FontSize = 14, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+            var b = new Border
+            {
+                Background = new LinearGradientBrush(top, bottom, 90), BorderBrush = new SolidColorBrush(rim), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(14, 8, 16, 8), Cursor = Cursors.Hand, Child = row, MinWidth = 170
+            };
+            b.MouseEnter += (s, e) => b.BorderBrush = new SolidColorBrush(rimHover);
+            b.MouseLeave += (s, e) => b.BorderBrush = new SolidColorBrush(rim);
+            b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClick?.Invoke(); };
+            return b;
         }
 
         private static Border SmallButton(string text, Action onClick)

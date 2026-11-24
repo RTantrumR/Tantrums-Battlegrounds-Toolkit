@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "hsbg.cards に問い合わせ中…",
   "settings.share.statsOpened": "ブラウザーで開きました。",
   "settings.share.statsFailed": "hsbg.cards に接続できませんでした。あとでもう一度お試しください。",
-  "settings.share.linkHint": "hsbg.cards に Battle.net でサインインします。サインインするまで、あなたの対戦は名前なしで保存されます。サインイン後は、あなただけが自分の対戦として見ることができ、他の人には引き続き名前のない統計だけが届きます。サインインするとこの PC があなたのアカウントに紐づけられ、それ以降この PC が送る対戦はアカウントに追加されます。プレイする PC ごとにサインインすれば、すべて同じアカウントに追加されます。",
+  "settings.share.linkHint": "hsbg.cards に Battle.net でサインインします。サインインするまで、あなたの対戦は名前なしで保存されます。サインイン後は、あなただけが自分の対戦として見ることができ、他の人には引き続き名前のない統計だけが届きます。サインインするとこの PC があなたのアカウントに紐づけられ、この PC の対戦がアカウントに追加されます。プレイする別の PC からサインインすれば、その PC の対戦もあなたのアカウントに追加されます。",
   "settings.share.community": "コミュニティ統計",
   "settings.share.communityHint": "共有されたすべての対戦の集計です：ヒーロー、種族、順位。サインイン不要で誰でも見られます。",
   "settings.autostart.on": "Windows と同時に起動します。",

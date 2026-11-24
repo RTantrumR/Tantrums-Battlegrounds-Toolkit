@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "Pytam hsbg.cards…",
   "settings.share.statsOpened": "Otwarto w przeglądarce.",
   "settings.share.statsFailed": "Nie udało się połączyć z hsbg.cards. Spróbuj później.",
-  "settings.share.linkHint": "Loguje cię przez Battle.net na hsbg.cards. Dopóki się nie zalogujesz, twoje mecze są zapisywane bez nazwy. Potem tylko ty widzisz je jako swoje; wszyscy inni nadal dostają tylko statystyki bez nazw. Logowanie wiąże ten komputer z twoim kontem: od tej chwili mecze, które wysyła, są do niego dodawane. Zaloguj się z każdego komputera, na którym grasz, a wszystkie będą zasilać to samo konto.",
+  "settings.share.linkHint": "Loguje cię przez Battle.net na hsbg.cards. Dopóki się nie zalogujesz, twoje mecze są zapisywane bez nazwy. Potem tylko ty widzisz je jako swoje; wszyscy inni nadal dostają tylko statystyki bez nazw. Logowanie wiąże ten komputer z twoim kontem, a jego mecze są do niego dodawane. Zaloguj się z innego komputera, na którym grasz, a jego mecze też zostaną dodane do twojego konta.",
   "settings.share.community": "Statystyki społeczności",
   "settings.share.communityHint": "To, co dają razem mecze udostępnione przez wszystkich: bohaterowie, rodzaje stronników, miejsca. Dostępne dla każdego, bez logowania.",
   "settings.autostart.on": "Uruchamia się z systemem Windows.",

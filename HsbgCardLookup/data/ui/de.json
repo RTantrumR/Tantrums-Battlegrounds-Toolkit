@@ -293,7 +293,7 @@
   "settings.share.statsOpening": "hsbg.cards wird gefragt…",
   "settings.share.statsOpened": "Im Browser geöffnet.",
   "settings.share.statsFailed": "hsbg.cards ist nicht erreichbar. Versuchen Sie es später erneut.",
-  "settings.share.linkHint": "Meldet Sie mit Battle.net bei hsbg.cards an. Solange Sie nicht angemeldet sind, werden Ihre Matches ohne Namen gespeichert. Danach sehen nur Sie sie als Ihre eigenen; alle anderen erhalten weiterhin nur die namenlosen Statistiken. Die Anmeldung verknüpft diesen PC mit Ihrem Konto: Von da an werden die Matches, die er sendet, Ihrem Konto hinzugefügt. Melden Sie sich von jedem PC an, auf dem Sie spielen, und alle zählen für dasselbe Konto.",
+  "settings.share.linkHint": "Meldet Sie mit Battle.net bei hsbg.cards an. Solange Sie nicht angemeldet sind, werden Ihre Matches ohne Namen gespeichert. Danach sehen nur Sie sie als Ihre eigenen; alle anderen erhalten weiterhin nur die namenlosen Statistiken. Die Anmeldung verknüpft diesen PC mit Ihrem Konto, und seine Matches werden dem Konto hinzugefügt. Melden Sie sich von einem weiteren PC an, auf dem Sie spielen, und auch dessen Matches werden Ihrem Konto hinzugefügt.",
   "settings.share.community": "Community-Statistiken",
   "settings.share.communityHint": "Was alle geteilten Matches zusammen ergeben: Helden, Dienertypen, Platzierungen. Für alle offen, ohne Anmeldung.",
   "settings.autostart.on": "Startet mit Windows.",
