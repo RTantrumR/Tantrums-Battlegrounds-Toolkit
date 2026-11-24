@@ -402,14 +402,13 @@ namespace HsbgCardLookup.Ui
             var dock = new DockPanel { LastChildFill = true };
             if (on != null)
             {
-                var dot = new System.Windows.Shapes.Ellipse
-                {
-                    Width = 8, Height = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 1, 0, 0),
-                    Fill = on() ? UiKit.Br(Color.FromRgb(0x4C, 0xC2, 0x6A)) : UiKit.Br(Color.FromRgb(0x4A, 0x52, 0x60))
-                };
-                DockPanel.SetDock(dot, Dock.Right);
-                dock.Children.Add(dot);
-                _modeRefresh.Add(() => dot.Fill = on() ? UiKit.Br(Color.FromRgb(0x4C, 0xC2, 0x6A)) : UiKit.Br(Color.FromRgb(0x4A, 0x52, 0x60)));
+                // A small lamp, lit while the page's feature is on. Taller than the row's text: the
+                // negative margin keeps the row at the height it had with the old 8 px dot.
+                bool lit = on();
+                var lamp = new Border { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, -5, -3, -5), Child = Diode.Create(lit) };
+                DockPanel.SetDock(lamp, Dock.Right);
+                dock.Children.Add(lamp);
+                _modeRefresh.Add(() => { bool now = on(); if (now != lit) { lit = now; lamp.Child = Diode.Create(lit); } });
             }
             if (icon is FrameworkElement fe)
             {

@@ -182,6 +182,7 @@
     <Compile Include="Ui\WebpDecoder.cs" />
     <Compile Include="Ui\ResultConverters.cs" />
     <Compile Include="Ui\UiKit.cs" />
+    <Compile Include="Ui\Diode.cs" />
     <Compile Include="Ui\Dropdown.cs" />
     <Compile Include="Ui\OverlayBase.cs" />
     <Compile Include="Ui\OverlayLarge.cs" />
