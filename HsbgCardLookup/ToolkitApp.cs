@@ -577,6 +577,8 @@ namespace HsbgCardLookup
                 case Ui.ArrangeTarget.Anomaly: _config.AnomalyHud = new HudPlacement(); break;
                 case Ui.ArrangeTarget.MmrPanel: _config.MmrPanelHud = new HudPlacement(); break;
                 case Ui.ArrangeTarget.Boards: _config.OpponentBoardsHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.SearchButton: _config.SearchButtonHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.Bell: _config.BellHud = new HudPlacement(); break;
                 default: return;
             }
             Log("arrange: " + target + " restored to its default place");

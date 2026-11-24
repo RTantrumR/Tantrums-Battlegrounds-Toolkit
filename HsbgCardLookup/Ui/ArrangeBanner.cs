@@ -112,6 +112,8 @@ namespace HsbgCardLookup.Ui
                 case ArrangeTarget.Anomaly: return Strings.T("arrange.target.anomaly");
                 case ArrangeTarget.MmrPanel: return Strings.T("arrange.target.mmrPanel");
                 case ArrangeTarget.Boards: return Strings.T("arrange.target.boards");
+                case ArrangeTarget.SearchButton: return Strings.T("arrange.target.searchButton");
+                case ArrangeTarget.Bell: return Strings.T("arrange.target.bell");
                 default: return "";
             }
         }

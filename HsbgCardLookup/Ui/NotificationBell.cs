@@ -58,6 +58,7 @@ namespace HsbgCardLookup.Ui
         private double _scale = 1;
         private DateTime _lastPoll = DateTime.MinValue;
         private string _lastSig;
+        private readonly PillArrange _arrange;    // moving/sizing it from Settings
 
         public NotificationBell(PluginConfig config, Action<string> openDownload, Action<string> skip, Action<string> log = null)
         {
@@ -65,6 +66,7 @@ namespace HsbgCardLookup.Ui
             _openDownload = openDownload;
             _skip = skip;
             _log = log;
+            _arrange = new PillArrange(config, () => _config.BellHud ?? (_config.BellHud = new HudPlacement()), Layout);
         }
 
         // ── Any thread: state in, marshalled to the canvas thread ────────────────────────────────
@@ -75,14 +77,16 @@ namespace HsbgCardLookup.Ui
             if ((now - _lastPoll).TotalMilliseconds < 500) return;
             _lastPoll = now;
 
-            bool show = false;
-            try { show = ArrangeSession.AllowsSearchButton && HostServices.Game != null && HostServices.Game.IsBattlegroundsMatch; }
+            // Being arranged, it shows outside a match too.
+            bool arranging = ArrangeSession.Active == ArrangeTarget.Bell;
+            bool show = arranging;
+            try { show = show || (ArrangeSession.AllowsBell && HostServices.Game != null && HostServices.Game.IsBattlegroundsMatch); }
             catch { }
 
-            string sig = show ? "1" : "0";
+            string sig = (show ? "1" : "0") + (arranging ? "a" : "");
             if (sig == _lastSig) return;
             _lastSig = sig;
-            OnCanvas(() => Apply(show));
+            OnCanvas(() => Apply(show, arranging));
         }
 
         public void OnSettingsChanged() => _lastSig = null;
@@ -107,6 +111,7 @@ namespace HsbgCardLookup.Ui
                     var canvas = HostServices.Overlay?.Canvas;
                     if (canvas == null || !_attached) return;
                     canvas.SizeChanged -= OnCanvasSizeChanged;
+                    _arrange.Detach(canvas);
                     canvas.Children.Remove(_root);
                     if (_menu != null) canvas.Children.Remove(_menu);
                     _attached = false;
@@ -122,11 +127,12 @@ namespace HsbgCardLookup.Ui
 
         // ── Canvas thread from here down ─────────────────────────────────────────────────────────
 
-        private void Apply(bool show)
+        private void Apply(bool show, bool arranging)
         {
+            if (!show || arranging) { if (_menuOpen) CloseMenu(); }
             if (!show)
             {
-                if (_menuOpen) CloseMenu();
+                _arrange.Hide(); _arrange.SetArranging(false);
                 if (_root != null) _root.Visibility = Visibility.Collapsed;
                 return;
             }
@@ -137,10 +143,12 @@ namespace HsbgCardLookup.Ui
                 Build();
                 canvas.Children.Add(_root);
                 canvas.Children.Add(_menu);
+                _arrange.Attach(canvas, _root);
                 canvas.SizeChanged += OnCanvasSizeChanged;
                 _attached = true;
             }
             _root.Visibility = Visibility.Visible;
+            _arrange.SetArranging(arranging);
             Refresh();
             Layout();
         }
@@ -179,6 +187,7 @@ namespace HsbgCardLookup.Ui
             _root.MouseLeftButtonUp += (s, e) =>
             {
                 e.Handled = true;
+                if (_arrange.Arranging) return;          // a press while arranging moves it
                 if (_menuOpen) CloseMenu(); else OpenMenu();
             };
             try { HostServices.Overlay?.SetHitTestVisible(_root); } catch { }
@@ -411,19 +420,32 @@ namespace HsbgCardLookup.Ui
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
 
-            double scale = SearchButton.ScaleFor(ch);
-            bool rescaled = Math.Abs(scale - _scale) > 0.001;
-            _scale = scale;
+            double baseScale = SearchButton.ScaleFor(ch);
+            bool rescaled = Math.Abs(baseScale - _scale) > 0.001;
+            _scale = baseScale;                                    // the menu's text size
 
+            var hud = _config.BellHud;
+            double scale = baseScale * PillArrange.UserScale(hud);  // the bell's own size
             double size = RefSize * scale;
-            double searchLeft = cw - (SearchButton.RefRightInset + SearchButton.RefBtnW) * scale;
-            double left = searchLeft - RefGap * scale - size;
-            double top = ch - SearchButton.RefBottomInset * scale - size;
+            var search = SearchButton.RectFor(_config, cw, ch);
+            double left, top;
+            if (PillArrange.Placed(hud))
+            {
+                var r = PillArrange.RectAt(hud, cw, ch, size, size);
+                left = r.Left; top = r.Top;
+            }
+            else
+            {
+                // Never arranged: RefGap left of the search button, bottoms level, wherever that button is.
+                left = Math.Max(0, search.Left - RefGap * baseScale - size);
+                top = Math.Max(0, search.Bottom - size);
+            }
             _root.Width = _root.Height = size;
             _root.CornerRadius = new CornerRadius(size / 2);
             _root.BorderThickness = new Thickness(Math.Max(1.0, 2.2 * scale));
             Canvas.SetLeft(_root, left);
             Canvas.SetTop(_root, top);
+            _arrange.PlaceHandle(left, top, size);
 
             double badge = Math.Max(14, 17 * scale);
             foreach (var (b, t) in new[] { (_greenBadge, _greenCount), (_yellowBadge, _yellowCount) })
@@ -438,16 +460,20 @@ namespace HsbgCardLookup.Ui
             if (_menu != null && _menuOpen)
             {
                 if (rescaled) BuildMenuContent();
-                double w = RefMenuW * scale;
+                double w = RefMenuW * baseScale;
                 _menu.Width = w;
-                _menu.CornerRadius = new CornerRadius(8 * scale);
-                _menu.BorderThickness = new Thickness(Math.Max(1.0, 1.2 * scale));
+                _menu.CornerRadius = new CornerRadius(8 * baseScale);
+                _menu.BorderThickness = new Thickness(Math.Max(1.0, 1.2 * baseScale));
                 _menu.Measure(new Size(w, double.PositiveInfinity));
                 double h = _menu.DesiredSize.Height;
-                // Right edge on the search button's right edge, just above the corner pills.
-                double menuLeft = Math.Max(0, searchLeft + SearchButton.RefBtnW * scale - w);
+                // Right edge on the search button's right edge while the bell sits beside it, else on
+                // the bell's own; above the bell in the lower half of the screen, below it in the upper.
+                double right = PillArrange.Placed(hud) ? left + size : search.Right;
+                double menuLeft = Math.Max(0, Math.Min(right - w, cw - w));
+                double gap = 8 * baseScale;
+                double menuTop = top + size / 2 > ch / 2 ? top - gap - h : top + size + gap;
                 Canvas.SetLeft(_menu, menuLeft);
-                Canvas.SetTop(_menu, Math.Max(0, top - 8 * scale - h));
+                Canvas.SetTop(_menu, Math.Max(0, Math.Min(menuTop, ch - h)));
             }
         }
     }

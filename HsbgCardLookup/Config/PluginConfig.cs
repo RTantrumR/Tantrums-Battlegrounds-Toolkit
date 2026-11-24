@@ -31,6 +31,11 @@ namespace HsbgCardLookup.Config
         // Magnifying-glass button on the in-game overlay (left of the game's card-list book,
         // bottom-right) that toggles the search — a mouse path for players without the hotkey.
         public bool ShowSearchButton { get; set; } = true;
+        // Where the search button and the bell beside it were arranged to: XF/YF = the pill's middle
+        // (canvas fractions), WF = a size factor on the game's height scale. Unset = the corner spot;
+        // an unarranged bell keeps to the left of the search button, wherever that is.
+        public HudPlacement SearchButtonHud { get; set; } = new HudPlacement();
+        public HudPlacement BellHud { get; set; } = new HudPlacement();
         // Floating cards dragged onto the screen hide together with the overlay (and reappear when
         // it reopens). When false, they live independently and survive the overlay closing/unfocusing.
         public bool HideDraggedWithApp { get; set; } = true;

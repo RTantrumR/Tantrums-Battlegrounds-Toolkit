@@ -970,7 +970,9 @@ namespace HsbgCardLookup.Ui
                     ? Strings.T("settings.cardSearch.searchButtonOn")
                     : Strings.T("settings.cardSearch.searchButtonOff");
                 Changed();
+                UpdateArrangeRow();
             }));
+            stack.Children.Add(ArrangeHudRow(ArrangeTarget.SearchButton, Strings.T("settings.cardSearch.arrangeTitle")));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.showDuos"), _config.ShowDuos, v =>
             {
@@ -1368,6 +1370,10 @@ namespace HsbgCardLookup.Ui
             _updateActionsHost = new StackPanel();
             stack.Children.Add(_updateActionsHost);
             RepaintUpdateArea();
+
+            // The in-game bell carries the update news, so it is placed from here.
+            stack.Children.Add(new Border { Height = 10 });
+            stack.Children.Add(ArrangeHudRow(ArrangeTarget.Bell, Strings.T("settings.app.arrangeBellTitle")));
 
             ShowPage();
         }
@@ -2127,6 +2133,8 @@ namespace HsbgCardLookup.Ui
                 case ArrangeTarget.Anomaly: return _config.ShowAnomaly;
                 case ArrangeTarget.MmrPanel: return _config.ShowOpponentMmr && _config.PanelInUse;
                 case ArrangeTarget.Boards: return _config.ShowOpponentBoards;
+                case ArrangeTarget.SearchButton: return _config.ShowSearchButton;
+                case ArrangeTarget.Bell: return true;
                 default: return false;
             }
         }
