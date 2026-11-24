@@ -77,7 +77,11 @@ namespace HsbgCardLookup.Game
     public sealed class RecordedPlayer
     {
         [JsonProperty("id")] public int PlayerId;
+        /// <summary>The hero as last seen; a hero that transforms in the match ends as its other form.</summary>
         [JsonProperty("hero")] public string Hero;
+        /// <summary>The hero as first seen (the pick): the same in every recording of the lobby, so the lobby's
+        /// eight picks plus its start time tell one lobby from another across players.</summary>
+        [JsonProperty("picked")] public string Picked;
         [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)] public string Name;
         [JsonProperty("place")] public int Place;
         [JsonProperty("me", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Me;
@@ -88,7 +92,7 @@ namespace HsbgCardLookup.Game
     /// <summary>One match as the recorder saw it: <c>match-records\&lt;yyyyMMdd_HHmmss&gt;.json</c> in the data folder.</summary>
     public sealed class MatchRecord
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
         [JsonProperty("v")] public int Version = CurrentVersion;
         [JsonProperty("id")] public string Id;
         [JsonProperty("startUtc")] public DateTime StartUtc;
@@ -105,6 +109,9 @@ namespace HsbgCardLookup.Game
         [JsonProperty("season", DefaultValueHandling = DefaultValueHandling.Ignore)] public int Season;
         [JsonProperty("ratingSeason", DefaultValueHandling = DefaultValueHandling.Ignore)] public int RatingSeason;
         [JsonProperty("hero")] public string Hero;
+        /// <summary>The heroes we were offered, one list per offer slot (left to right); a slot rerolled shows
+        /// each hero it held, in order, so its last one was on offer at the pick.</summary>
+        [JsonProperty("heroOffers")] public List<List<string>> HeroOffers = new List<List<string>>();
         [JsonProperty("heroPowers")] public List<string> HeroPowers = new List<string>();
         [JsonProperty("trinkets")] public List<string> Trinkets = new List<string>();
         [JsonProperty("place")] public int Place;
@@ -169,6 +176,9 @@ namespace HsbgCardLookup.Game
         private bool _rejoinCheck;         // a game began while a record was open: the same match, or a new one?
         private MatchRecord _last;         // the match just written, for a rating that arrives after it
         private string _lastPath;
+        // The hero choice: offer entity id -> (slot position, every hero it showed). Gathered before the match's
+        // record opens (the pick comes first) and handed to it when it does.
+        private readonly Dictionary<int, KeyValuePair<int, List<string>>> _offers = new Dictionary<int, KeyValuePair<int, List<string>>>();
 
         public MatchRecorder(IGameState game, IClientMemory memory, string folder, Action<string> log)
         {
@@ -185,6 +195,7 @@ namespace HsbgCardLookup.Game
                 if (_started)
                 {
                     _started = false; _armed = true; _ratingSeen = null;
+                    _offers.Clear();
                     // A rejoin raises the start again; which it is shows once the board is readable.
                     _rejoinCheck = _rec != null;
                 }
@@ -218,6 +229,7 @@ namespace HsbgCardLookup.Game
             int pid = _game.PlayerId;
             if (me == null || pid == 0) return;
             int turn = _game.TurnNumber;
+            if (turn <= 1) GatherOffers(pid);
             if (turn <= 0) return;                       // heroes are still being picked
 
             IGameEntity gameEntity;
@@ -261,6 +273,8 @@ namespace HsbgCardLookup.Game
             foreach (var t in _game.PlayerTrinkets())
                 if (!string.IsNullOrEmpty(t.CardId) && !_rec.Trinkets.Contains(t.CardId)) _rec.Trinkets.Add(t.CardId);
             UpdatePlayers(heroes, pid);
+            if (_rec.HeroOffers.Count == 0 && _offers.Count > 0)
+                _rec.HeroOffers = _offers.Values.OrderBy(o => o.Key).Select(o => o.Value.ToList()).ToList();
 
             if (_turn != null && turn > _turn.Number) EndFight(heroes, mine);
             if (_turn == null || turn > _turn.Number)
@@ -300,6 +314,19 @@ namespace HsbgCardLookup.Game
             _rec.HeroPowers = _game.Entities()
                 .Where(e => e.GetTag(Tags.CARDTYPE) == CardTypeHeroPower && e.GetTag(Tags.CONTROLLER) == pid && e.IsInPlay && !string.IsNullOrEmpty(e.CardId))
                 .OrderBy(e => e.Id).Select(e => e.CardId).Distinct().ToList();
+        }
+
+        // The hero choice is our hero cards in hand; a reroll changes the card of the same entity.
+        private void GatherOffers(int pid)
+        {
+            foreach (var e in _game.Entities())
+            {
+                if (e.GetTag(Tags.CARDTYPE) != CardTypeHero || e.GetTag(Tags.CONTROLLER) != pid || e.GetTag(Tags.ZONE) != ZoneHand) continue;
+                if (string.IsNullOrEmpty(e.CardId)) continue;
+                KeyValuePair<int, List<string>> o;
+                if (!_offers.TryGetValue(e.Id, out o)) _offers[e.Id] = o = new KeyValuePair<int, List<string>>(e.GetTag(Tags.ZONE_POSITION), new List<string>());
+                if (o.Value.Count == 0 || o.Value[o.Value.Count - 1] != e.CardId) o.Value.Add(e.CardId);
+            }
         }
 
         // The shop's own controls are entities of ours in play too: the refresh, freeze and tier-up buttons,
@@ -380,6 +407,7 @@ namespace HsbgCardLookup.Game
                 var p = _rec.Players.FirstOrDefault(x => x.PlayerId == kv.Key);
                 if (p == null) _rec.Players.Add(p = new RecordedPlayer { PlayerId = kv.Key, Me = kv.Key == pid });
                 p.Hero = kv.Value.CardId ?? p.Hero;
+                if (p.Picked == null) p.Picked = kv.Value.CardId;
                 p.Place = kv.Value.GetTag(Tags.PLAYER_LEADERBOARD_PLACE);
                 p.Tags = kv.Value.AllTags();
                 if (p.Name == null && p.Hero != null)
