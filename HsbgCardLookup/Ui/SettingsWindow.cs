@@ -1357,6 +1357,7 @@ namespace HsbgCardLookup.Ui
                 Text = Strings.T("settings.share.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
+            ShowPage();
         }
 
         private void BuildUpdates()
