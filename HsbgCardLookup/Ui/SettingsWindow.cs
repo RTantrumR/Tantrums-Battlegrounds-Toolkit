@@ -963,6 +963,9 @@ namespace HsbgCardLookup.Ui
             stack.Children.Add(KeyRow("focus", Strings.T("settings.cardSearch.keyFocusSearch")));
 
             stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.gameHeader")));
+            // Arrange sits on the switch's own line: switching the button on shows at once that it can be placed.
+            var arrangeSearch = ArrangeButton(ArrangeTarget.SearchButton);
+            arrangeSearch.Margin = new Thickness(0, 0, 8, 0);
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {
                 _config.ShowSearchButton = v;
@@ -971,8 +974,8 @@ namespace HsbgCardLookup.Ui
                     : Strings.T("settings.cardSearch.searchButtonOff");
                 Changed();
                 UpdateArrangeRow();
-            }));
-            stack.Children.Add(ArrangeHudRow(ArrangeTarget.SearchButton, Strings.T("settings.cardSearch.arrangeTitle")));
+            }, demo: arrangeSearch));
+            stack.Children.Add(ArrangeHint(new Thickness(0, -2, 0, 8)));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.showDuos"), _config.ShowDuos, v =>
             {
@@ -2040,9 +2043,23 @@ namespace HsbgCardLookup.Ui
         // the Trinket + Anomaly sub-pages (it arranges both HUDs at once).
         private UIElement ArrangeHudRow(ArrangeTarget target, string title)
         {
-            _arrangeTargetOnPage = target;
             var dock = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 4) };
+            var btn = ArrangeButton(target);
+            DockPanel.SetDock(btn, Dock.Right);
+            dock.Children.Add(btn);
 
+            var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+            left.Children.Add(new TextBlock { Text = title, Foreground = UiKit.TextPrimary, FontSize = 15 });
+            left.Children.Add(ArrangeHint(new Thickness(0)));
+            dock.Children.Add(left);
+            return dock;
+        }
+
+        // The page's one Arrange button (a page arranges one thing), wired to the session and painted
+        // by UpdateArrangeRow.
+        private Border ArrangeButton(ArrangeTarget target)
+        {
+            _arrangeTargetOnPage = target;
             _arrangeBtnLabel = new TextBlock { Text = Strings.T("settings.common.arrange"), Foreground = UiKit.TextPrimary, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center };
             _arrangeBtn = new Border
             {
@@ -2051,21 +2068,15 @@ namespace HsbgCardLookup.Ui
                 Width = ControlW, Child = _arrangeBtnLabel, VerticalAlignment = VerticalAlignment.Center
             };
             _arrangeBtn.MouseLeftButtonUp += (s, e) => ToggleArrange();
-            DockPanel.SetDock(_arrangeBtn, Dock.Right);
-            dock.Children.Add(_arrangeBtn);
-
-            var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-            left.Children.Add(new TextBlock { Text = title, Foreground = UiKit.TextPrimary, FontSize = 15 });
-            left.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.common.arrangeHint"),
-                Foreground = UiKit.TextMuted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap
-            });
-            dock.Children.Add(left);
-
             UpdateArrangeRow();
-            return dock;
+            return _arrangeBtn;
         }
+
+        private static TextBlock ArrangeHint(Thickness margin) => new TextBlock
+        {
+            Text = Strings.T("settings.common.arrangeHint"),
+            Foreground = UiKit.TextMuted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, Margin = margin
+        };
 
         private void ToggleArrange()
         {
