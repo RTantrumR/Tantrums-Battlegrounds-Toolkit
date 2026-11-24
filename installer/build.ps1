@@ -3,9 +3,8 @@
   Build installer\out\TantrumsBattlegroundsToolkit-Setup-<version>.exe with Inno Setup 6.
 
 .DESCRIPTION
-  Builds Release (unless -SkipBuild), stages what the plugin folder needs — the plugin DLL, the
-  bundled WebP-decoder DLLs and data\ (the same set package.ps1 zips) — into installer\stage, then
-  compiles HsbgCardLookup.iss. The version defaults to what Plugin.cs reports, like package.ps1.
+  Builds Release (unless -SkipBuild), stages the standalone program — its exe, the plugin assembly
+  it hosts, the bundled DLLs and data\ — into installer\stage, then compiles HsbgCardLookup.iss. The version defaults to what Plugin.cs reports, like package.ps1.
   The wizard's texts in its 12 languages come from installer\i18n\<lang>.json, turned into
   out\messages.iss here — compile the .iss through this script, not on its own.
   package.ps1 calls this with -SkipBuild after its own build and copies the result into dist\.
@@ -56,21 +55,18 @@ if (-not (Test-Path "$bin\data\cards.json")) { throw "data\cards.json missing fr
 $standaloneBin = "$repo\Standalone\bin\Release"
 if (-not (Test-Path "$standaloneBin\TantrumsToolkitStandalone.exe")) { throw "Standalone exe not found in $standaloneBin" }
 
-# Two sets, one per mode. Plugin: our DLL + the bundled runtime deps (HDT's own assemblies are
-# Private=False) + data\. Standalone: the exe, its config, every DLL next to it (the plugin assembly,
-# Json.NET, the WebP decoder), data\ and the icon. No PDBs, logs or test leftovers.
+# The standalone: the exe, its config, every DLL next to it (the plugin assembly, Json.NET, the WebP
+# decoder), data\ and the icon. No PDBs, logs or test leftovers. (The HDT plugin is no longer installed.)
 $stage = Join-Path $here "stage"
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path "$stage\plugin", "$stage\standalone" | Out-Null
-Copy-Item "$bin\*.dll" "$stage\plugin" -Force
-Copy-Item "$bin\data" "$stage\plugin" -Recurse -Force
+New-Item -ItemType Directory -Force -Path "$stage\standalone" | Out-Null
 Copy-Item "$standaloneBin\TantrumsToolkitStandalone.exe", "$standaloneBin\TantrumsToolkitStandalone.exe.config", "$standaloneBin\toolkit.ico" "$stage\standalone" -Force
 Copy-Item "$standaloneBin\*.dll" "$stage\standalone" -Force
 Copy-Item "$standaloneBin\data" "$stage\standalone" -Recurse -Force
 
 # Never ship a stale build: every staged binary of ours must carry the version being packaged.
-foreach ($f in "$stage\plugin\HsbgCardLookup.dll", "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
-    $v = (Get-Item $f).VersionInfo.FileVersion
+foreach ($f in "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
+    $v =(Get-Item $f).VersionInfo.FileVersion
     if ($v -ne $Version -and $v -ne "$Version.0") { throw "Stale build staged: $f is version $v, not $Version (rebuild without -SkipBuild)" }
 }
 
@@ -83,7 +79,7 @@ if ($SignPfx) {
         Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
     if (-not $signtool) { throw "signtool.exe not found (Windows SDK)" }
     $pw = (Get-Content -Raw $SignPasswordFile).Trim()
-    foreach ($f in "$stage\plugin\HsbgCardLookup.dll", "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
+    foreach ($f in "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
         & $signtool sign /q /fd sha256 /f $SignPfx /p $pw $f
         if ($LASTEXITCODE -ne 0) { throw "signtool failed on $f (exit $LASTEXITCODE)" }
     }

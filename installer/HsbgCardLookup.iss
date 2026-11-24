@@ -1,45 +1,19 @@
-﻿; Tantrum's Battlegrounds Toolkit — per-user setup, as a program of its own or as the Hearthstone
-; Deck Tracker plugin (the "How should the toolkit run?" page; /MODE=standalone|plugin).
+; Tantrum's Battlegrounds Toolkit — per-user setup of the standalone program.
 ;
-; Standalone: TantrumsToolkitStandalone.exe and the plugin assembly it hosts go to
-; %LOCALAPPDATA%\Programs\TantrumsBattlegroundsToolkit, with a Start menu shortcut; its data lives in
-; %APPDATA%\TantrumsBattlegroundsToolkit (the exe copies the plugin's folder there on its first run).
-; A second page makes the player choose how it starts — with Windows (the --autostart watcher,
-; idle in the tray until Hearthstone starts: HKCU\...\Run) or by hand (optionally a desktop
-; shortcut) — with no default (/AUTOSTART=yes|no, /DESKTOP=yes|no for a silent run).
-; Only one mode runs: installing one switches the other off — the standalone sets the plugin's
-; IsEnabled to false in HDT's plugins.xml (HDT closed first, or its shutdown would write it back);
-; the plugin removes the standalone's autostart. A running standalone is asked to close (the named
-; event TantrumsBattlegroundsToolkit.Quit, which Standalone\Shared.cs listens for) before its files
-; are replaced. Tests: /DIR= plus /DATADIR= (standalone data) and /HDTDATA= (HDT's data folder).
+; TantrumsToolkitStandalone.exe and the plugin assembly it hosts go to
+; %LOCALAPPDATA%\Programs\TantrumsBattlegroundsToolkit, with Start menu and desktop shortcuts; its data
+; lives in %APPDATA%\TantrumsBattlegroundsToolkit (the exe copies the old plugin's folder there on its
+; first run). A page makes the player choose how it starts — with Windows (the --autostart watcher,
+; idle in the tray until Hearthstone starts: HKCU\...\Run) or by hand — with no default
+; (/AUTOSTART=yes|no for a silent run). A running standalone is asked to close (the named event
+; TantrumsBattlegroundsToolkit.Quit, which Standalone\Shared.cs listens for) before its files are replaced.
+; Built by installer\build.ps1, which stages the Release build into installer\stage and passes the
+; version as /DAppVersion.
 ;
-; Plugin mode, as before:
-; Built by installer\build.ps1, which stages the Release build (the plugin DLL, the bundled
-; WebP-decoder DLLs and data\) into installer\stage first and passes the version as /DAppVersion.
-;
-; What it does, in order: makes sure Hearthstone Deck Tracker is installed (the "Hearthstone Deck
-; Tracker" page below — Setup does not go past it until HDT is found), closes HDT gracefully (a
-; WM_CLOSE to its main window runs HDT's own shutdown, which writes plugins.xml — a killed HDT never
-; writes it), copies the files into %APPDATA%\HearthstoneDeckTracker\Plugins\HsbgCardLookup, and on
-; a PC where the plugin has never run switches it on in plugins.xml (HDT starts a newly found plugin
-; OFF and never asks). Then it offers to start HDT. Upgrades install over the previous files (same
-; AppId); Apps & features gets an uninstall entry. The uninstaller removes the plugin folder only —
-; settings and the art cache in %APPDATA%\HearthstoneDeckTracker\HsbgCardLookup stay. HDT's
-; per-version mirror under %LOCALAPPDATA% needs no cleanup: HDT's SyncPlugins deletes mirror files
-; that are gone from Roaming at the next start.
-;
-; Finding HDT. The plugin folder is always %APPDATA%\HearthstoneDeckTracker\Plugins, for the
-; installed and the portable HDT alike (HDT's PluginManager.PluginDirectory = Config.AppDataPath);
-; what Setup needs HDT's program for is to know it exists, to start it at the end, and — for a
-; portable HDT that keeps its config next to its exe — to find plugins.xml (Config.ConfigDir).
-; Looked for, in order: the exe picked with "Locate HDT...", /HDTEXE=<path>, a running HDT (its
-; process image path), the Squirrel launcher %LOCALAPPDATA%\HearthstoneDeckTracker\HearthstoneDeckTracker.exe,
-; an Apps & features entry named "Hearthstone Deck Tracker" (its InstallLocation), and the exe the
-; last run of this Setup used. A found app-<ver>\HearthstoneDeckTracker.exe is swapped for the
-; Squirrel launcher next to app-<ver>, which always starts the newest version.
-; When nothing is found the page says so, links hsdecktracker.net, and offers Check again and
-; Locate HDT...; Next stays disabled. A silent install without HDT fails (exit code 7) instead of
-; installing a plugin nothing will load.
+; The HDT plugin is no longer installed (HDT ends plugins on 2026-11-30; the "Install as HDT plugin"
+; choice was removed 2026-11-24). An old plugin install still switched on is switched OFF in HDT's
+; plugins.xml (IsEnabled=false; HDT is asked to close first, or its shutdown would write it back), so
+; the toolkit never runs twice. Its files stay, so switching back is one click in HDT.
 ;
 ; Languages. The wizard runs in the language Windows is set to when it has that one (English
 ; otherwise — Russian and Ukrainian systems included); Inno's own "Select Setup Language" box is off.
@@ -51,19 +25,14 @@
 ; Latin American Spanish systems get es-mx, Taiwan/Hong Kong/Macau Chinese get zh-tw), on an
 ; upgrade the language already set; the Ready page shows it again. The choice reaches the plugin as setup-language.txt in its data
 ; folder, which the plugin applies once and deletes; the wizard never writes config.xml, because
-; the plugin's first-run defaults and PluginEverRan below both depend on it not existing.
+; the toolkit's first-run defaults and its welcome marker both depend on it not existing.
 ; /TOOLKITLANG=<code> preselects (silent installs too); "follow" = same as HDT.
 ;
-; Testing: /DIR=<temp>\HearthstoneDeckTracker\Plugins\HsbgCardLookup installs into a throwaway
-; profile — every data path in [Code] is derived from {app}, never from {userappdata} directly.
-; /ASSUMENOHDT=1 ignores every automatic way of finding HDT, so the not-found page shows; Locate
-; HDT... and /HDTEXE= still work under it. Point /HDTEXE at a copy, not your real HDT, when testing
-; a portable layout: a config.xml next to that exe makes Setup write plugins.xml there.
-; A /DIR test is not fully throwaway: it rewrites the per-user Apps & features entry
-; (HKCU\...\Uninstall\{9B1E4C7A-5D62-4F0B-8E3C-2A7F6D9C1B45}_is1) to point at the test folder —
-; put App Path, InstallLocation, DisplayIcon, (Quiet)UninstallString, DisplayVersion and
-; Inno Setup CodeFile: HdtExe back after, and never run the test folder's uninstaller (it deletes
-; the real entry).
+; Testing: /DIR=<temp> installs the program into a throwaway folder, /DATADIR= the data, /HDTDATA= HDT's
+; data folder (plugins.xml). A /DIR test is not fully throwaway: it rewrites the per-user Apps & features
+; entry (HKCU\...\Uninstall\{9B1E4C7A-5D62-4F0B-8E3C-2A7F6D9C1B45}_is1) to point at the test folder —
+; put App Path, InstallLocation, DisplayIcon, (Quiet)UninstallString and DisplayVersion back after, and
+; never run the test folder's uninstaller (it deletes the real entry).
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -82,8 +51,7 @@ AppUpdatesURL=https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releas
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany=hsbg.cards
 VersionInfoCopyright=Copyright © 2026 TantrumUA
-; The plugin's folder; the mode page swaps in the standalone's (ApplyModeDir) unless /DIR is given.
-DefaultDirName={userappdata}\HearthstoneDeckTracker\Plugins\HsbgCardLookup
+DefaultDirName={localappdata}\Programs\TantrumsBattlegroundsToolkit
 DisableDirPage=yes
 UsePreviousAppDir=no
 DirExistsWarning=no
@@ -130,12 +98,8 @@ Name: "chinesetraditional"; MessagesFile: "languages\ChineseTraditional.isl"
 #include "out\messages.iss"
 
 [Files]
-; HDT 1.57+ runs plugins from a per-version mirror that it refreshes from this folder at startup,
-; but only files with a NEWER timestamp — "touch" stamps every installed file with the install time,
-; so the mirror always picks the new files up (install.bat did the same).
-Source: "stage\plugin\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs touch; Check: IsPluginMode
 ; The standalone: the exe, the plugin assembly it hosts, the bundled libraries, data\ and the icon.
-Source: "stage\standalone\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: IsStandaloneMode
+Source: "stage\standalone\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; The language page's flags (rendered from the plugin's own Ui\Flags.cs by build.ps1), unpacked
 ; to {tmp} for the page only.
@@ -148,16 +112,14 @@ Type: files; Name: "{app}\*.dll"
 Type: filesandordirs; Name: "{app}\data"
 
 [Icons]
-Name: "{userprograms}\{#AppDisplayName}"; Filename: "{app}\TantrumsToolkitStandalone.exe"; WorkingDir: "{app}"; Check: IsStandaloneMode
-Name: "{userdesktop}\{#AppDisplayName}"; Filename: "{app}\TantrumsToolkitStandalone.exe"; WorkingDir: "{app}"; Check: WantDesktopShortcut
+Name: "{userprograms}\{#AppDisplayName}"; Filename: "{app}\TantrumsToolkitStandalone.exe"; WorkingDir: "{app}"
+; Always, in either start mode (owner, 2026-11-19): a closed toolkit must be easy to find again.
+Name: "{userdesktop}\{#AppDisplayName}"; Filename: "{app}\TantrumsToolkitStandalone.exe"; WorkingDir: "{app}"
 
 [Run]
-; The HDT that the "Hearthstone Deck Tracker" page found (for the installed HDT, the Squirrel
-; launcher, which starts the newest app-<ver>). Never next to a live instance.
-Filename: "{code:HdtExePath}"; WorkingDir: "{code:HdtExeDir}"; Description: "{cm:RunHdt}"; Flags: postinstall nowait skipifsilent; Check: HdtCanStartPlugin
 ; The standalone: with autostart, the watcher (it brings the toolkit up when Hearthstone starts);
 ; otherwise the toolkit itself.
-Filename: "{app}\TantrumsToolkitStandalone.exe"; Parameters: "{code:ToolkitStartArgs}"; WorkingDir: "{app}"; Description: "{cm:RunToolkit}"; Flags: postinstall nowait skipifsilent; Check: IsStandaloneMode
+Filename: "{app}\TantrumsToolkitStandalone.exe"; Parameters: "{code:ToolkitStartArgs}"; WorkingDir: "{app}"; Description: "{cm:RunToolkit}"; Flags: postinstall nowait skipifsilent
 
 [Code]
 const
@@ -165,10 +127,7 @@ const
   AppName = '{#StringChange(AppDisplayName, "'", "''")}';   // the display name, apostrophe escaped
   HdtProcessName = 'HearthstoneDeckTracker.exe';
   HdtWindowTitle = 'Hearthstone Deck Tracker';
-  HdtDownloadUrl = 'https://hsdecktracker.net/';
   PluginFileName = 'Plugins/HsbgCardLookup/HsbgCardLookup.dll';
-  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
-  OwnAppIdPart = '9B1E4C7A-5D62-4F0B-8E3C-2A7F6D9C1B45';
   // Shared with Standalone\Shared.cs — change both together.
   StandaloneExe = 'TantrumsToolkitStandalone.exe';
   QuitEventName = 'TantrumsBattlegroundsToolkit.Quit';
@@ -176,13 +135,6 @@ const
   RunValue = 'TantrumsBattlegroundsToolkit';
 
 var
-  PluginEnabled: Boolean;   // this run wrote the enabled entry into plugins.xml
-  HdtExe: String;           // HearthstoneDeckTracker.exe that was found; '' while HDT is not found
-  HdtSource: String;        // where it was found, for the page and the log
-  ManualHdtExe: String;     // picked with "Locate HDT..." in this run
-  FoundAtStart: Boolean;    // found before the wizard showed: the HDT page is skipped
-
-  HdtPage: TWizardPage;
   LangPage: TWizardPage;
   LangRadios: array of TNewRadioButton;
   LangCodes: TArrayOfString;   // LangRadios[i] -> the plugin's language code ('' = same as HDT)
@@ -195,60 +147,25 @@ var
   WizardLangFlag: TBitmapImage;
   WizardLangNames: TArrayOfString;   // WizardLangCombo item i -> Inno language name
   Restarting: Boolean;         // closing this run because Setup was started again in another language
-  HdtStatusText: TNewStaticText;
-  HdtDetailText: TNewStaticText;
-  HdtGetButton: TNewButton;
-  HdtCheckButton: TNewButton;
-  HdtLocateButton: TNewButton;
 
-  ModePage: TWizardPage;
-  ModeStandaloneRadio, ModePluginRadio: TNewRadioButton;
-  ModePluginHint: TNewStaticText;
-  InitialStandalone: Boolean;   // the mode the page starts on
   AutoPage: TWizardPage;
   AutoYesRadio, AutoNoRadio: TNewRadioButton;
   DesktopCheck: TNewCheckBox;
-  PluginDisabled: Boolean;      // this run switched the HDT plugin off (standalone mode)
+  PluginDisabled: Boolean;      // this run switched an old HDT plugin install off
 
 // ---------------------------------------------------------------------------------------------
-// The two modes and where each keeps its files
+// Where the toolkit keeps its files
 // ---------------------------------------------------------------------------------------------
-
-function IsStandaloneMode: Boolean;
-begin
-  if ModeStandaloneRadio <> nil then Result := ModeStandaloneRadio.Checked
-  else Result := InitialStandalone;
-end;
-
-function IsPluginMode: Boolean;
-begin
-  Result := not IsStandaloneMode;
-end;
-
-function DirGiven: Boolean;
-begin
-  Result := ExpandConstant('{param:DIR|}') <> '';
-end;
 
 function StandaloneDefaultDir: String;
 begin
   Result := ExpandConstant('{localappdata}\Programs\TantrumsBattlegroundsToolkit');
 end;
 
-function PluginDefaultDir: String;
-begin
-  Result := ExpandConstant('{userappdata}\HearthstoneDeckTracker\Plugins\HsbgCardLookup');
-end;
-
-// HDT's data folder (plugins.xml, the plugin's HsbgCardLookup\ data folder). In plugin mode it is
-// derived from {app} = <HDT data>\Plugins\HsbgCardLookup, so a /DIR test profile stays
-// self-contained; in standalone mode {app} is the program folder, so /HDTDATA= or %APPDATA%.
+// HDT's data folder, where plugins.xml says whether an old plugin install is switched on.
 function HdtDataRoot: String;
 begin
-  if IsPluginMode then
-    Result := ExtractFileDir(ExtractFileDir(ExpandConstant('{app}')))
-  else
-    Result := ExpandConstant('{param:HDTDATA|{userappdata}\HearthstoneDeckTracker}');
+  Result := ExpandConstant('{param:HDTDATA|{userappdata}\HearthstoneDeckTracker}');
 end;
 
 function StandaloneDataDir: String;
@@ -256,34 +173,24 @@ begin
   Result := ExpandConstant('{param:DATADIR|{userappdata}\TantrumsBattlegroundsToolkit}');
 end;
 
-// The toolkit's data folder for the mode being installed.
 function DataDir(Param: String): String;
 begin
-  if IsStandaloneMode then Result := StandaloneDataDir
-  else Result := HdtDataRoot + '\HsbgCardLookup';
+  Result := StandaloneDataDir;
 end;
 
 function UninstallName(Param: String): String;
 begin
-  if IsStandaloneMode then Result := AppName
-  else Result := AppName + ' (HDT plugin)';
+  Result := AppName;
 end;
 
 function UninstallIcon(Param: String): String;
 begin
-  if IsStandaloneMode then Result := ExpandConstant('{app}\' + StandaloneExe)
-  else Result := ExpandConstant('{uninstallexe}');
+  Result := ExpandConstant('{app}\' + StandaloneExe);
 end;
 
 function WantAutostart: Boolean;
 begin
-  Result := IsStandaloneMode and (AutoYesRadio <> nil) and AutoYesRadio.Checked;
-end;
-
-function WantDesktopShortcut: Boolean;
-begin
-  // Always, in either start mode (owner, 2026-11-19): a closed toolkit must be easy to find again.
-  Result := IsStandaloneMode;
+  Result := (AutoYesRadio <> nil) and AutoYesRadio.Checked;
 end;
 
 function ToolkitStartArgs(Param: String): String;
@@ -291,339 +198,8 @@ begin
   if WantAutostart then Result := '--autostart' else Result := '';
 end;
 
-// The folder for the mode: the page swaps it whenever the mode changes, unless /DIR fixed it.
-procedure ApplyModeDir;
-begin
-  if DirGiven then Exit;
-  if IsStandaloneMode then WizardForm.DirEdit.Text := StandaloneDefaultDir
-  else WizardForm.DirEdit.Text := PluginDefaultDir;
-end;
-
-// ---------------------------------------------------------------------------------------------
-// Finding Hearthstone Deck Tracker
-// ---------------------------------------------------------------------------------------------
-
-// For the installed HDT, prefer the Squirrel launcher at the root over app-<ver>\…exe: the
-// launcher starts the newest version, while app-<ver> goes away at HDT's next update.
-function PreferSquirrelLauncher(const Exe: String): String;
-var
-  Parent, Launcher: String;
-begin
-  Result := Exe;
-  Parent := ExtractFileDir(Exe);
-  if Pos('app-', Lowercase(ExtractFileName(Parent))) = 1 then
-  begin
-    Launcher := AddBackslash(ExtractFileDir(Parent)) + HdtProcessName;
-    if FileExists(Launcher) then
-      Result := Launcher;
-  end;
-end;
-
-// The path when it names an existing HearthstoneDeckTracker.exe, else ''.
-function ValidHdtExe(Path: String): String;
-begin
-  Result := '';
-  Path := RemoveQuotes(Trim(Path));
-  if Path = '' then Exit;
-  if (CompareText(ExtractFileName(Path), HdtProcessName) = 0) and FileExists(Path) then
-    Result := PreferSquirrelLauncher(Path);
-end;
-
-function OpenProcess(DesiredAccess: DWORD; InheritHandle: BOOL; ProcessId: DWORD): THandle;
-  external 'OpenProcess@kernel32.dll stdcall';
-function QueryFullProcessImageName(Process: THandle; Flags: DWORD; ExeName: String; var Size: DWORD): BOOL;
-  external 'QueryFullProcessImageNameW@kernel32.dll stdcall';
 function CloseHandle(Handle: THandle): BOOL;
   external 'CloseHandle@kernel32.dll stdcall';
-
-// The program file of a process. PROCESS_QUERY_LIMITED_INFORMATION is granted even for a process
-// running elevated, where WMI's ExecutablePath comes back Null.
-function ProcessImagePath(Pid: DWORD): String;
-var
-  H: THandle;
-  Size: DWORD;
-begin
-  Result := '';
-  H := OpenProcess($1000 {PROCESS_QUERY_LIMITED_INFORMATION}, False, Pid);
-  if H = 0 then Exit;
-  try
-    Size := 1024;
-    SetLength(Result, Size);
-    if QueryFullProcessImageName(H, 0, Result, Size) then
-      SetLength(Result, Size)
-    else
-      Result := '';
-  finally
-    CloseHandle(H);
-  end;
-end;
-
-function RunningHdtExe: String;
-var
-  Locator, Wmi, Found: Variant;
-  I: Integer;
-begin
-  Result := '';
-  try
-    Locator := CreateOleObject('WbemScripting.SWbemLocator');
-    Wmi := Locator.ConnectServer('.', 'root\CIMV2');
-    Found := Wmi.ExecQuery('SELECT ProcessId FROM Win32_Process WHERE Name = ''' + HdtProcessName + '''');
-    for I := 0 to Found.Count - 1 do
-    begin
-      Result := ValidHdtExe(ProcessImagePath(Found.ItemIndex(I).ProcessId));
-      if Result <> '' then Exit;
-    end;
-  except
-    Log('RunningHdtExe: WMI query failed: ' + GetExceptionMessage);
-  end;
-end;
-
-// HDT's Squirrel setup registers a per-user Apps & features entry whose InstallLocation is the
-// folder holding the launcher. Matched by DisplayName, so a renamed key still counts.
-function HdtFromUninstallEntries(RootKey: Integer): String;
-var
-  Names: TArrayOfString;
-  I: Integer;
-  Key, Name, Location: String;
-begin
-  Result := '';
-  if not RegGetSubkeyNames(RootKey, UninstallKey, Names) then Exit;
-  for I := 0 to GetArrayLength(Names) - 1 do
-  begin
-    if Pos(OwnAppIdPart, Uppercase(Names[I])) > 0 then Continue;
-    Key := UninstallKey + '\' + Names[I];
-    if not RegQueryStringValue(RootKey, Key, 'DisplayName', Name) then Continue;
-    if Pos('hearthstone deck tracker', Lowercase(Name)) = 0 then Continue;
-    if not RegQueryStringValue(RootKey, Key, 'InstallLocation', Location) then Continue;
-    Location := RemoveQuotes(Trim(Location));
-    if Location = '' then Continue;
-    Result := ValidHdtExe(AddBackslash(Location) + HdtProcessName);
-    if Result <> '' then Exit;
-  end;
-end;
-
-function AssumeNoHdt: Boolean;
-begin
-  Result := ExpandConstant('{param:ASSUMENOHDT|0}') = '1';
-end;
-
-// Sets HdtExe and HdtSource; HdtExe stays '' when HDT is not found.
-procedure DetectHdt;
-begin
-  HdtSource := '';
-  HdtExe := ValidHdtExe(ManualHdtExe);
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcPicked'); Exit; end;
-
-  HdtExe := ValidHdtExe(ExpandConstant('{param:HDTEXE|}'));
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcParam'); Exit; end;
-
-  if AssumeNoHdt then
-  begin
-    Log('/ASSUMENOHDT=1: not looking for Hearthstone Deck Tracker by itself');
-    Exit;
-  end;
-
-  HdtExe := RunningHdtExe;
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcRunning'); Exit; end;
-
-  HdtExe := ValidHdtExe(ExpandConstant('{localappdata}\HearthstoneDeckTracker\') + HdtProcessName);
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcUsual'); Exit; end;
-
-  HdtExe := HdtFromUninstallEntries(HKCU);
-  if HdtExe = '' then HdtExe := HdtFromUninstallEntries(HKLM32);
-  if (HdtExe = '') and IsWin64 then HdtExe := HdtFromUninstallEntries(HKLM64);
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcApps'); Exit; end;
-
-  HdtExe := ValidHdtExe(GetPreviousData('HdtExe', ''));
-  if HdtExe <> '' then begin HdtSource := CustomMessage('SrcPrevious'); Exit; end;
-end;
-
-procedure LogHdt;
-begin
-  if HdtExe <> '' then
-    Log('Hearthstone Deck Tracker found via ' + HdtSource + ': ' + HdtExe)
-  else
-    Log('Hearthstone Deck Tracker not found');
-end;
-
-function HdtExePath(Param: String): String;
-begin
-  Result := HdtExe;
-end;
-
-function HdtExeDir(Param: String): String;
-begin
-  Result := ExtractFileDir(HdtExe);
-end;
-
-// Where HDT reads plugins.xml (its Config.ConfigDir): %APPDATA%\HearthstoneDeckTracker, except for
-// a portable HDT that keeps config.xml next to its exe. The installed (Squirrel) HDT always uses
-// %APPDATA%, and its launcher folder never holds a config.xml.
-function HdtConfigDir: String;
-var
-  ExeDir: String;
-begin
-  Result := HdtDataRoot;
-  if HdtExe = '' then Exit;
-  ExeDir := ExtractFileDir(HdtExe);
-  if FileExists(AddBackslash(ExeDir) + 'config.xml') then
-    Result := ExeDir;
-end;
-
-procedure RegisterPreviousData(PreviousDataKey: Integer);
-begin
-  SetPreviousData(PreviousDataKey, 'HdtExe', HdtExe);
-  if IsStandaloneMode then SetPreviousData(PreviousDataKey, 'Mode', 'standalone')
-  else SetPreviousData(PreviousDataKey, 'Mode', 'plugin');
-end;
-
-// ---------------------------------------------------------------------------------------------
-// The "Hearthstone Deck Tracker" page
-// ---------------------------------------------------------------------------------------------
-
-procedure UpdateHdtPage;
-var
-  ButtonTop: Integer;
-begin
-  if HdtExe <> '' then
-  begin
-    HdtStatusText.Caption := CustomMessage('HdtFound');
-    HdtDetailText.Caption :=
-      HdtExe + #13#10 + FmtMessage(CustomMessage('HdtFoundVia'), [HdtSource]) + #13#10#13#10 +
-      CustomMessage('HdtFoundNext');
-    HdtGetButton.Visible := False;
-    HdtCheckButton.Left := 0;
-    HdtLocateButton.Left := HdtGetButton.Width + ScaleX(8);
-    HdtLocateButton.Caption := CustomMessage('HdtUseAnother');
-  end
-  else
-  begin
-    HdtStatusText.Caption := CustomMessage('HdtNotFound');
-    HdtDetailText.Caption := CustomMessage('HdtNotFoundSteps');
-    HdtGetButton.Visible := True;
-    HdtCheckButton.Left := HdtGetButton.Width + ScaleX(8);
-    HdtLocateButton.Left := 2 * (HdtGetButton.Width + ScaleX(8));
-    HdtLocateButton.Caption := CustomMessage('HdtLocate');
-  end;
-  // Fit the label to its text (on Windows the not-found text wraps to six lines; a fixed height
-  // cut the last one off behind the buttons) and keep the buttons right under it.
-  WizardForm.AdjustLabelHeight(HdtDetailText);
-  ButtonTop := HdtDetailText.Top + HdtDetailText.Height + ScaleY(8);
-  HdtGetButton.Top := ButtonTop;
-  HdtCheckButton.Top := ButtonTop;
-  HdtLocateButton.Top := ButtonTop;
-  if (WizardForm <> nil) and (WizardForm.CurPageID = HdtPage.ID) then
-    WizardForm.NextButton.Enabled := (HdtExe <> '') or WizardSilent;
-end;
-
-procedure HdtGetButtonClick(Sender: TObject);
-var
-  ErrorCode: Integer;
-begin
-  if not ShellExec('open', HdtDownloadUrl, '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode) then
-    MsgBox(FmtMessage(CustomMessage('HdtBrowserFailed'), [HdtDownloadUrl]), mbError, MB_OK);
-end;
-
-procedure HdtCheckButtonClick(Sender: TObject);
-begin
-  DetectHdt;
-  LogHdt;
-  UpdateHdtPage;
-  if HdtExe = '' then
-    MsgBox(CustomMessage('HdtStillNotFound'), mbInformation, MB_OK)
-  else
-    WizardForm.ActiveControl := WizardForm.NextButton;
-end;
-
-procedure HdtLocateButtonClick(Sender: TObject);
-var
-  FileName, InitialDir: String;
-begin
-  FileName := '';
-  if HdtExe <> '' then
-    InitialDir := ExtractFileDir(HdtExe)
-  else
-    InitialDir := ExpandConstant('{localappdata}');
-  if not GetOpenFileName(CustomMessage('HdtPickTitle'), FileName, InitialDir,
-       'Hearthstone Deck Tracker (HearthstoneDeckTracker.exe)|HearthstoneDeckTracker.exe|' +
-       CustomMessage('HdtPickPrograms') + ' (*.exe)|*.exe',
-       'exe') then
-    Exit;
-  if ValidHdtExe(FileName) = '' then
-  begin
-    MsgBox(CustomMessage('HdtNotHdt'), mbError, MB_OK);
-    Exit;
-  end;
-  ManualHdtExe := FileName;
-  DetectHdt;
-  LogHdt;
-  UpdateHdtPage;
-  WizardForm.ActiveControl := WizardForm.NextButton;
-end;
-
-procedure CreateHdtPage;
-var
-  Intro: TNewStaticText;
-  Gap, ButtonWidth: Integer;
-begin
-  HdtPage := CreateCustomPage(ModePage.ID, 'Hearthstone Deck Tracker', CustomMessage('HdtPageDescription'));
-
-  Intro := TNewStaticText.Create(HdtPage);
-  Intro.Parent := HdtPage.Surface;
-  Intro.AutoSize := False;
-  Intro.WordWrap := True;
-  Intro.Left := 0;
-  Intro.Top := 0;
-  Intro.Width := HdtPage.SurfaceWidth;
-  Intro.Height := ScaleY(42);
-  Intro.Caption := CustomMessage('HdtIntro');
-
-  HdtStatusText := TNewStaticText.Create(HdtPage);
-  HdtStatusText.Parent := HdtPage.Surface;
-  HdtStatusText.Left := 0;
-  HdtStatusText.Top := Intro.Top + Intro.Height + ScaleY(6);
-  HdtStatusText.Font.Style := [fsBold];
-
-  // The buttons sit right under the text (UpdateHdtPage sizes the text and places them, and moves
-  // them left when Download is hidden): the surface grows after InitializeWizard, so a position
-  // taken from SurfaceHeight here would leave them floating mid-page.
-  HdtDetailText := TNewStaticText.Create(HdtPage);
-  HdtDetailText.Parent := HdtPage.Surface;
-  HdtDetailText.AutoSize := False;
-  HdtDetailText.WordWrap := True;
-  HdtDetailText.Left := 0;
-  HdtDetailText.Top := HdtStatusText.Top + ScaleY(22);
-  HdtDetailText.Width := HdtPage.SurfaceWidth;
-  HdtDetailText.Height := ScaleY(84);
-
-  Gap := ScaleX(8);
-  ButtonWidth := (HdtPage.SurfaceWidth - 2 * Gap) div 3;
-
-  HdtGetButton := TNewButton.Create(HdtPage);
-  HdtGetButton.Parent := HdtPage.Surface;
-  HdtGetButton.Left := 0;
-  HdtGetButton.Width := ButtonWidth;
-  HdtGetButton.Height := WizardForm.NextButton.Height;
-  HdtGetButton.Caption := CustomMessage('HdtDownload');
-  HdtGetButton.OnClick := @HdtGetButtonClick;
-
-  HdtCheckButton := TNewButton.Create(HdtPage);
-  HdtCheckButton.Parent := HdtPage.Surface;
-  HdtCheckButton.Left := ButtonWidth + Gap;
-  HdtCheckButton.Width := ButtonWidth;
-  HdtCheckButton.Height := WizardForm.NextButton.Height;
-  HdtCheckButton.Caption := CustomMessage('HdtCheckAgain');
-  HdtCheckButton.OnClick := @HdtCheckButtonClick;
-
-  HdtLocateButton := TNewButton.Create(HdtPage);
-  HdtLocateButton.Parent := HdtPage.Surface;
-  HdtLocateButton.Left := 2 * (ButtonWidth + Gap);
-  HdtLocateButton.Width := ButtonWidth;
-  HdtLocateButton.Height := WizardForm.NextButton.Height;
-  HdtLocateButton.OnClick := @HdtLocateButtonClick;
-
-  UpdateHdtPage;
-end;
 
 // ---------------------------------------------------------------------------------------------
 // The "Toolkit language" page
@@ -639,16 +215,12 @@ var
   I, J: Integer;
 begin
   Result := '?';
-  // The page comes before {app} can be expanded. The standalone's own config.xml, else the plugin's
-  // (what the standalone copies on its first run); the plugin's folder from /DIR or its default.
+  // The standalone's own config.xml, else the old plugin's (what the standalone copies on its first run).
   Text := '';
-  if IsStandaloneMode and LoadStringFromFile(StandaloneDataDir + '\config.xml', Xml) then Text := String(Xml)
+  if LoadStringFromFile(StandaloneDataDir + '\config.xml', Xml) then Text := String(Xml)
   else
   begin
-    if IsStandaloneMode then Text := ExpandConstant('{param:HDTDATA|{userappdata}\HearthstoneDeckTracker}')
-    else if DirGiven then Text := ExtractFileDir(ExtractFileDir(ExpandConstant('{param:DIR|}')))
-    else Text := ExtractFileDir(ExtractFileDir(PluginDefaultDir));
-    if not LoadStringFromFile(Text + '\HsbgCardLookup\config.xml', Xml) then Exit;
+    if not LoadStringFromFile(HdtDataRoot + '\HsbgCardLookup\config.xml', Xml) then Exit;
     Text := String(Xml);
   end;
   if Text = '' then Exit;
@@ -970,13 +542,10 @@ begin
   if WizardLangCombo.ItemIndex < 0 then Exit;
   NewLang := WizardLangNames[WizardLangCombo.ItemIndex];
   if NewLang = ActiveLanguage then Exit;
-  if WizardForm.CurPageID = ModePage.ID then Page := 'mode'
-  else if WizardForm.CurPageID = HdtPage.ID then Page := 'hdt'
-  else if WizardForm.CurPageID = AutoPage.ID then Page := 'auto'
+  if WizardForm.CurPageID = AutoPage.ID then Page := 'auto'
   else if WizardForm.CurPageID = wpReady then Page := 'ready'
   else Page := 'lang';
   Params := CarriedParams + ' /LANG=' + NewLang + ' /STARTPAGE=' + Page;
-  if IsStandaloneMode then Params := Params + ' /MODE=standalone' else Params := Params + ' /MODE=plugin';
   if AutoYesRadio.Checked then Params := Params + ' /AUTOSTART=yes'
   else if AutoNoRadio.Checked then Params := Params + ' /AUTOSTART=no';
   if not DesktopCheck.Checked then Params := Params + ' /DESKTOP=no';
@@ -1055,7 +624,7 @@ begin
 end;
 
 // ---------------------------------------------------------------------------------------------
-// The "How should the toolkit run?" and "Starting the toolkit" pages
+// The "Starting the toolkit" page
 // ---------------------------------------------------------------------------------------------
 
 function NewText(Page: TWizardPage; const Caption: String; Left, Top: Integer; Bold: Boolean): TNewStaticText;
@@ -1083,53 +652,6 @@ begin
   Result.Font.Style := [fsBold];
 end;
 
-procedure ModeClick(Sender: TObject);
-begin
-  ApplyModeDir;
-end;
-
-// The mode the page starts on: /MODE=, else the one installed last (this Setup's own record, then
-// the files on disk), else the plugin when HDT is here, else the standalone.
-function StartsStandalone: Boolean;
-var
-  M: String;
-begin
-  M := Lowercase(ExpandConstant('{param:MODE|}'));
-  if M = 'standalone' then begin Result := True; Exit; end;
-  if M = 'plugin' then begin Result := False; Exit; end;
-  M := GetPreviousData('Mode', '');
-  if M = 'standalone' then begin Result := True; Exit; end;
-  if M = 'plugin' then begin Result := False; Exit; end;
-  if FileExists(PluginDefaultDir + '\HsbgCardLookup.dll') then begin Result := False; Exit; end;
-  if FileExists(StandaloneDefaultDir + '\' + StandaloneExe) then begin Result := True; Exit; end;
-  Result := not FoundAtStart;
-end;
-
-procedure CreateModePage;
-var
-  Top: Integer;
-  T: TNewStaticText;
-  HintText: String;
-begin
-  ModePage := CreateCustomPage(LangPage.ID, CustomMessage('ModePageCaption'), CustomMessage('ModePageDescription'));
-  Top := 0;
-  ModeStandaloneRadio := NewRadio(ModePage, CustomMessage('ModeStandalone'), Top);
-  T := NewText(ModePage, CustomMessage('ModeStandaloneHint'), ScaleX(18), ModeStandaloneRadio.Top + ModeStandaloneRadio.Height + ScaleY(2), False);
-  Top := T.Top + T.Height + ScaleY(14);
-  ModePluginRadio := NewRadio(ModePage, CustomMessage('ModePlugin'), Top);
-  if FoundAtStart then HintText := CustomMessage('ModePluginHintFound') else HintText := CustomMessage('ModePluginHintMissing');
-  ModePluginHint := NewText(ModePage, HintText, ScaleX(18), ModePluginRadio.Top + ModePluginRadio.Height + ScaleY(2), False);
-  Top := ModePluginHint.Top + ModePluginHint.Height + ScaleY(18);
-  T := NewText(ModePage, CustomMessage('ModeSwitchNote'), 0, Top, False);
-  T.Font.Color := clGrayText;
-
-  InitialStandalone := StartsStandalone;
-  ModeStandaloneRadio.Checked := InitialStandalone;
-  ModePluginRadio.Checked := not InitialStandalone;
-  ModeStandaloneRadio.OnClick := @ModeClick;
-  ModePluginRadio.OnClick := @ModeClick;
-end;
-
 procedure UpdateAutoPage;
 begin
   DesktopCheck.Enabled := AutoNoRadio.Checked;
@@ -1147,7 +669,7 @@ var
   T: TNewStaticText;
   Want, Desk: String;
 begin
-  AutoPage := CreateCustomPage(HdtPage.ID, CustomMessage('AutoPageCaption'), CustomMessage('AutoPageDescription'));
+  AutoPage := CreateCustomPage(LangPage.ID, CustomMessage('AutoPageCaption'), CustomMessage('AutoPageDescription'));
   AutoYesRadio := NewRadio(AutoPage, CustomMessage('AutoYes'), 0);
   T := NewText(AutoPage, CustomMessage('AutoYesHint'), ScaleX(18), AutoYesRadio.Top + AutoYesRadio.Height + ScaleY(2), False);
   AutoNoRadio := NewRadio(AutoPage, CustomMessage('AutoNo'), T.Top + T.Height + ScaleY(14));
@@ -1181,27 +703,18 @@ end;
 
 procedure InitializeWizard;
 begin
-  DetectHdt;
-  LogHdt;
-  FoundAtStart := HdtExe <> '';
   CreateLanguagePage;
-  CreateModePage;
-  CreateHdtPage;
   CreateAutoPage;
-  ApplyModeDir;
   PreselectLanguage;
   CreateWizardLangSelector;
 end;
 
-// HDT found right away: nothing to do on that page; the Ready page still names the HDT used.
-// The page order and what each needs: language, mode, HDT (plugin mode without HDT), start-up
-// (standalone mode), Ready.
+// The page order: language, start-up, Ready. A restart for another wizard language comes back on the
+// page it left (/STARTPAGE=).
 function PageRank(const Name: String): Integer;
 begin
-  if Name = 'mode' then Result := 1
-  else if Name = 'hdt' then Result := 2
-  else if Name = 'auto' then Result := 3
-  else if Name = 'ready' then Result := 4
+  if Name = 'auto' then Result := 1
+  else if Name = 'ready' then Result := 2
   else Result := 0;
 end;
 
@@ -1210,51 +723,24 @@ var
   Start: Integer;
 begin
   Result := False;
-  if (PageID = HdtPage.ID) and (IsStandaloneMode or FoundAtStart) then Result := True;
-  if (PageID = AutoPage.ID) and IsPluginMode then Result := True;
-  // A restart for another wizard language comes back on the page it left (/STARTPAGE=).
   Start := PageRank(Lowercase(ExpandConstant('{param:STARTPAGE|}')));
   if (PageID = LangPage.ID) and (Start >= 1) then Result := True;
-  if (PageID = ModePage.ID) and (Start >= 2) then Result := True;
-  if (PageID = HdtPage.ID) and (Start >= 3) and (HdtExe <> '') then Result := True;
-  if (PageID = AutoPage.ID) and (Start >= 4) and (AutoYesRadio.Checked or AutoNoRadio.Checked) then Result := True;
-end;
-
-// A silent install also "clicks" Next on every page; it goes on to PrepareToInstall, which logs
-// why it stops and exits with code 7, instead of a message box nobody sees.
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if (CurPageID = HdtPage.ID) and IsPluginMode and (HdtExe = '') and not WizardSilent then
-  begin
-    MsgBox(CustomMessage('HdtInstallFirst'), mbInformation, MB_OK);
-    Result := False;
-  end;
+  if (PageID = AutoPage.ID) and (Start >= 2) and (AutoYesRadio.Checked or AutoNoRadio.Checked) then Result := True;
 end;
 
 function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo,
   MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: String): String;
 begin
   PreselectLanguage;
-  if IsStandaloneMode then
-  begin
-    Result := CustomMessage('ReadyMode') + NewLine + Space + CustomMessage('ReadyModeStandalone') + NewLine + NewLine +
-      CustomMessage('ReadyProgramFolder') + NewLine + Space + ExpandConstant('{app}') + NewLine + NewLine +
-      CustomMessage('ReadyLanguage') + NewLine + Space + ChosenLanguageName + NewLine + NewLine +
-      CustomMessage('ReadyStart') + NewLine + Space;
-    if WantAutostart then Result := Result + CustomMessage('ReadyStartAuto')
-    else if WantDesktopShortcut then Result := Result + CustomMessage('ReadyStartManualDesktop')
-    else Result := Result + CustomMessage('ReadyStartManual');
-  end
-  else
-    Result := CustomMessage('ReadyMode') + NewLine + Space + CustomMessage('ReadyModePlugin') + NewLine + NewLine +
-      CustomMessage('ReadyHdt') + NewLine + Space + HdtExe + NewLine + NewLine +
-      CustomMessage('ReadyFolder') + NewLine + Space + ExpandConstant('{app}') + NewLine + NewLine +
-      CustomMessage('ReadyLanguage') + NewLine + Space + ChosenLanguageName;
+  Result := CustomMessage('ReadyProgramFolder') + NewLine + Space + ExpandConstant('{app}') + NewLine + NewLine +
+    CustomMessage('ReadyLanguage') + NewLine + Space + ChosenLanguageName + NewLine + NewLine +
+    CustomMessage('ReadyStart') + NewLine + Space;
+  if WantAutostart then Result := Result + CustomMessage('ReadyStartAuto')
+  else Result := Result + CustomMessage('ReadyStartManualDesktop');
 end;
 
 // ---------------------------------------------------------------------------------------------
-// Closing HDT, installing, switching the plugin on
+// Closing HDT, switching an old plugin install off, installing
 // ---------------------------------------------------------------------------------------------
 
 function HdtRunning: Boolean;
@@ -1270,16 +756,6 @@ begin
   except
     Log('HdtRunning: WMI query failed: ' + GetExceptionMessage);
   end;
-end;
-
-function HdtCanStart: Boolean;
-begin
-  Result := (HdtExe <> '') and FileExists(HdtExe) and not HdtRunning;
-end;
-
-function HdtCanStartPlugin: Boolean;
-begin
-  Result := IsPluginMode and HdtCanStart;
 end;
 
 function OpenEvent(Access: DWORD; Inherit: BOOL; Name: String): THandle;
@@ -1305,8 +781,7 @@ begin
 end;
 
 // Ask every running copy of the standalone (watcher and toolkit) to close through the event they
-// listen on, wait up to 10 s, then end what is left. Needed before its files are replaced, and when
-// the plugin takes over.
+// listen on, wait up to 10 s, then end what is left. Needed before its files are replaced.
 procedure CloseStandalone;
 var
   H: THandle;
@@ -1332,15 +807,10 @@ begin
     Log('The standalone toolkit is closed');
 end;
 
-// Where HDT reads plugins.xml for the mode being installed (see HdtConfigDir).
+// Where HDT reads plugins.xml (a portable HDT keeping it next to its exe is not looked for).
 function PluginsXmlDir: String;
-var
-  ExeDir: String;
 begin
   Result := HdtDataRoot;
-  if HdtExe = '' then Exit;
-  ExeDir := ExtractFileDir(HdtExe);
-  if FileExists(AddBackslash(ExeDir) + 'config.xml') then Result := ExeDir;
 end;
 
 // True when plugins.xml has this toolkit's plugin switched on.
@@ -1441,37 +911,18 @@ begin
   Log('Hearthstone Deck Tracker is closed');
 end;
 
-// The HDT page keeps an interactive install from getting here without HDT; a silent install has
-// no pages, so this is where it stops (exit code 7) instead of installing a plugin nothing loads.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
-  // A running standalone holds its files (an upgrade) or would double everything (the plugin
-  // taking over): close it either way.
+  // A running standalone holds its files (an upgrade): close it.
   CloseStandalone;
   if StandaloneRunning then
   begin
     Result := CustomMessage('ToolkitRunningAbort');
     Exit;
   end;
-  if IsStandaloneMode then
-  begin
-    // To switch the plugin off, HDT must be closed, or its shutdown writes plugins.xml back.
-    if PluginOnInHdt and not EnsureHdtClosed then
-      Result := CustomMessage('HdtRunningAbort');
-    Exit;
-  end;
-  if HdtExe = '' then
-  begin
-    DetectHdt;
-    LogHdt;
-  end;
-  if HdtExe = '' then
-  begin
-    Result := FmtMessage(CustomMessage('HdtMissingSilent'), [HdtDownloadUrl]);
-    Exit;
-  end;
-  if not EnsureHdtClosed then
+  // To switch an old plugin install off, HDT must be closed, or its shutdown writes plugins.xml back.
+  if PluginOnInHdt and not EnsureHdtClosed then
     Result := CustomMessage('HdtRunningAbort');
 end;
 
@@ -1502,77 +953,6 @@ begin
   end;
 end;
 
-// install.bat's rule: the plugin has run on this PC when its settings file exists or its log holds
-// an OnLoad line. HDT calls OnUnload on every discovered plugin at shutdown, loaded or not, so
-// OnUnload-only lines mean "never enabled". The plugin's own data is always under %APPDATA%.
-function PluginEverRan(const Root: String): Boolean;
-var
-  Lines: TArrayOfString;
-  I: Integer;
-begin
-  Result := FileExists(Root + '\HsbgCardLookup\config.xml');
-  if Result then Exit;
-  if LoadStringsFromFile(Root + '\HsbgCardLookup\spike.log', Lines) then
-    for I := 0 to GetArrayLength(Lines) - 1 do
-      if Pos('  OnLoad', Lines[I]) > 0 then
-      begin
-        Result := True;
-        Exit;
-      end;
-end;
-
-// Set IsEnabled=true on our PluginSettings entry in plugins.xml, adding the entry (or the whole
-// file) when missing. HDT keys the entry by the relative DLL path. HDT is closed at this point;
-// it rewrites the file in its own format on its next clean shutdown.
-procedure EnablePluginInHdt(const ConfigDir: String);
-var
-  Doc, RootNode, Entry, Child, Found: Variant;
-  F: String;
-begin
-  F := ConfigDir + '\plugins.xml';
-  Doc := CreateOleObject('MSXML2.DOMDocument.6.0');
-  Doc.async := False;
-  Doc.resolveExternals := False;
-  if FileExists(F) then
-  begin
-    Doc.load(F);
-    if Doc.parseError.errorCode <> 0 then
-      RaiseException('plugins.xml does not parse: ' + Doc.parseError.reason);
-  end
-  else
-    Doc.loadXML('<?xml version="1.0" encoding="utf-8"?><ArrayOfPluginSettings />');
-  RootNode := Doc.documentElement;
-  Found := RootNode.selectNodes('PluginSettings[FileName=''' + PluginFileName + ''']');
-  if Found.length > 0 then
-  begin
-    Entry := Found.item(0);
-    Found := Entry.selectNodes('IsEnabled');
-    if Found.length > 0 then
-      Found.item(0).text := 'true'
-    else
-    begin
-      Child := Doc.createElement('IsEnabled');
-      Child.text := 'true';
-      Entry.appendChild(Child);
-    end;
-  end
-  else
-  begin
-    Entry := Doc.createElement('PluginSettings');
-    Child := Doc.createElement('FileName');
-    Child.text := PluginFileName;
-    Entry.appendChild(Child);
-    Child := Doc.createElement('IsEnabled');
-    Child.text := 'true';
-    Entry.appendChild(Child);
-    Child := Doc.createElement('Name');
-    Child.text := '{#StringChange(AppDisplayName, "'", "''")}';
-    Entry.appendChild(Child);
-    RootNode.appendChild(Entry);
-  end;
-  Doc.save(F);
-end;
-
 // The plugin applies setup-language.txt once at its next start and deletes it. Written only when
 // the choice differs from what config.xml already holds (always on a fresh install), so an upgrade
 // that keeps the setting leaves nothing behind.
@@ -1582,7 +962,7 @@ var
 begin
   PreselectLanguage;
   Code := ChosenLanguage;
-  CurrentLang := ReadCurrentLanguage;   // the final mode's config (the page may have changed the mode)
+  CurrentLang := ReadCurrentLanguage;
   if (CurrentLang <> '?') and (CompareText(Code, CurrentLang) = 0) then
   begin
     Log('Toolkit language unchanged (' + Code + ')');
@@ -1596,49 +976,29 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ConfigDir: String;
 begin
   if CurStep <> ssPostInstall then Exit;
   // A standalone that never ran here (no config.xml of its own; a former plugin user counts too):
   // the toolkit opens its settings once at its next start, then deletes the marker.
-  if IsStandaloneMode and not FileExists(StandaloneDataDir + '\config.xml') then
+  if not FileExists(StandaloneDataDir + '\config.xml') then
   begin
     ForceDirectories(StandaloneDataDir);
     if SaveStringToFile(StandaloneDataDir + '\setup-welcome.txt', '1', False) then
       Log('Fresh standalone install: the toolkit will open its settings once');
   end;
   HandOverLanguage;
-  if IsStandaloneMode then
+  if WantAutostart then
   begin
-    if WantAutostart then
-    begin
-      RegWriteStringValue(HKCU, RunKey, RunValue, '"' + ExpandConstant('{app}\' + StandaloneExe) + '" --autostart');
-      Log('The standalone toolkit starts with Windows');
-    end
-    else
-      RemoveAutostart;
-    try
-      PluginDisabled := DisablePluginInHdt;
-      if PluginDisabled then Log('Switched the HDT plugin off in ' + PluginsXmlDir + '\plugins.xml');
-    except
-      Log('Could not switch the HDT plugin off: ' + GetExceptionMessage);
-    end;
-    Exit;
-  end;
-  RemoveAutostart;
-  if PluginEverRan(HdtDataRoot) then
-  begin
-    Log('The plugin has run on this PC before; plugins.xml is left as the user set it');
-    Exit;
-  end;
-  ConfigDir := HdtConfigDir;
+    RegWriteStringValue(HKCU, RunKey, RunValue, '"' + ExpandConstant('{app}\' + StandaloneExe) + '" --autostart');
+    Log('The standalone toolkit starts with Windows');
+  end
+  else
+    RemoveAutostart;
   try
-    EnablePluginInHdt(ConfigDir);
-    PluginEnabled := True;
-    Log('First install on this PC: switched the plugin on in ' + ConfigDir + '\plugins.xml');
+    PluginDisabled := DisablePluginInHdt;
+    if PluginDisabled then Log('Switched the HDT plugin off in ' + PluginsXmlDir + '\plugins.xml');
   except
-    Log('Could not switch the plugin on in plugins.xml: ' + GetExceptionMessage);
+    Log('Could not switch the HDT plugin off: ' + GetExceptionMessage);
   end;
 end;
 
@@ -1647,20 +1007,9 @@ var
   Note, Caption, ClickFinish: String;
   Delta: Integer;
 begin
-  if CurPageID = HdtPage.ID then
-  begin
-    WizardForm.NextButton.Enabled := (HdtExe <> '') or WizardSilent;
-    Exit;
-  end;
   if WizardLangCombo <> nil then
   begin
-    WizardLangCombo.Visible := (CurPageID = LangPage.ID) or (CurPageID = HdtPage.ID) or (CurPageID = wpReady);
-    WizardLangFlag.Visible := WizardLangCombo.Visible;
-  end;
-  if WizardLangCombo <> nil then
-  begin
-    WizardLangCombo.Visible := (CurPageID = LangPage.ID) or (CurPageID = ModePage.ID) or (CurPageID = HdtPage.ID)
-      or (CurPageID = AutoPage.ID) or (CurPageID = wpReady);
+    WizardLangCombo.Visible := (CurPageID = LangPage.ID) or (CurPageID = AutoPage.ID) or (CurPageID = wpReady);
     WizardLangFlag.Visible := WizardLangCombo.Visible;
   end;
   if CurPageID = LangPage.ID then
@@ -1673,25 +1022,18 @@ begin
     UpdateAutoPage;
     Exit;
   end;
-  if (CurPageID = wpReady) and IsStandaloneMode then
+  if CurPageID = wpReady then
   begin
     WizardForm.ReadyLabel.Caption := CustomMessage('ReadyStandalone');
     Exit;
   end;
   if CurPageID <> wpFinished then Exit;
-  if IsStandaloneMode then
-  begin
-    WizardForm.FinishedLabel.Caption := FmtMessage(CustomMessage('FinishedStandalone'), [AppName]) + #13#10#13#10 + SetupMessage(msgClickFinish);
-    if WantAutostart then Note := CustomMessage('FinishedAuto') else Note := CustomMessage('FinishedManual');
-    if PluginDisabled then Note := Note + #13#10#13#10 + CustomMessage('PluginSwitchedOff');
-  end
-  else if PluginEnabled then
-    Note := CustomMessage('PluginSwitchedOn')
-  else
-    Note := CustomMessage('PluginSwitchOnHint');
+  WizardForm.FinishedLabel.Caption := FmtMessage(CustomMessage('FinishedStandalone'), [AppName]) + #13#10#13#10 + SetupMessage(msgClickFinish);
+  if WantAutostart then Note := CustomMessage('FinishedAuto') else Note := CustomMessage('FinishedManual');
+  if PluginDisabled then Note := Note + #13#10#13#10 + CustomMessage('PluginSwitchedOff');
   // Inno has already laid the page out for its own text (ending in "Click Finish to exit Setup.")
   // when this runs: put the note before that line, then grow the label and move the
-  // "Start Hearthstone Deck Tracker" box down by as much, or the note is cut off behind it.
+  // "Start the toolkit" box down by as much, or the note is cut off behind it.
   Caption := WizardForm.FinishedLabel.Caption;
   ClickFinish := SetupMessage(msgClickFinish);
   if Pos(ClickFinish, Caption) > 0 then
