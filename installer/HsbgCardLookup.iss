@@ -153,6 +153,8 @@ var
   AutoPage: TWizardPage;
   AutoYesRadio, AutoNoRadio: TNewRadioButton;
   DesktopCheck: TNewCheckBox;
+  SharePage: TWizardPage;
+  ShareCheck: TNewCheckBox;
   PluginDisabled: Boolean;      // this run switched an old HDT plugin install off
 
 // ---------------------------------------------------------------------------------------------
@@ -524,6 +526,7 @@ begin
         Upper := Uppercase(RemoveQuotes(Arg));
         if (Pos('/LANG=', Upper) <> 1) and (Pos('/TOOLKITLANG=', Upper) <> 1) and (Pos('/STARTPAGE=', Upper) <> 1)
            and (Pos('/MODE=', Upper) <> 1) and (Pos('/AUTOSTART=', Upper) <> 1) and (Pos('/DESKTOP=', Upper) <> 1)
+           and (Pos('/SHAREDATA=', Upper) <> 1)
            and (Pos('/SL5=', Upper) <> 1) and (Pos('/SPAWNWND=', Upper) <> 1) and (Pos('/NOTIFYWND=', Upper) <> 1) then
           Result := Result + ' ' + Arg;
       end;
@@ -545,12 +548,14 @@ begin
   NewLang := WizardLangNames[WizardLangCombo.ItemIndex];
   if NewLang = ActiveLanguage then Exit;
   if WizardForm.CurPageID = AutoPage.ID then Page := 'auto'
+  else if WizardForm.CurPageID = SharePage.ID then Page := 'share'
   else if WizardForm.CurPageID = wpReady then Page := 'ready'
   else Page := 'lang';
   Params := CarriedParams + ' /LANG=' + NewLang + ' /STARTPAGE=' + Page;
   if AutoYesRadio.Checked then Params := Params + ' /AUTOSTART=yes'
   else if AutoNoRadio.Checked then Params := Params + ' /AUTOSTART=no';
   if not DesktopCheck.Checked then Params := Params + ' /DESKTOP=no';
+  if ShareCheck.Checked then Params := Params + ' /SHAREDATA=yes' else Params := Params + ' /SHAREDATA=no';
   // The toolkit choice travels only when the user made it (or it came from an upgrade / the
   // parameter); otherwise the new wizard language picks the default afresh.
   if LangTouched or (CurrentLang <> '?') or (ExpandConstant('{param:TOOLKITLANG|}') <> '') then
@@ -703,10 +708,44 @@ begin
   UpdateAutoPage;
 end;
 
+// The toolkit's ShareMatchData as config.xml holds it: 'yes', 'no', or '' when it was never saved
+// (a fresh install, or a version from before the setting).
+function ReadCurrentShare: String;
+var
+  Xml: AnsiString;
+begin
+  Result := '';
+  if not LoadStringFromFile(StandaloneDataDir + '\config.xml', Xml) then Exit;
+  if Pos('<ShareMatchData>true</ShareMatchData>', String(Xml)) > 0 then Result := 'yes'
+  else if Pos('<ShareMatchData>false</ShareMatchData>', String(Xml)) > 0 then Result := 'no';
+end;
+
+// Match data for the site's community statistics: on unless the player unticks it here (or did
+// so before, in the toolkit's settings). /SHAREDATA=yes|no for a silent run.
+procedure CreateSharePage;
+var
+  T: TNewStaticText;
+  Want: String;
+begin
+  SharePage := CreateCustomPage(AutoPage.ID, CustomMessage('SharePageCaption'), CustomMessage('SharePageDescription'));
+  ShareCheck := TNewCheckBox.Create(SharePage);
+  ShareCheck.Parent := SharePage.Surface;
+  ShareCheck.Left := 0;
+  ShareCheck.Top := 0;
+  ShareCheck.Width := SharePage.SurfaceWidth;
+  ShareCheck.Caption := CustomMessage('ShareCheck');
+  ShareCheck.Font.Style := [fsBold];
+  T := NewText(SharePage, CustomMessage('ShareHint'), ScaleX(18), ShareCheck.Top + ShareCheck.Height + ScaleY(6), False);
+  Want := Lowercase(ExpandConstant('{param:SHAREDATA|}'));
+  if Want = '' then Want := ReadCurrentShare;
+  ShareCheck.Checked := Want <> 'no';
+end;
+
 procedure InitializeWizard;
 begin
   CreateLanguagePage;
   CreateAutoPage;
+  CreateSharePage;
   PreselectLanguage;
   CreateWizardLangSelector;
 end;
@@ -716,7 +755,8 @@ end;
 function PageRank(const Name: String): Integer;
 begin
   if Name = 'auto' then Result := 1
-  else if Name = 'ready' then Result := 2
+  else if Name = 'share' then Result := 2
+  else if Name = 'ready' then Result := 3
   else Result := 0;
 end;
 
@@ -728,6 +768,7 @@ begin
   Start := PageRank(Lowercase(ExpandConstant('{param:STARTPAGE|}')));
   if (PageID = LangPage.ID) and (Start >= 1) then Result := True;
   if (PageID = AutoPage.ID) and (Start >= 2) and (AutoYesRadio.Checked or AutoNoRadio.Checked) then Result := True;
+  if (PageID = SharePage.ID) and (Start >= 3) then Result := True;
 end;
 
 function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo,
@@ -739,6 +780,9 @@ begin
     CustomMessage('ReadyStart') + NewLine + Space;
   if WantAutostart then Result := Result + CustomMessage('ReadyStartAuto')
   else Result := Result + CustomMessage('ReadyStartManualDesktop');
+  Result := Result + NewLine + NewLine + CustomMessage('ReadyShare') + NewLine + Space;
+  if ShareCheck.Checked then Result := Result + CustomMessage('ReadyShareYes')
+  else Result := Result + CustomMessage('ReadyShareNo');
 end;
 
 // ---------------------------------------------------------------------------------------------
@@ -989,6 +1033,11 @@ begin
       Log('Fresh standalone install: the toolkit will open its settings once');
   end;
   HandOverLanguage;
+  // The toolkit applies setup-share.txt once at its next start and deletes it.
+  ForceDirectories(StandaloneDataDir);
+  if ShareCheck.Checked then SaveStringToFile(StandaloneDataDir + '\setup-share.txt', '1', False)
+  else SaveStringToFile(StandaloneDataDir + '\setup-share.txt', '0', False);
+  Log('Match data sharing handed to the toolkit: ' + IntToStr(Ord(ShareCheck.Checked)));
   if WantAutostart then
   begin
     RegWriteStringValue(HKCU, RunKey, RunValue, '"' + ExpandConstant('{app}\' + StandaloneExe) + '" --autostart');
@@ -1011,7 +1060,7 @@ var
 begin
   if WizardLangCombo <> nil then
   begin
-    WizardLangCombo.Visible := (CurPageID = LangPage.ID) or (CurPageID = AutoPage.ID) or (CurPageID = wpReady);
+    WizardLangCombo.Visible := (CurPageID = LangPage.ID) or (CurPageID = AutoPage.ID) or (CurPageID = SharePage.ID) or (CurPageID = wpReady);
     WizardLangFlag.Visible := WizardLangCombo.Visible;
   end;
   if CurPageID = LangPage.ID then
