@@ -20,6 +20,7 @@ v1.0.1
 - New "BepInEx mods" page with two tabs. Catalogue lists the mods from hsbg.cards with a short description, which of them you have and at which version, and a Download button that opens the mod's Setup in your browser. Installed lists the mods in Hearthstone's BepInEx folder: show one in Explorer, check it for an update, or move it to the Recycle Bin.
 - The toolkit now asks hsbg.cards and GitHub for news at most every two hours, and remembers the answer across restarts.
 - A "Website" button at the bottom of the main page opens hsbg.cards in your language.
+- The in-game search button and the bell can be moved and resized like the other boxes: "Position the search button" is on the Card search page, "Position the notifications bell" on App & updates. A bell you never moved stays left of the search button, wherever that goes.
 
 ### Standalone program
 - After a first install the settings open by themselves, once, so you see what can be set up.
