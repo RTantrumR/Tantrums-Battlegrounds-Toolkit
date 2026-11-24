@@ -92,6 +92,7 @@ namespace HsbgCardLookup
             Ui.CardArt.UseLocalArt = _config.UseLocalDevArt;   // dev-only local-PNG shortcut, off by default
             if (!string.IsNullOrWhiteSpace(_config.ArtCacheDir)) Ui.CardArt.CacheDir = _config.ArtCacheDir;  // user-relocated art cache
             Ui.WebpDecoder.Log = Log;
+            HearthstoneLauncher.Log = Log;
 
             _hotkey = new HotkeyManager();
             _hotkey.HotkeyPressed += OnHotkeyPressed;

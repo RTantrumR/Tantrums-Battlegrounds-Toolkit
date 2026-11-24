@@ -143,6 +143,7 @@ namespace HsbgCardLookup.Ui
                 _hotkey.EndCapture();
                 _hotkey.Suppress(false);
                 _hotkey.KeyCaptured -= OnKeyCaptured;
+                CancelHearthstoneStart();
                 if (_arranging != ArrangeTarget.None) { _arranging = ArrangeTarget.None; try { _onArrange?.Invoke(ArrangeTarget.None); } catch { } }
                 _mmrPreview?.Close(); _mmrPreview = null;
                 _portraitsPreview = null;
@@ -286,6 +287,7 @@ namespace HsbgCardLookup.Ui
             // Arranging belongs to the page whose button started it, so leaving that page ends it —
             // otherwise the mode strands with no visible Done button anywhere.
             if (_arranging != ArrangeTarget.None) SetArrange(ArrangeTarget.None);
+            CancelHearthstoneStart();   // ...and so does a start of Hearthstone made for it
             _mmrPreview?.Close(); _mmrPreview = null;
             _portraitsPreview = null;
             _hudPreview?.Close(); _hudPreview = null;
@@ -2083,20 +2085,11 @@ namespace HsbgCardLookup.Ui
 
         private void SetArrange(ArrangeTarget target)
         {
-            // Nothing draws outside the game, so entering arrange without Hearthstone up would show an
-            // empty screen and no reason why. This refusal gets its own modal dialog rather than the
-            // shared status line: that line carries every ordinary "setting applied" message, so a
-            // refusal written there reads as one more passing tip and gets skipped. A MessageBox is
-            // safe on THIS path specifically — it steals OS foreground, which normally makes HDT hide
-            // its entire overlay, but the condition for showing it is that Hearthstone is not running,
-            // so there is no overlay to lose.
+            // Nothing draws outside the game, so without Hearthstone up it is started first (through
+            // Battle.net, as its Play button does) and the arrange begins once its window is there.
             if (target != ArrangeTarget.None && !HearthstoneIsRunning())
             {
-                _status.Text = Strings.T("settings.common.hsNotRunning");
-                MessageBox.Show(this,
-                    Strings.T("settings.common.hsNotRunningDetail"),
-                    Strings.F("settings.common.arrangeCaption", ToolkitApp.DisplayName),
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                StartHearthstoneThenArrange(target);
                 return;
             }
 
@@ -2121,6 +2114,42 @@ namespace HsbgCardLookup.Ui
         internal void EndArrangeFromOverlay()
         {
             try { Dispatcher.BeginInvoke(new Action(() => SetArrange(ArrangeTarget.None))); } catch { }
+        }
+
+        private System.Threading.CancellationTokenSource _hsLaunch;   // a start of Hearthstone for an arrange, while it runs
+
+        // Arrange was clicked with Hearthstone closed: start it, then begin the arrange on its own once
+        // the game's window is up — unless the user left the page, closed the window or started
+        // something else meanwhile. A failure gets a dialog: Hearthstone is not running, so there is no
+        // overlay for a MessageBox's focus steal to hide.
+        private async void StartHearthstoneThenArrange(ArrangeTarget target)
+        {
+            _status.Text = Strings.T("settings.common.hsStarting");
+            if (_hsLaunch != null) return;
+            var cts = _hsLaunch = new System.Threading.CancellationTokenSource();
+            bool up = false;
+            try { up = await HsbgCardLookup.Host.HearthstoneLauncher.StartAsync(HearthstoneIsRunning, cts.Token); }
+            catch { }
+            if (_hsLaunch == cts) _hsLaunch = null;
+            if (cts.IsCancellationRequested) return;
+            if (!up)
+            {
+                _status.Text = Strings.T("settings.common.hsStartFailed");
+                MessageBox.Show(this, Strings.T("settings.common.hsStartFailed"),
+                    Strings.F("settings.common.arrangeCaption", ToolkitApp.DisplayName),
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            // A moment for the game to settle its window (it opens small, then takes its real size).
+            try { await System.Threading.Tasks.Task.Delay(3000, cts.Token); } catch { return; }
+            if (_arrangeTargetOnPage == target && _arranging == ArrangeTarget.None && IsLoaded)
+                SetArrange(target);
+        }
+
+        private void CancelHearthstoneStart()
+        {
+            try { _hsLaunch?.Cancel(); } catch { }
+            _hsLaunch = null;
         }
 
         private static bool HearthstoneIsRunning()

@@ -160,6 +160,7 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="ToolkitApp.cs" />
     <Compile Include="Host\Seams.cs" />
+    <Compile Include="Host\HearthstoneLauncher.cs" />
     <Compile Include="Host\Hdt\HdtHost.cs" />
     <Compile Include="Host\Hdt\HdtProbe.cs" />
     <Compile Include="Host\Hdt\HdtLanguage.cs" />
