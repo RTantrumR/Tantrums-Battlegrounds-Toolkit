@@ -104,6 +104,13 @@ namespace HsbgCardLookup.Ui
                 try { _story.Begin(stage, true); } catch { }
                 Run(stage);
             }
+
+            /// <summary>Test aid: hold the loop at <paramref name="t"/> seconds, applied at once (to render frames).</summary>
+            public void SeekTo(FrameworkElement stage, double t)
+            {
+                _story.Pause(stage);
+                _story.SeekAlignedToLastTick(stage, TimeSpan.FromSeconds(t), TimeSeekOrigin.BeginTime);
+            }
         }
 
         private static Path Cursor() => new Path
@@ -606,52 +613,20 @@ namespace HsbgCardLookup.Ui
             loop.Move(cursor, cursorKeys.Select(a => a[0]).ToArray(), cursorKeys.Select(a => a[1]).ToArray(), cursorKeys.Select(a => a[2]).ToArray());
             stage.Children.Remove(cursor); stage.Children.Add(cursor);
             loop.RunNow(stage);
+            AssembleSeek = t => loop.SeekTo(stage, t);
+            AssembleLength = len;
+            AssembleView = stage.Parent as FrameworkElement ?? stage;
         }
+
+        /// <summary>Test aid: the last "Assemble panels" picture built — hold it at a time, its loop
+        /// length, the element to render (to make frames of it).</summary>
+        internal static Action<double> AssembleSeek;
+        internal static double AssembleLength;
+        internal static FrameworkElement AssembleView;
 
         private static void Edge(FrameworkElement el, double x, double y, double w, double h)
         {
             Canvas.SetLeft(el, x); Canvas.SetTop(el, y); el.Width = Math.Max(0, w); el.Height = Math.Max(0, h);
-        }
-
-        // ── Start with Windows: the icon waits in the tray, comes alive with the game, rests again ─
-
-        public static FrameworkElement Autostart()
-        {
-            const double len = 6.4;
-            var stage = new Canvas { Width = StageW, Height = 124 };
-            var loop = new Loop(len);
-
-            // The desktop's taskbar, the tray at its right end.
-            Put(stage, new Rectangle { Width = StageW, Height = 28, Fill = Frozen(Color.FromRgb(0x10, 0x14, 0x1C)) }, 0, 96);
-            Put(stage, new Rectangle { Width = StageW, Height = 1, Fill = UiKit.StrokeBrush }, 0, 96);
-
-            // The game: its window (the replay frame), and its button on the taskbar.
-            const double gameW = 160;
-            var game = new Border
-            {
-                CornerRadius = new CornerRadius(4), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
-                Background = Brushes.Black, ClipToBounds = true, Child = GameFrame(gameW)
-            };
-            Put(stage, game, 150, 4);
-            var button = new Rectangle { Width = 34, Height = 16, RadiusX = 3, RadiusY = 3, Fill = Frozen(Color.FromRgb(0x2B, 0x3F, 0x5C)), Stroke = UiKit.StrokeBrush };
-            Put(stage, button, 20, 102);
-            loop.Show(game, 1.3, 4.4);
-            loop.Show(button, 1.3, 4.4);
-
-            // The tray icon: dim while it waits, lit while the toolkit runs.
-            FrameworkElement icon;
-            var logo = TrayFlight.LogoImage;
-            if (logo != null) icon = new Image { Source = logo, Width = 20, Height = 20 };
-            else icon = new Ellipse { Width = 18, Height = 18, Fill = UiKit.AccentBrush };
-            Put(stage, icon, 436, 100);
-            var lit = new Ellipse { Width = 34, Height = 34, Fill = UiKit.AccentBrush, Opacity = 0, Effect = new BlurEffect { Radius = 14 } };
-            Put(stage, lit, 429, 93);
-            stage.Children.Remove(lit); stage.Children.Insert(2, lit);
-            loop.Keys(icon, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.4, 0.4, 1, 1, 0.4, 0.4 });
-            loop.Keys(lit, UIElement.OpacityProperty, new[] { 0, 2.0, 2.3, 4.6, 4.9, len }, new[] { 0.0, 0, 0.5, 0.5, 0, 0 });
-
-            loop.Run(stage);
-            return Stage(stage);
         }
 
         private static Brush Frozen(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }

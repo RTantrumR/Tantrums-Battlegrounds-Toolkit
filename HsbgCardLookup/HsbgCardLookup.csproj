@@ -145,6 +145,7 @@
     <Compile Include="Ui\ArrangeBanner.cs" />
     <Compile Include="Ui\MmrPanelPreview.cs" />
     <Compile Include="Ui\PortraitsPreview.cs" />
+    <Compile Include="Ui\Tip.cs" />
     <Compile Include="Ui\TrayFlight.cs" />
     <Compile Include="Ui\SettingsDemos.cs" />
     <Compile Include="Ui\PreviewStage.cs" />
@@ -161,6 +162,7 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="ToolkitApp.cs" />
     <Compile Include="Host\Seams.cs" />
+    <Compile Include="Host\HearthstoneLauncher.cs" />
     <Compile Include="Host\Hdt\HdtHost.cs" />
     <Compile Include="Host\Hdt\HdtProbe.cs" />
     <Compile Include="Host\Hdt\HdtLanguage.cs" />
@@ -184,6 +186,7 @@
     <Compile Include="Ui\OverlayLarge.cs" />
     <Compile Include="Ui\SearchButton.cs" />
     <Compile Include="Ui\NotificationBell.cs" />
+    <Compile Include="Ui\PillArrange.cs" />
     <Compile Include="Ui\FloatingCard.cs" />
     <Compile Include="Ui\FloatingCardManager.cs" />
     <Compile Include="Ui\SettingsWindow.cs" />
@@ -205,6 +208,10 @@
     </None>
     <!-- Bundled tier/tribe icons (small, shipped so distributed users have them offline). -->
     <None Include="data\board\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Other trackers' own marks, for the Ready-made configs list. -->
+    <None Include="data\logos\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="data\tiers\*.png">

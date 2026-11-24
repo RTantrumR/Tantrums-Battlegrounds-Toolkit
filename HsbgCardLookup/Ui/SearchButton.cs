@@ -55,12 +55,14 @@ namespace HsbgCardLookup.Ui
         private DateTime _lastPoll = DateTime.MinValue;
         private string _lastSig;
         private string _lastLayoutLog;               // dedupe: log geometry only when it changes
+        private readonly PillArrange _arrange;       // moving/sizing it from Settings
 
         public SearchButton(PluginConfig config, Action toggle, Action<string> log = null)
         {
             _config = config;
             _toggle = toggle;
             _log = log;
+            _arrange = new PillArrange(config, () => _config.SearchButtonHud ?? (_config.SearchButtonHud = new HudPlacement()), Layout);
         }
 
         // OnUpdate thread (~100ms), throttled; pure read → marshal to the canvas thread on change.
@@ -70,16 +72,18 @@ namespace HsbgCardLookup.Ui
             if ((now - _lastPoll).TotalMilliseconds < 500) return;
             _lastPoll = now;
 
-            bool show = false;
-            try { show = _config.ShowSearchButton && ArrangeSession.AllowsSearchButton
-                       && HostServices.Game != null && HostServices.Game.IsBattlegroundsMatch; }
+            // Being arranged, it shows outside a match too (and even while switched off).
+            bool arranging = ArrangeSession.Active == ArrangeTarget.SearchButton;
+            bool show = arranging;
+            try { show = show || (_config.ShowSearchButton && ArrangeSession.AllowsSearchButton
+                       && HostServices.Game != null && HostServices.Game.IsBattlegroundsMatch); }
             catch { }
 
-            string sig = show ? "1" : "0";
+            string sig = (show ? "1" : "0") + (arranging ? "a" : "");
             if (sig == _lastSig) return;
             _lastSig = sig;
 
-            try { HostServices.Overlay?.Canvas?.Dispatcher?.BeginInvoke(new Action(() => Apply(show))); }
+            try { HostServices.Overlay?.Canvas?.Dispatcher?.BeginInvoke(new Action(() => Apply(show, arranging))); }
             catch { }
         }
 
@@ -88,7 +92,7 @@ namespace HsbgCardLookup.Ui
 
         // ── Canvas thread from here down ─────────────────────────────────────────────────────────
 
-        private void Apply(bool show)
+        private void Apply(bool show, bool arranging)
         {
             if (!show) { HideIfShown(); return; }
             var canvas = HostServices.Overlay?.Canvas;
@@ -97,16 +101,18 @@ namespace HsbgCardLookup.Ui
             {
                 Build();
                 canvas.Children.Add(_root);
+                _arrange.Attach(canvas, _root);
                 canvas.SizeChanged += OnCanvasSizeChanged;
                 _attached = true;
             }
             _root.Visibility = Visibility.Visible;
+            _arrange.SetArranging(arranging);
             Layout();
         }
 
         private void HideIfShown()
         {
-            if (_attached && _root != null) _root.Visibility = Visibility.Collapsed;
+            if (_attached && _root != null) { _arrange.Hide(); _arrange.SetArranging(false); _root.Visibility = Visibility.Collapsed; }
         }
 
         public void CloseAll()
@@ -118,6 +124,7 @@ namespace HsbgCardLookup.Ui
                     var canvas = HostServices.Overlay?.Canvas;
                     if (canvas == null || !_attached) return;
                     canvas.SizeChanged -= OnCanvasSizeChanged;
+                    _arrange.Detach(canvas);
                     canvas.Children.Remove(_root);
                     _attached = false;
                 }));
@@ -147,9 +154,9 @@ namespace HsbgCardLookup.Ui
                 Background = new SolidColorBrush(FaceColor),
                 BorderBrush = new SolidColorBrush(RimColor),
                 Child = _glyph,
-                Cursor = Cursors.Hand,
-                ToolTip = Strings.T("searchButton.tooltip")
+                Cursor = Cursors.Hand
             };
+            Tip.Set(_root, Strings.T("searchButton.tooltip"));
             _root.MouseEnter += (s, e) =>
             {
                 _root.Background = new SolidColorBrush(FaceHover);
@@ -165,6 +172,7 @@ namespace HsbgCardLookup.Ui
             _root.MouseLeftButtonUp += (s, e) =>
             {
                 e.Handled = true;
+                if (_arrange.Arranging) return;          // a press while arranging moves it
                 try { _toggle?.Invoke(); } catch { }
             };
 
@@ -175,8 +183,20 @@ namespace HsbgCardLookup.Ui
         /// <summary>Re-set the set-once tooltip in the current plugin language.</summary>
         public void Relabel()
         {
-            try { if (_root != null) _root.ToolTip = Strings.T("searchButton.tooltip"); }
+            try { if (_root != null) Tip.Set(_root, Strings.T("searchButton.tooltip")); }
             catch { }
+        }
+
+        /// <summary>Where the button is drawn on a canvas of this size: the arranged spot and size,
+        /// else straight above the game's gear. The bell keeps beside this when it was never arranged.</summary>
+        internal static Rect RectFor(PluginConfig config, double cw, double ch)
+        {
+            double baseScale = ScaleFor(ch);
+            var p = config?.SearchButtonHud;
+            double s = baseScale * PillArrange.UserScale(p);
+            double w = RefBtnW * s, h = RefBtnH * s;
+            if (PillArrange.Placed(p)) return PillArrange.RectAt(p, cw, ch, w, h);
+            return new Rect(cw - RefRightInset * baseScale - w, ch - RefBottomInset * baseScale - h, w, h);
         }
 
         private void Layout()
@@ -186,19 +206,18 @@ namespace HsbgCardLookup.Ui
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0) return;
 
-            double scale = ScaleFor(ch);
-
-            double w = RefBtnW * scale, h = RefBtnH * scale;
+            var r = RectFor(_config, cw, ch);
+            double scale = ScaleFor(ch) * PillArrange.UserScale(_config.SearchButtonHud);
+            double w = r.Width, h = r.Height, left = r.Left, top = r.Top;
             _root.Width = w;
             _root.Height = h;
             _root.CornerRadius = new CornerRadius(h * 0.40);        // the game's pills are flatter than a stadium
             _root.BorderThickness = new Thickness(Math.Max(1.0, 2.2 * scale));
             _glyph.Width = _glyph.Height = h * 0.52;
 
-            double left = cw - RefRightInset * scale - w;
-            double top = ch - RefBottomInset * scale - h;
             Canvas.SetLeft(_root, left);
             Canvas.SetTop(_root, top);
+            _arrange.PlaceHandle(left, top, w);
 
             // One line per geometry change — the ground truth for calibrating against screenshots.
             string sig = $"SearchButton layout: canvas {cw:F0}x{ch:F0}, scale {scale:F3}, rect ({left:F0},{top:F0},{w:F0}x{h:F0})";

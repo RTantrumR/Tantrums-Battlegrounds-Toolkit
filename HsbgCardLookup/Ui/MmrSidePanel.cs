@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -122,7 +123,8 @@ namespace HsbgCardLookup.Ui
         private bool _dragging, _resizing, _moved;
         private Point _startCursor;
         private double _startLeft, _startTop, _startW;
-        private double _nominalW = RefW;    // drives the scale; the real width comes from the content
+        private double _nominalW = RefW;    // drives the scale; the real width comes from the parts that are on
+        private string _shape = "";         // rows and parts on screen last time, so a change re-fits its joins
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
         private static readonly Brush Muted = Frozen(Color.FromRgb(0x9A, 0xA3, 0xB4));
@@ -303,8 +305,8 @@ namespace HsbgCardLookup.Ui
                 Child = grid
             };
 
-            // Content-driven width: re-clamp whenever it actually changes (a column switched off, a
-            // longer name, a rescale). Never during a drag — that would fight the cursor.
+            // Re-clamp whenever the size actually changes (a column switched off, a row more, a
+            // rescale). Never during a drag — that would fight the cursor.
             _root.SizeChanged += (s, e) => { if (!_dragging && !_resizing) ClampPosition(); };
 
             _handleHide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
@@ -507,6 +509,12 @@ namespace HsbgCardLookup.Ui
             _colUsed[ColTier] = ShowTiers;
             _colUsed[ColTribe] = ShowTribes;
 
+            // A part switched on or off changes the width, more or fewer rows the height: tell the dock
+            // HERE, once the columns really are rebuilt. A settings change invalidates the dock straight
+            // away, but that measures the box before this update has run, so every fit came one change late.
+            string shape = n + (IsDuos ? "d" : "s") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
+            if (shape != _shape) { _shape = shape; if (_docks) PanelDock.Invalidate(); }
+
             _root.Visibility = Visibility.Visible;
             Layout();
         }
@@ -637,12 +645,35 @@ namespace HsbgCardLookup.Ui
                 _tribeCounts[i].Margin = new Thickness(3 * s, 0, 0, 0);
             }
 
-            // Collapsing the ColumnDefinition itself (not just the cells) is what actually reclaims the
-            // space — an Auto column with only Collapsed children still keeps any margin its children own.
+            // Every column has a FIXED width: its gap plus the widest thing it can ever hold at this
+            // scale. The panel's width then depends on its scale and on which parts are on, never on
+            // the data: a short name, a missing tier or an unknown rating no longer narrow it, so a box
+            // joined to it is fitted once and stays fitted (Auto columns made the sidebar grow as names
+            // arrived, and the fit chased it). A part switched off still gives its column back.
+            double pxPerDip = 1;
+            try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
+            double[] fixedW =
+            {
+                13 * s,                                                                   // place: 1..8
+                7 * s + MaxNameW * s,                                                     // name, at its cap
+                9 * s + TextW(_arrows[0], "▼888", 10.5 * s, pxPerDip),                    // ▲/▼ and up to 3 digits
+                6 * s + Math.Max(TextW(_ratings[0], "88888", 12.5 * s, pxPerDip),
+                                 TextW(_ratings[0], "8000↓", 12.5 * s, pxPerDip)),        // 5 digits or "8000↓"
+                6 * s + 20 * s,                                                           // the tier shield
+                6 * s + 17 * s + 3 * s + TextW(_tribeCounts[0], "8", 13.5 * s, pxPerDip), // type disc + count
+            };
             for (int c = 0; c < ColCount; c++)
-                _cols[c].Width = _colUsed[c] ? GridLength.Auto : new GridLength(0);
+                _cols[c].Width = new GridLength(_colUsed[c] ? Math.Ceiling(fixedW[c]) : 0);
 
             ClampPosition();
+        }
+
+        // The width of a text in a cell's own font at a given size.
+        private static double TextW(TextBlock cell, string text, double size, double pxPerDip)
+        {
+            var face = new Typeface(cell.FontFamily, cell.FontStyle, cell.FontWeight, cell.FontStretch);
+            return new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                face, size, Brushes.White, pxPerDip).WidthIncludingTrailingWhitespace;
         }
 
         // ── Move / resize gestures (LL mouse hook, installed only for the gesture) ───────────────

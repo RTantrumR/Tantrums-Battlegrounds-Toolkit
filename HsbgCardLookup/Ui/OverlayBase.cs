@@ -114,7 +114,7 @@ namespace HsbgCardLookup.Ui
         /// <summary>Re-set the corner ✕'s tooltip in the current plugin language.</summary>
         protected void RelabelClose()
         {
-            if (_closeButton != null) _closeButton.ToolTip = Strings.T("common.closeEsc");
+            if (_closeButton != null) Tip.Set(_closeButton, Strings.T("common.closeEsc"));
         }
 
         protected void SetRoot(UIElement content)

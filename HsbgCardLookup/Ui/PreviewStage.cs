@@ -11,6 +11,7 @@ namespace HsbgCardLookup.Ui
     internal static class PreviewStage
     {
         public const double FallbackW = 1920, FallbackH = 1080;
+        private const double MinGameW = 640, MinGameH = 360;   // smaller than any window the game runs in
 
         /// <summary>
         /// The LOGICAL size of the live overlay canvas. HDT's canvas is the exact coordinate space
@@ -25,7 +26,9 @@ namespace HsbgCardLookup.Ui
             try
             {
                 var canvas = HostServices.Overlay?.Canvas;
-                if (canvas != null && canvas.ActualWidth > 0 && canvas.ActualHeight > 0)
+                // The standalone parks its overlay as a 10x10 window while Hearthstone is not running;
+                // a canvas that small is not a game, and previews sized to it shrink to a speck.
+                if (canvas != null && canvas.ActualWidth >= MinGameW && canvas.ActualHeight >= MinGameH)
                 {
                     cw = canvas.ActualWidth; ch = canvas.ActualHeight;
                     return;
@@ -35,7 +38,7 @@ namespace HsbgCardLookup.Ui
             try
             {
                 var r = HostServices.Overlay?.HearthstoneRect();   // DIPs
-                if (r.HasValue && r.Value.Width > 0 && r.Value.Height > 0) { cw = r.Value.Width; ch = r.Value.Height; return; }
+                if (r.HasValue && r.Value.Width >= MinGameW && r.Value.Height >= MinGameH) { cw = r.Value.Width; ch = r.Value.Height; return; }
             }
             catch { }
             cw = FallbackW; ch = FallbackH;

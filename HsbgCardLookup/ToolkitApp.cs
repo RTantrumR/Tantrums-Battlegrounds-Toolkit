@@ -127,6 +127,7 @@ namespace HsbgCardLookup
             Ui.CardArt.UseLocalArt = _config.UseLocalDevArt;   // dev-only local-PNG shortcut, off by default
             if (!string.IsNullOrWhiteSpace(_config.ArtCacheDir)) Ui.CardArt.CacheDir = _config.ArtCacheDir;  // user-relocated art cache
             Ui.WebpDecoder.Log = Log;
+            HearthstoneLauncher.Log = Log;
 
             _hotkey = new HotkeyManager();
             _hotkey.HotkeyPressed += OnHotkeyPressed;
@@ -619,6 +620,8 @@ namespace HsbgCardLookup
                 case Ui.ArrangeTarget.Anomaly: _config.AnomalyHud = new HudPlacement(); break;
                 case Ui.ArrangeTarget.MmrPanel: _config.MmrPanelHud = new HudPlacement(); break;
                 case Ui.ArrangeTarget.Boards: _config.OpponentBoardsHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.SearchButton: _config.SearchButtonHud = new HudPlacement(); break;
+                case Ui.ArrangeTarget.Bell: _config.BellHud = new HudPlacement(); break;
                 default: return;
             }
             Log("arrange: " + target + " restored to its default place");
@@ -651,6 +654,36 @@ namespace HsbgCardLookup
             }));
         }
 
+        /// <summary>Test aid: "Name=value" lines set those settings and apply them as a click in the
+        /// settings window would (bool, int, double or string properties of the config). Returns what it
+        /// did, one entry per line. UI thread.</summary>
+        public string TestSet(string lines)
+        {
+            var done = new List<string>();
+            foreach (var raw in (lines ?? "").Split('\n'))
+            {
+                string line = raw.Trim();
+                int eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                string name = line.Substring(0, eq).Trim(), value = line.Substring(eq + 1).Trim();
+                var prop = typeof(PluginConfig).GetProperty(name);
+                try
+                {
+                    object v = prop == null ? null
+                        : prop.PropertyType == typeof(bool) ? bool.Parse(value)
+                        : prop.PropertyType == typeof(int) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(double) ? double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)
+                        : prop.PropertyType == typeof(string) ? (object)value : null;
+                    if (v == null || !prop.CanWrite) { done.Add(name + ": not settable"); continue; }
+                    prop.SetValue(_config, v);
+                    done.Add(name + "=" + value);
+                }
+                catch (Exception ex) { done.Add(name + ": " + ex.Message); }
+            }
+            ApplySettings();
+            return string.Join(", ", done);
+        }
+
         /// <summary>Open (or focus) the settings window. UI thread.</summary>
         /// <summary>Test aid: open the settings with that typed into their search box.</summary>
         /// "snap <page>" opens that page instead and saves it as settings.png beside the program; "close" closes the window;
@@ -660,16 +693,38 @@ namespace HsbgCardLookup
             if (search == "close") { try { _settings?.Close(); } catch { } return; }
             if (search == "quiet") { _quietOpen = true; try { OpenSettings(); } finally { _quietOpen = false; } return; }
             if (search == "f3") { ToggleSearch(); return; }      // the card search as its key opens it
+            if (search.StartsWith("frames ", StringComparison.Ordinal))
+            {
+                // "frames <fps> <scale> <folder>": the Assemble panels picture's loop as PNG frames.
+                var a = search.Substring(7).Trim().Split(new[] { ' ' }, 3);
+                int fps; double scale;
+                if (a.Length == 3 && int.TryParse(a[0], out fps) && double.TryParse(a[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale))
+                    try { _settings?.TestFrames(a[2], fps, scale); } catch { }
+                return;
+            }
+            if (search.StartsWith("tip ", StringComparison.Ordinal))
+            {
+                // The n-th styled tooltip on the open page, opened as a hover would (to picture it).
+                int n; if (int.TryParse(search.Substring(4).Trim(), out n)) try { _settings?.TestTip(n); } catch { }
+                return;
+            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).
                 try { if (!_overlayLarge.IsVisible) { _overlayLarge.ShowActivated = false; _overlayLarge.Show(); } } catch { }
                 return;
             }
-            OpenSettings();
+            bool snap = search.StartsWith("snap ", StringComparison.Ordinal);
+            if (snap)
+            {
+                // A snap never takes the focus and is never seen: opened quietly outside every screen (the
+                // picture is rendered from the window's visuals), or left as it is when already open.
+                if (_settings == null) { _quietOpen = _snapOpen = true; try { OpenSettings(); } finally { _quietOpen = _snapOpen = false; } }
+            }
+            else OpenSettings();
             try
             {
-                if (search.StartsWith("snap ", StringComparison.Ordinal))
+                if (snap)
                     _settings?.TestSnap(search.Substring(5).Trim(), System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png"));
                 else _settings?.TestSearch(search);
             }
@@ -678,7 +733,7 @@ namespace HsbgCardLookup
 
         /// <summary>The settings window has closed. UI thread.</summary>
         public event Action SettingsClosed;
-        private bool _quietOpen;
+        private bool _quietOpen, _snapOpen;
 
         public void OpenSettings()
         {
@@ -691,6 +746,12 @@ namespace HsbgCardLookup
             _settings.ReloadLayout = ReloadLayout;
             _settings.Closed += (s, e) => { _settings = null; SettingsClosed?.Invoke(); };
             if (_quietOpen) _settings.ShowActivated = false;
+            if (_snapOpen)
+            {
+                _settings.WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
+                _settings.Left = System.Windows.SystemParameters.VirtualScreenLeft - 4000;
+                _settings.Top = 0;
+            }
             _settings.Show();
             _settings.RefreshUpdateStatus(_lastUpdateNotice);   // seed with what's already known
         }

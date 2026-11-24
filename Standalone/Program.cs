@@ -9,6 +9,7 @@ namespace Toolkit.Standalone
     ///   --autostart     the watcher: started with Windows, idles in the tray until Hearthstone starts
     ///   --welcome       with --with-hs, from the watcher after a fresh install: the toolkit comes up
     ///                   without Hearthstone to show its settings once, and leaves when they close
+    ///   --settings      with --with-hs, from a click on the watcher's tray icon: the same, settings open
     /// Main only dispatches; the watcher never touches WPF, so its process stays small.
     /// Log: %APPDATA%\TantrumsBattlegroundsToolkit\standalone.log.
     /// </summary>

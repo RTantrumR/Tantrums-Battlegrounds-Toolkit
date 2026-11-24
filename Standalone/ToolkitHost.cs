@@ -28,6 +28,7 @@ namespace Toolkit.Standalone
                 bool ignoreFocus = Array.IndexOf(args, "--ignore-focus") >= 0;
                 bool withHs = Array.IndexOf(args, "--with-hs") >= 0;
                 bool welcome = Array.IndexOf(args, "--welcome") >= 0;
+                bool showSettings = Array.IndexOf(args, "--settings") >= 0;   // the watcher's tray icon was clicked
                 Shared.Log("=== start" + (withHs ? " (with Hearthstone)" : "") + (ignoreFocus ? " (TEST MODE: --ignore-focus)" : ""));
                 Action<string> log = Shared.Log;
 
@@ -54,7 +55,7 @@ namespace Toolkit.Standalone
                     Icon = Shared.TrayIcon(),
                     Text = ignoreFocus ? "TEST MODE (draws without focus)" : ToolkitApp.DisplayName,
                     Visible = true,
-                    ContextMenuStrip = new Forms.ContextMenuStrip()
+                    ContextMenuStrip = TrayMenu.Create()
                 };
                 HsbgCardLookup.Ui.TrayFlight.LogoPath = Path.Combine(Shared.ExeDir, "toolkit.ico");
                 HsbgCardLookup.Ui.TrayFlight.Target = () =>
@@ -70,10 +71,15 @@ namespace Toolkit.Standalone
                     settingsItem.Text = Strings.T("plugin.settings");
                     exitItem.Text = Strings.T("standalone.tray.exit");
                 };
-                searchItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => toolkit.ToggleSearch());
-                settingsItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
-                exitItem = tray.ContextMenuStrip.Items.Add("", null, (s, e) => app.Shutdown());
-                tray.DoubleClick += (s, e) => toolkit.ToggleSearch();
+                searchItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => toolkit.ToggleSearch());
+                settingsItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => ui.BeginInvoke(new Action(toolkit.OpenSettings)));
+                exitItem = TrayMenu.Add(tray.ContextMenuStrip, "", (s, e) => app.Shutdown());
+                // A click opens the settings, a double click the card search: the click waits out the
+                // double-click time first, since a double click begins with one.
+                var clickWait = new Forms.Timer { Interval = Forms.SystemInformation.DoubleClickTime };
+                clickWait.Tick += (s, e) => { clickWait.Stop(); ui.BeginInvoke(new Action(toolkit.OpenSettings)); };
+                tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) { clickWait.Stop(); clickWait.Start(); } };
+                tray.DoubleClick += (s, e) => { clickWait.Stop(); toolkit.ToggleSearch(); };
                 toolkit.LanguageChanged += relabel;
 
                 // Setup's "close down" signal.
@@ -193,6 +199,29 @@ namespace Toolkit.Standalone
                         if (term.Length > 0) toolkit.OpenSettings(term); else toolkit.OpenSettings();
                     }
 
+                    // Test aid: set.trigger holds "Name=value" lines; they are set and applied as in the settings.
+                    string setFile = Path.Combine(Shared.ExeDir, "set.trigger");
+                    if (File.Exists(setFile))
+                    {
+                        string lines = ""; try { lines = File.ReadAllText(setFile); } catch { }
+                        try { File.Delete(setFile); } catch { }
+                        Shared.Log("set: " + toolkit.TestSet(lines));
+                    }
+
+                    // Test aid: traymenu.trigger ("x,y" in screen pixels) opens the tray icon's menu there.
+                    string trayMenuFile = Path.Combine(Shared.ExeDir, "traymenu.trigger");
+                    if (File.Exists(trayMenuFile))
+                    {
+                        string at = ""; try { at = File.ReadAllText(trayMenuFile); } catch { }
+                        try { File.Delete(trayMenuFile); } catch { }
+                        var xy = at.Split(',');
+                        int x, y;
+                        if (at.StartsWith("png ", StringComparison.Ordinal))
+                            Shared.Log("traymenu: " + TrayMenu.Render(tray.ContextMenuStrip, at.Substring(4).Trim(), 1));
+                        else if (xy.Length == 2 && int.TryParse(xy[0].Trim(), out x) && int.TryParse(xy[1].Trim(), out y))
+                            tray.ContextMenuStrip.Show(new System.Drawing.Point(x, y));
+                    }
+
                     // Test aid: tribesmenu.trigger opens the lobby types box's layout menu under the cursor.
                     string menuFile = Path.Combine(Shared.ExeDir, "tribesmenu.trigger");
                     if (File.Exists(menuFile))
@@ -218,9 +247,9 @@ namespace Toolkit.Standalone
                     }
                 };
 
-                // Started only to show the settings (--welcome): with them closed and no Hearthstone there
-                // is nothing to stay for, and the watcher that started us goes on waiting.
-                if (welcome)
+                // Started only to show the settings (--welcome, --settings): with them closed and no
+                // Hearthstone there is nothing to stay for, and the watcher that started us goes on waiting.
+                if (welcome || showSettings)
                     toolkit.SettingsClosed += () =>
                     {
                         if (Shared.HearthstoneRunning()) return;
@@ -230,7 +259,11 @@ namespace Toolkit.Standalone
                         leave.Tick += (s, e) => { leave.Stop(); app.Shutdown(); };
                         leave.Start();
                     };
-                app.Startup += (s, e) => { toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start(); };
+                app.Startup += (s, e) =>
+                {
+                    toolkit.Start(ui); relabel(); worker.Start(); quitWatch.Start(); poll.Start();
+                    if (showSettings) ui.BeginInvoke(new Action(toolkit.OpenSettings));
+                };
                 app.Exit += (s, e) =>
                 {
                     stop.Set(); poll.Stop();

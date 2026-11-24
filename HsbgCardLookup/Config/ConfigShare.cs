@@ -51,7 +51,7 @@ namespace HsbgCardLookup.Config
         // The settings a file may hold. Everything else in PluginConfig stays this PC's own.
         private static readonly string[] Shared =
         {
-            "BrowserKey", "GoldenKey", "FocusKey", "ShowDuos", "ShowSearchButton", "HideDraggedWithApp",
+            "BrowserKey", "GoldenKey", "FocusKey", "ShowDuos", "ShowSearchButton", "SearchButtonHud", "BellHud", "HideDraggedWithApp",
             "DragFromDetail", "DragFromGrid", "FloatingCardWidth",
             "ShowTrinkets", "ShowAnomaly", "LesserTrinketHud", "GreaterTrinketHud", "Trinket3Hud", "Trinket4Hud", "AnomalyHud",
             "ShowOpponentMmr", "OpponentMmrMode", "OpponentNameMode", "OpponentNameType", "ShowMmrDeltas", "TavernTierMode",

@@ -179,8 +179,9 @@ namespace HsbgCardLookup.Ui
             {
                 Width = 26, Height = 18, Background = Brushes.Transparent, Cursor = Cursors.Hand,
                 HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 1, 6, 0), Child = glyph, ToolTip = tooltip
+                Margin = new Thickness(0, 1, 6, 0), Child = glyph
             };
+            Tip.Set(b, tooltip);
             b.MouseEnter += (s, e) => glyph.Foreground = hover;
             b.MouseLeave += (s, e) => glyph.Foreground = normal;
             b.MouseLeftButtonDown += (s, e) => e.Handled = true;
@@ -204,8 +205,9 @@ namespace HsbgCardLookup.Ui
             {
                 Background = Brushes.Transparent, Cursor = Cursors.Hand,
                 Padding = new Thickness(5, 2, 5, 2), VerticalAlignment = VerticalAlignment.Center,
-                Child = glyph, ToolTip = tooltip ?? Strings.T("common.clear")
+                Child = glyph
             };
+            Tip.Set(b, tooltip ?? Strings.T("common.clear"));
             b.MouseEnter += (s, e) => glyph.Foreground = TextPrimary;
             b.MouseLeave += (s, e) => glyph.Foreground = TextMuted;
             b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClear?.Invoke(); };

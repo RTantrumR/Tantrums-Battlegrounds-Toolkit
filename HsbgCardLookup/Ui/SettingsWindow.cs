@@ -143,6 +143,7 @@ namespace HsbgCardLookup.Ui
                 _hotkey.EndCapture();
                 _hotkey.Suppress(false);
                 _hotkey.KeyCaptured -= OnKeyCaptured;
+                CancelHearthstoneStart();
                 if (_arranging != ArrangeTarget.None) { _arranging = ArrangeTarget.None; try { _onArrange?.Invoke(ArrangeTarget.None); } catch { } }
                 _mmrPreview?.Close(); _mmrPreview = null;
                 _portraitsPreview = null;
@@ -286,6 +287,7 @@ namespace HsbgCardLookup.Ui
             // Arranging belongs to the page whose button started it, so leaving that page ends it —
             // otherwise the mode strands with no visible Done button anywhere.
             if (_arranging != ArrangeTarget.None) SetArrange(ArrangeTarget.None);
+            CancelHearthstoneStart();   // ...and so does a start of Hearthstone made for it
             _mmrPreview?.Close(); _mmrPreview = null;
             _portraitsPreview = null;
             _hudPreview?.Close(); _hudPreview = null;
@@ -791,8 +793,9 @@ namespace HsbgCardLookup.Ui
             var b = new Border
             {
                 Width = 32, Height = 32, CornerRadius = new CornerRadius(7), Background = Brushes.Transparent, BorderBrush = UiKit.StrokeBrush,
-                BorderThickness = new Thickness(1), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, ToolTip = tooltip, Child = text
+                BorderThickness = new Thickness(1), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, Child = text
             };
+            Tip.Set(b, tooltip);
             b.MouseEnter += (s, e) => { b.Background = UiKit.Br(UiKit.RowBgHover); text.Foreground = UiKit.AccentBrush; };
             b.MouseLeave += (s, e) => { b.Background = Brushes.Transparent; text.Foreground = UiKit.TextSecondary; };
             b.MouseLeftButtonUp += (s, e) => { e.Handled = true; onClick(); };
@@ -963,6 +966,9 @@ namespace HsbgCardLookup.Ui
             stack.Children.Add(KeyRow("focus", Strings.T("settings.cardSearch.keyFocusSearch")));
 
             stack.Children.Add(GroupHeader(Strings.T("settings.cardSearch.gameHeader")));
+            // Arrange sits on the switch's own line: switching the button on shows at once that it can be placed.
+            var arrangeSearch = ArrangeButton(ArrangeTarget.SearchButton);
+            arrangeSearch.Margin = new Thickness(0, 0, 8, 0);
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.searchButton"), _config.ShowSearchButton, v =>
             {
                 _config.ShowSearchButton = v;
@@ -970,7 +976,8 @@ namespace HsbgCardLookup.Ui
                     ? Strings.T("settings.cardSearch.searchButtonOn")
                     : Strings.T("settings.cardSearch.searchButtonOff");
                 Changed();
-            }));
+                UpdateArrangeRow();
+            }, demo: arrangeSearch));
 
             stack.Children.Add(ToggleRow(Strings.T("settings.cardSearch.showDuos"), _config.ShowDuos, v =>
             {
@@ -1355,7 +1362,6 @@ namespace HsbgCardLookup.Ui
                     Text = Strings.T("settings.autostart.hint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
                     TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
-                if (!_indexing) stack.Children.Add(SettingsDemos.Autostart());
             }
 
             stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));
@@ -1369,6 +1375,10 @@ namespace HsbgCardLookup.Ui
             _updateActionsHost = new StackPanel();
             stack.Children.Add(_updateActionsHost);
             RepaintUpdateArea();
+
+            // The in-game bell carries the update news, so it is placed from here.
+            stack.Children.Add(new Border { Height = 10 });
+            stack.Children.Add(ArrangeHudRow(ArrangeTarget.Bell, Strings.T("settings.app.arrangeBellTitle")));
 
             ShowPage();
         }
@@ -2035,9 +2045,24 @@ namespace HsbgCardLookup.Ui
         // the Trinket + Anomaly sub-pages (it arranges both HUDs at once).
         private UIElement ArrangeHudRow(ArrangeTarget target, string title)
         {
-            _arrangeTargetOnPage = target;
             var dock = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 2, 0, 4) };
+            var btn = ArrangeButton(target);
+            DockPanel.SetDock(btn, Dock.Right);
+            dock.Children.Add(btn);
 
+            dock.Children.Add(new TextBlock
+            {
+                Text = title, Foreground = UiKit.TextPrimary, FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), TextWrapping = TextWrapping.Wrap
+            });
+            return dock;
+        }
+
+        // The page's one Arrange button (a page arranges one thing), wired to the session and painted
+        // by UpdateArrangeRow.
+        private Border ArrangeButton(ArrangeTarget target)
+        {
+            _arrangeTargetOnPage = target;
             _arrangeBtnLabel = new TextBlock { Text = Strings.T("settings.common.arrange"), Foreground = UiKit.TextPrimary, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center };
             _arrangeBtn = new Border
             {
@@ -2046,20 +2071,9 @@ namespace HsbgCardLookup.Ui
                 Width = ControlW, Child = _arrangeBtnLabel, VerticalAlignment = VerticalAlignment.Center
             };
             _arrangeBtn.MouseLeftButtonUp += (s, e) => ToggleArrange();
-            DockPanel.SetDock(_arrangeBtn, Dock.Right);
-            dock.Children.Add(_arrangeBtn);
-
-            var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-            left.Children.Add(new TextBlock { Text = title, Foreground = UiKit.TextPrimary, FontSize = 15 });
-            left.Children.Add(new TextBlock
-            {
-                Text = Strings.T("settings.common.arrangeHint"),
-                Foreground = UiKit.TextMuted, FontSize = 11.5, TextWrapping = TextWrapping.Wrap
-            });
-            dock.Children.Add(left);
-
+            Tip.Set(_arrangeBtn, Strings.T("settings.common.arrangeHint"));   // how an arrange works, the same everywhere
             UpdateArrangeRow();
-            return dock;
+            return _arrangeBtn;
         }
 
         private void ToggleArrange()
@@ -2071,20 +2085,11 @@ namespace HsbgCardLookup.Ui
 
         private void SetArrange(ArrangeTarget target)
         {
-            // Nothing draws outside the game, so entering arrange without Hearthstone up would show an
-            // empty screen and no reason why. This refusal gets its own modal dialog rather than the
-            // shared status line: that line carries every ordinary "setting applied" message, so a
-            // refusal written there reads as one more passing tip and gets skipped. A MessageBox is
-            // safe on THIS path specifically — it steals OS foreground, which normally makes HDT hide
-            // its entire overlay, but the condition for showing it is that Hearthstone is not running,
-            // so there is no overlay to lose.
+            // Nothing draws outside the game, so without Hearthstone up it is started first (through
+            // Battle.net, as its Play button does) and the arrange begins once its window is there.
             if (target != ArrangeTarget.None && !HearthstoneIsRunning())
             {
-                _status.Text = Strings.T("settings.common.hsNotRunning");
-                MessageBox.Show(this,
-                    Strings.T("settings.common.hsNotRunningDetail"),
-                    Strings.F("settings.common.arrangeCaption", ToolkitApp.DisplayName),
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                StartHearthstoneThenArrange(target);
                 return;
             }
 
@@ -2111,6 +2116,42 @@ namespace HsbgCardLookup.Ui
             try { Dispatcher.BeginInvoke(new Action(() => SetArrange(ArrangeTarget.None))); } catch { }
         }
 
+        private System.Threading.CancellationTokenSource _hsLaunch;   // a start of Hearthstone for an arrange, while it runs
+
+        // Arrange was clicked with Hearthstone closed: start it, then begin the arrange on its own once
+        // the game's window is up — unless the user left the page, closed the window or started
+        // something else meanwhile. A failure gets a dialog: Hearthstone is not running, so there is no
+        // overlay for a MessageBox's focus steal to hide.
+        private async void StartHearthstoneThenArrange(ArrangeTarget target)
+        {
+            _status.Text = Strings.T("settings.common.hsStarting");
+            if (_hsLaunch != null) return;
+            var cts = _hsLaunch = new System.Threading.CancellationTokenSource();
+            bool up = false;
+            try { up = await HsbgCardLookup.Host.HearthstoneLauncher.StartAsync(HearthstoneIsRunning, cts.Token); }
+            catch { }
+            if (_hsLaunch == cts) _hsLaunch = null;
+            if (cts.IsCancellationRequested) return;
+            if (!up)
+            {
+                _status.Text = Strings.T("settings.common.hsStartFailed");
+                MessageBox.Show(this, Strings.T("settings.common.hsStartFailed"),
+                    Strings.F("settings.common.arrangeCaption", ToolkitApp.DisplayName),
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            // A moment for the game to settle its window (it opens small, then takes its real size).
+            try { await System.Threading.Tasks.Task.Delay(3000, cts.Token); } catch { return; }
+            if (_arrangeTargetOnPage == target && _arranging == ArrangeTarget.None && IsLoaded)
+                SetArrange(target);
+        }
+
+        private void CancelHearthstoneStart()
+        {
+            try { _hsLaunch?.Cancel(); } catch { }
+            _hsLaunch = null;
+        }
+
         private static bool HearthstoneIsRunning()
         {
             try { return HsbgCardLookup.Host.HostServices.Shell?.IsHearthstoneRunning == true; }
@@ -2128,6 +2169,8 @@ namespace HsbgCardLookup.Ui
                 case ArrangeTarget.Anomaly: return _config.ShowAnomaly;
                 case ArrangeTarget.MmrPanel: return _config.ShowOpponentMmr && _config.PanelInUse;
                 case ArrangeTarget.Boards: return _config.ShowOpponentBoards;
+                case ArrangeTarget.SearchButton: return _config.ShowSearchButton;
+                case ArrangeTarget.Bell: return true;
                 default: return false;
             }
         }
@@ -2185,7 +2228,7 @@ namespace HsbgCardLookup.Ui
         {
             if (_artFolderLabel == null) return;
             _artFolderLabel.Text = CardArt.CacheDir;
-            _artFolderLabel.ToolTip = CardArt.CacheDir;
+            Tip.Set(_artFolderLabel, CardArt.CacheDir);
         }
 
         private void ChangeArtFolder()
