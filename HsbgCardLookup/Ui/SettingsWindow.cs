@@ -175,7 +175,7 @@ namespace HsbgCardLookup.Ui
         // The main row's one-liner: the language in use, and whether it was pinned or followed.
         private string CurrentLanguageCaption()
         {
-            string name = Locales.NativeName(_cardLanguage?.Web);
+            string name = Locales.NativeName(_cardLanguage?.UiWeb);
             return string.IsNullOrEmpty(_config.Language) ? Strings.F("settings.language.autoCaption", name) : name;
         }
 
@@ -198,7 +198,7 @@ namespace HsbgCardLookup.Ui
             stack.Children.Add(LanguageRow("", Flags.Globe(26, UiKit.TextPrimary), Strings.T("settings.language.autoRow"),
                 Strings.F("settings.language.autoRowHint", Locales.NativeName(auto))));
             stack.Children.Add(LanguageRow(Locales.English, Flags.Flag(Locales.English, 34), "English", "en-US"));
-            foreach (var l in Locales.Cards)
+            foreach (var l in Locales.All)
                 stack.Children.Add(LanguageRow(l.Web, Flags.Flag(l.Web, 34), l.Native, l.English + "  ·  " + l.Tag));
 
             _status.Text = CardLanguageStatus();

@@ -56,6 +56,18 @@ namespace HsbgCardLookup.Localization
                 v.Normalize();
                 Table[kv.Key] = v;
             }
+            // Languages only the toolkit's texts exist in (Locales.UiOnly): their few labels are ours, not
+            // the site's, so they live in their own bundled file and never come from the cache.
+            var own = Read(CardStore.BundledDataPath("locale-terms.ui.json"));
+            if (own != null)
+                foreach (var kv in own.Locales)
+                {
+                    if (string.IsNullOrEmpty(kv.Key) || Table.ContainsKey(kv.Key)) continue;
+                    var v = kv.Value ?? new LocaleVocab();
+                    v.Web = kv.Key;
+                    v.Normalize();
+                    Table[kv.Key] = v;
+                }
             Generated = best.Generated ?? "";
             LoadInfo = $"{Table.Count} locales (patch {best.Patch}, generated {Generated}) from {bestPath}";
             return true;

@@ -47,6 +47,9 @@ namespace HsbgCardLookup.Localization
         public string HdtCode { get; private set; }
         /// <summary>The language in use: "en" or a card-language web code.</summary>
         public string Web { get; private set; } = Locales.English;
+        /// <summary>The language of the toolkit's own texts: <see cref="Web"/>, except for a language
+        /// that has no card data (Locales.UiOnly), where the cards stay English.</summary>
+        public string UiWeb { get; private set; } = Locales.English;
         /// <summary>The game's words in <see cref="Web"/>; the empty vocabulary for English.</summary>
         public LocaleVocab Vocab { get; private set; } = LocaleVocab.Empty;
         /// <summary>How card names sort: ordinal for English (today's order), culture-aware otherwise.</summary>
@@ -155,6 +158,13 @@ namespace HsbgCardLookup.Localization
             return l != null && l.HasCards ? l.Web : Locales.English;
         }
 
+        /// <summary>Pure: the language of the toolkit's own texts for a setting and HDT's language code.</summary>
+        public static string ResolveUi(string preference, string hdtCode)
+        {
+            var l = Locales.ByWeb((preference ?? "").Trim());
+            return l != null && !l.HasCards ? l.Web : Resolve(preference, hdtCode);
+        }
+
         /// <summary>One line for the log.</summary>
         public string Describe()
         {
@@ -162,20 +172,22 @@ namespace HsbgCardLookup.Localization
             string data = Web == Locales.English ? "English data"
                 : DataApplied ? $"{_store.LocaleCount} cards translated (patch {_store.LocalePatch})"
                 : "snapshot not downloaded yet";
-            return $"{Web} ({source}) — {data}; vocabulary for {Vocab.Web}";
+            return $"{Web} ({source}), texts {UiWeb} — {data}; vocabulary for {Vocab.Web}";
         }
 
         // Switch everything that depends on the language, in one place, then tell the surfaces.
         private void Apply(string web, bool force)
         {
             string terms = LocaleTerms.Generated;
-            bool same = web == _appliedWeb && terms == _appliedTerms && (web == Locales.English || _store.LocaleWeb == web);
+            string ui = ResolveUi(Preference, HdtCode);
+            bool same = web == _appliedWeb && ui == UiWeb && terms == _appliedTerms && (web == Locales.English || _store.LocaleWeb == web);
             if (!force && same) return;
 
             Web = web;
-            Strings.SetLocale(web);                // the plugin's own texts (bundled)
+            UiWeb = ui;
+            Strings.SetLocale(ui);                 // the plugin's own texts (bundled)
             _store.SetLocale(web);                 // the cached overlay, or English until the snapshot lands
-            Vocab = LocaleTerms.For(web);
+            Vocab = LocaleTerms.For(web == Locales.English ? ui : web);   // a texts-only language still names the minion types
             Aliases.SetLocale(Vocab);
             SearchEngine.NameComparer = NameComparer;
             Ui.CardArt.ClearMemory();              // decoded bitmaps are keyed by language; disk caches stay
