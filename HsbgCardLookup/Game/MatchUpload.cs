@@ -84,6 +84,16 @@ namespace HsbgCardLookup.Game
             o["players"] = players;
             o["finalBoard"] = JToken.FromObject(r.FinalBoard);
             if (r.Timewarps != null && r.Timewarps.Count > 0) o["timewarps"] = JToken.FromObject(r.Timewarps);
+            // Whatever else of ours was in play during the match besides minions, hero powers and trinkets:
+            // a quest, its reward, a buddy meter, a secret, or a system a later patch brings (back). Each card
+            // once, with the game's own card type number, so the site needs no new field per system.
+            var known = new HashSet<string>(r.HeroPowers.Concat(r.Trinkets));
+            var other = new JArray(); var seen = new HashSet<string>();
+            foreach (var t in r.Turns)
+                foreach (var c in t.Cards)
+                    if (c.Card != null && !known.Contains(c.Card) && seen.Add(c.Card))
+                        other.Add(new JObject { ["card"] = c.Card, ["type"] = c.Type, ["n"] = t.Number });
+            if (other.Count > 0) o["otherCards"] = other;
             return o;
         }
     }
