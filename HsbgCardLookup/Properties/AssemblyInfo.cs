@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Tantrum's Battlegrounds Toolkit for Hearthstone Deck Tracker")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("hsbg.cards")]
-[assembly: AssemblyProduct("HsbgCardLookup")]
+[assembly: AssemblyProduct("Tantrum's Battlegrounds Toolkit")]
 [assembly: AssemblyCopyright("Copyright © 2026 TantrumUA")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
