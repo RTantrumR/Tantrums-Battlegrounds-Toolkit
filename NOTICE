@@ -1,4 +1,4 @@
-Tantrum's Battlegrounds Toolkit — Hearthstone Deck Tracker plugin
+Tantrum's Battlegrounds Toolkit
 Copyright 2026 RTantrumR (hsbg.cards)
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
@@ -12,10 +12,21 @@ This product bundles third-party components:
     System.Numerics.Vectors, System.Runtime.CompilerServices.Unsafe,
     System.Text.Encoding.CodePages) — © .NET Foundation, MIT License.
 
+  - Json.NET (https://www.newtonsoft.com/json) — © James Newton-King, MIT License.
+
 Hearthstone Deck Tracker assemblies (HearthstoneDeckTracker.exe, HearthDb.dll,
-HearthMirror.dll, Newtonsoft.Json.dll) are referenced at build time only and are
-NOT redistributed with this plugin's source. Contributors copy them out of their
-own HDT install with setup.ps1.
+HearthMirror.dll) are referenced only when the HDT plugin host is built. They are
+NOT redistributed, neither with the source nor with the program. Contributors who
+build the plugin host copy them out of their own HDT install with setup.ps1.
+
+Logos of other programs
+-----------------------
+
+The Firestone and Hearthstone Deck Tracker logos (data/logos) are taken from
+those projects' public sources. They are used only as easily recognizable marks
+on the two ready-made compatibility configs in Settings, which adjust the toolkit
+for players who run that program beside it. Both names and logos belong to their
+owners; this project is not affiliated with or endorsed by either.
 
 Adapted third-party code
 ------------------------
