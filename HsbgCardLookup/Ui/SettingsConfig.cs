@@ -24,6 +24,10 @@ namespace HsbgCardLookup.Ui
         private static readonly Color WarnRed = Color.FromRgb(0xFF, 0x6B, 0x6B);
         private string _presetDraft = "";
 
+        /// <summary>The start after a fresh install opens here: the ready-made configs come first for
+        /// a player who already runs another tracker.</summary>
+        public void ShowConfigPage() => BuildConfig();
+
         private void BuildConfig()
         {
             _currentPage = BuildConfig;

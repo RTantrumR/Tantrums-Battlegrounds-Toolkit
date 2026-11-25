@@ -183,9 +183,10 @@ namespace HsbgCardLookup
             Task.Run(() => CheckForUpdateAsync());
             Task.Run(() => CheckNoticesAsync());
 
-            // The start after a fresh install shows the settings once, unasked: that they exist is
-            // the first thing a new user should learn.
-            if (_config.Welcome) { Log("fresh install: opening the settings once"); OpenSettings(); }
+            // The start after a fresh install shows the settings once, unasked, on the Config page:
+            // that they exist is the first thing a new user should learn, and the ready-made configs
+            // are what a player with another tracker needs first.
+            if (_config.Welcome) { Log("fresh install: opening the settings once, on Config"); OpenSettings(); _settings?.ShowConfigPage(); }
         }
 
         /// <summary>About every 100 ms, on the UI thread.</summary>
