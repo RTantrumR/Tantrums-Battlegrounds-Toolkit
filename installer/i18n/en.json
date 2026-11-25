@@ -19,6 +19,7 @@
     "SharePageDescription": "Help build the community statistics.",
     "ShareCheck": "Share match data",
     "ShareHint": "After each Solos match the toolkit sends the result to hsbg.cards for community statistics: the lobby's heroes, minion types and places, your rating and your final board. No names are sent, neither yours nor your opponents'. You can switch this off at any time in the toolkit's settings.",
+    "SharePrivacy": "Privacy policy",
     "ReadyShare": "Match data:",
     "ReadyShareYes": "shared, without names",
     "ReadyShareNo": "not shared",

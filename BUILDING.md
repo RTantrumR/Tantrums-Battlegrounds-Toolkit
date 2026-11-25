@@ -14,6 +14,8 @@ The project, DLL and plugin folder are named `HsbgCardLookup`, the plugin's orig
 3. Open `HsbgCardLookup.sln` in Visual Studio 2022.
 4. Build using VS or run `.\deploy.ps1`.
 
+The standalone program and its Setup build without step 2: when HDT's assemblies are not in `libs/` (or with `/p:HdtHost=false`) the HDT plugin host is left out. `installer/build.ps1` always builds that way, and so does the GitHub Actions workflow in `.github/workflows/build.yml`.
+
 *Note: The `dotnet` CLI cannot build this project as it uses the legacy WPF markup compiler for .NET Framework 4.7.2.*
 
 ## Scripts

@@ -1,0 +1,52 @@
+# Builds the toolkit and its Setup from source on a GitHub-hosted runner: the build that gets signed.
+# HDT's own assemblies are not in the repository, so installer\build.ps1 builds with HdtHost=false
+# (the standalone program only).
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # windows-2022: Visual Studio 2022 with the .NET Framework 4.7.2 targeting pack, and Inno Setup 6.
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup --no-progress -y }
+
+      - name: Check the UI strings
+        run: node tools/check-ui-strings.js --strict
+
+      - name: Build the Setup
+        shell: pwsh
+        run: ./installer/build.ps1
+
+      - name: Checksums
+        shell: pwsh
+        run: Get-FileHash installer\out\*Setup*.exe, installer\stage\standalone\*.exe, installer\stage\standalone\HsbgCardLookup.dll -Algorithm SHA256 | Format-List
+
+      - name: Upload the program files
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolkit-program
+          path: |
+            installer/stage/standalone/TantrumsToolkitStandalone.exe
+            installer/stage/standalone/HsbgCardLookup.dll
+          if-no-files-found: error
+
+      - name: Upload the Setup
+        id: setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolkit-setup
+          path: installer/out/TantrumsBattlegroundsToolkit-Setup-*.exe
+          if-no-files-found: error

@@ -18,6 +18,7 @@
     "SharePageDescription": "Contribuire alle statistiche della community.",
     "ShareCheck": "Condividi i dati delle partite",
     "ShareHint": "Dopo ogni partita in Solo il toolkit invia il risultato a hsbg.cards per le statistiche della community: eroi, tipi di servitori e piazzamenti della lobby, il proprio punteggio e il proprio schieramento finale. Non viene inviato alcun nome, né il proprio né quello degli avversari. Si può disattivare in qualsiasi momento nelle impostazioni del toolkit.",
+    "SharePrivacy": "Informativa sulla privacy",
     "ReadyShare": "Dati delle partite:",
     "ReadyShareYes": "condivisi, senza nomi",
     "ReadyShareNo": "non condivisi",
