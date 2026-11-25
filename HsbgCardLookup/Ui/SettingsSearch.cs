@@ -107,6 +107,14 @@ namespace HsbgCardLookup.Ui
         /// <summary>Test aid: open a page by name ("panels", "mmr", "boards", "gifts", "search", "app", "trinkets", "anomaly") and save all of it, the
         /// part below the window's edge too, as a PNG. "name@2.5" waits that many seconds first, so a
         /// looping picture is caught mid-pass.</summary>
+        /// <summary>Test hook: apply a ready-made config by its name, as its Apply button does.</summary>
+        public void TestReady(string name)
+        {
+            BuildConfig();
+            foreach (var r in ReadyConfigs)
+                if (string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase)) ApplyReady(r);
+        }
+
         public void TestSnap(string page, string path)
         {
             double wait = 0;

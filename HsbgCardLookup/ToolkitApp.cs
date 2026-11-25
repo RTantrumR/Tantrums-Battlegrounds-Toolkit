@@ -721,6 +721,13 @@ namespace HsbgCardLookup
                 int n; if (int.TryParse(search.Substring(4).Trim(), out n)) try { _settings?.TestTip(n); } catch { }
                 return;
             }
+            if (search.StartsWith("ready ", StringComparison.Ordinal))
+            {
+                // "ready <name>": a ready-made config applied as its button does (settings opened unseen if closed).
+                if (_settings == null) { _quietOpen = _snapOpen = true; try { OpenSettings(); } finally { _quietOpen = _snapOpen = false; } }
+                try { _settings?.TestReady(search.Substring(6).Trim()); } catch { }
+                return;
+            }
             if (search == "f3quiet")
             {
                 // The card search on screen without taking the focus (to film it while the PC is in use).
