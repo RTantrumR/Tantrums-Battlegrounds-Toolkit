@@ -26,7 +26,8 @@
 ; upgrade the language already set; the Ready page shows it again. The choice reaches the plugin as setup-language.txt in its data
 ; folder, which the plugin applies once and deletes; the wizard never writes config.xml, because
 ; the toolkit's first-run defaults and its welcome marker both depend on it not existing.
-; /TOOLKITLANG=<code> preselects (silent installs too); "follow" = same as HDT.
+; /TOOLKITLANG=<code> preselects (silent installs too). A setting of "same as HDT" left by the old
+; plugin has no meaning for the standalone: the wizard's language is preselected instead.
 ;
 ; Testing: /DIR=<temp> installs the program into a throwaway folder, /DATADIR= the data, /HDTDATA= HDT's
 ; data folder (plugins.xml). A /DIR test is not fully throwaway: it rewrites the per-user Apps & features
@@ -95,8 +96,7 @@ Name: "thai"; MessagesFile: "compiler:Languages\Thai.isl"
 Name: "chinesesimplified"; MessagesFile: "languages\ChineseSimplified.isl"
 Name: "chinesetraditional"; MessagesFile: "languages\ChineseTraditional.isl"
 
-; Our own wizard texts in every language above (Setup creates no shortcuts, so Inno shows
-; FinishedLabelNoIcons; FinishedLabel is kept in step there).
+; Our own wizard texts in every language above.
 #include "out\messages.iss"
 
 [Files]
@@ -431,10 +431,8 @@ begin
   ColW := LangPage.SurfaceWidth div 2;
   Top := Intro.Top + Intro.Height + ScaleY(8);
 
-  // "Same as HDT" across the top, then the languages in two columns, each in its own words with
-  // the flag and tag the plugin and the site show.
-  AddLang('', CustomMessage('LangSameAsHdt'), '', 'globe' + F, 0, Top, RowH);
-  Top := Top + RowH + ScaleY(4);
+  // The languages in two columns, each in its own words with the flag and tag the toolkit and
+  // the site show.
   AddLang('en', 'English', 'en-US', 'flag_en' + F, 0, Top + 0 * RowH, RowH);
   AddLang('de', 'Deutsch', 'de-DE', 'flag_de' + F, 0, Top + 1 * RowH, RowH);
   AddLang('es', 'Español (España)', 'es-ES', 'flag_es' + F, 0, Top + 2 * RowH, RowH);
@@ -460,11 +458,9 @@ begin
   LangPreselected := True;
   CurrentLang := ReadCurrentLanguage;
   Wanted := ExpandConstant('{param:TOOLKITLANG|}');
-  if CompareText(Wanted, 'follow') = 0 then
-    SelectLanguage('')
-  else if Wanted <> '' then
+  if (Wanted <> '') and (CompareText(Wanted, 'follow') <> 0) then
     SelectLanguage(Wanted)
-  else if CurrentLang <> '?' then
+  else if (CurrentLang <> '?') and (CurrentLang <> '') then
     SelectLanguage(CurrentLang)
   else
     SelectLanguage(DefaultToolkitLanguage);
@@ -558,11 +554,8 @@ begin
   if ShareCheck.Checked then Params := Params + ' /SHAREDATA=yes' else Params := Params + ' /SHAREDATA=no';
   // The toolkit choice travels only when the user made it (or it came from an upgrade / the
   // parameter); otherwise the new wizard language picks the default afresh.
-  if LangTouched or (CurrentLang <> '?') or (ExpandConstant('{param:TOOLKITLANG|}') <> '') then
-  begin
-    if ChosenLanguage = '' then Params := Params + ' /TOOLKITLANG=follow'
-    else Params := Params + ' /TOOLKITLANG=' + ChosenLanguage;
-  end;
+  if LangTouched or ((CurrentLang <> '?') and (CurrentLang <> '')) or (ExpandConstant('{param:TOOLKITLANG|}') <> '') then
+    Params := Params + ' /TOOLKITLANG=' + ChosenLanguage;
   Log('Wizard language -> ' + NewLang + ': starting Setup again with' + Params);
   // Starting {srcexe} straight from here is refused with error 5 (access denied), by ShellExec and
   // Exec alike, though a second copy starts fine from outside. Try it, then through cmd's start.
@@ -1076,6 +1069,9 @@ begin
   if CurPageID = wpReady then
   begin
     WizardForm.ReadyLabel.Caption := CustomMessage('ReadyStandalone');
+    // Only a PC whose old plugin is still switched on hears about Hearthstone Deck Tracker.
+    if PluginOnInHdt then
+      WizardForm.ReadyLabel.Caption := WizardForm.ReadyLabel.Caption + ' ' + CustomMessage('ReadyPluginOff');
     Exit;
   end;
   if CurPageID <> wpFinished then Exit;
