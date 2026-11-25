@@ -119,9 +119,9 @@ namespace HsbgCardLookup.Game
 
         public static bool Available => !string.IsNullOrEmpty(Endpoint);
 
-        /// <summary>The site's page of everyone's statistics, open without a sign-in. Empty until the site
-        /// has it: the button is not shown.</summary>
-        public const string DefaultCommunityUrl = "";
+        /// <summary>The site's page of everyone's statistics, open without a sign-in. Empty = the button
+        /// is not shown.</summary>
+        public const string DefaultCommunityUrl = AssetClient.SiteBase + "/stats/heroes";
 
         public static string CommunityUrl
         {
