@@ -15,6 +15,11 @@
     <!-- Source files use UTF-8 (Cyrillic alias literals); tell csc so it doesn't mis-decode. -->
     <CodePage>65001</CodePage>
     <!-- HDT plugins are loaded as AnyCPU and run inside HDT's process. -->
+    <!-- HDT's own assemblies are not in the repository (setup.ps1 copies them from a local HDT install)
+         and are not open source. Without them, or with /p:HdtHost=false, the HDT plugin host (Plugin.cs,
+         Host\Hdt\) is left out and the assembly serves the standalone program only: that is the
+         build the Setup ships and the one GitHub Actions makes. -->
+    <HdtHost Condition=" '$(HdtHost)' == '' And Exists('..\libs\HearthstoneDeckTracker.exe') ">true</HdtHost>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -56,16 +61,17 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="WindowsBase" />
     <!-- HDT host assembly. Private=False: do NOT copy the 11 MB exe into our output. -->
-    <Reference Include="HearthstoneDeckTracker">
+    <Reference Include="HearthstoneDeckTracker" Condition=" '$(HdtHost)' == 'true' ">
       <HintPath>..\libs\HearthstoneDeckTracker.exe</HintPath>
       <Private>False</Private>
     </Reference>
     <!-- HearthDb ships with HDT and is loaded in-process; reference its copy (GameTag/Race/Card etc.). -->
-    <Reference Include="HearthDb">
+    <Reference Include="HearthDb" Condition=" '$(HdtHost)' == 'true' ">
       <HintPath>..\libs\HearthDb.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <!-- Newtonsoft ships with HDT and is loaded in-process; reference its copy, don't redistribute. -->
+    <!-- Json.NET 12.0.3 (MIT), committed in libs. HDT loads its own copy in-process, so the plugin does not
+         copy it; the standalone project does. -->
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\libs\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
@@ -73,7 +79,7 @@
     <!-- HearthMirror ships with HDT and is loaded (+ IPC-client-started) in-process. We read the BG
          lobby roster via Reflection.Client.GetBattlegroundsLobbyInfo(); reference HDT's copy, don't
          redistribute (Private=False). Copied from app-1.53.4 (v32.4.2.0). -->
-    <Reference Include="HearthMirror">
+    <Reference Include="HearthMirror" Condition=" '$(HdtHost)' == 'true' ">
       <HintPath>..\libs\HearthMirror.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -160,16 +166,16 @@
     <Compile Include="Net\SiteApi.cs" />
     <Compile Include="Net\SiteCache.cs" />
     <Compile Include="Mods\InstalledMods.cs" />
-    <Compile Include="Plugin.cs" />
+    <Compile Include="Plugin.cs" Condition=" '$(HdtHost)' == 'true' " />
     <Compile Include="ToolkitApp.cs" />
     <Compile Include="Host\Seams.cs" />
     <Compile Include="Host\HearthstoneLauncher.cs" />
-    <Compile Include="Host\Hdt\HdtHost.cs" />
-    <Compile Include="Host\Hdt\HdtProbe.cs" />
-    <Compile Include="Host\Hdt\HdtLanguage.cs" />
-    <Compile Include="Host\Hdt\LeaderboardRaceScry.cs" />
-    <Compile Include="Host\Hdt\GameStateProbe.cs" />
-    <Compile Include="Host\Hdt\DarkGiftProbe.cs" />
+    <Compile Include="Host\Hdt\HdtHost.cs" Condition=" '$(HdtHost)' == 'true' " />
+    <Compile Include="Host\Hdt\HdtProbe.cs" Condition=" '$(HdtHost)' == 'true' " />
+    <Compile Include="Host\Hdt\HdtLanguage.cs" Condition=" '$(HdtHost)' == 'true' " />
+    <Compile Include="Host\Hdt\LeaderboardRaceScry.cs" Condition=" '$(HdtHost)' == 'true' " />
+    <Compile Include="Host\Hdt\GameStateProbe.cs" Condition=" '$(HdtHost)' == 'true' " />
+    <Compile Include="Host\Hdt\DarkGiftProbe.cs" Condition=" '$(HdtHost)' == 'true' " />
     <Compile Include="Search\BgCard.cs" />
     <Compile Include="Search\Levenshtein.cs" />
     <Compile Include="Search\Aliases.cs" />

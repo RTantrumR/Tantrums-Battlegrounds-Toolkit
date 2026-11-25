@@ -30,6 +30,17 @@ $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFile
     Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $iscc) { throw "Inno Setup 6 not found (winget install JRSoftware.InnoSetup)" }
 
+# MSBuild's Bin folder of whichever Visual Studio 2022 (or Build Tools) is installed: this PC has Community,
+# a GitHub-hosted runner has Enterprise.
+function Find-MSBuildBin {
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        $found = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\Current\Bin\MSBuild.exe" | Select-Object -First 1
+        if ($found -and (Test-Path $found)) { return (Split-Path $found -Parent) }
+    }
+    throw "MSBuild not found (Visual Studio 2022 or its Build Tools)"
+}
+
 if (-not $Version) {
     $pluginCs = Join-Path $repo "HsbgCardLookup\Plugin.cs"
     $m = [regex]::Match((Get-Content -Raw $pluginCs), 'Version\s*=>\s*new\s+Version\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)')
@@ -39,13 +50,14 @@ if (-not $Version) {
 }
 
 if (-not $SkipBuild) {
-    $msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
-    if (-not (Test-Path $msbuild)) { throw "MSBuild not found at $msbuild" }
+    $msbuild = Join-Path (Find-MSBuildBin) "MSBuild.exe"
+    # HdtHost=false: the Setup installs the standalone program only, so the HDT plugin host and HDT's own
+    # assemblies stay out of it. The same build runs on GitHub Actions, where those assemblies do not exist.
     Write-Host "Building Release..." -ForegroundColor Cyan
-    & $msbuild "$repo\HsbgCardLookup.sln" /t:Rebuild /p:Configuration=Release /v:minimal /nologo
+    & $msbuild "$repo\HsbgCardLookup.sln" /t:Rebuild /p:Configuration=Release /p:HdtHost=false /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)." }
     # The standalone exe (not in the solution; it builds the Release plugin it references itself).
-    & $msbuild "$repo\Standalone\Standalone.csproj" /t:Rebuild /p:Configuration=Release /v:minimal /nologo
+    & $msbuild "$repo\Standalone\Standalone.csproj" /t:Rebuild /p:Configuration=Release /p:HdtHost=false /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Standalone build failed (exit $LASTEXITCODE)." }
 }
 
@@ -92,7 +104,7 @@ if ($SignPfx) {
 $outDir = Join-Path $here "out"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $ref = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2"
-$csc = "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe"
+$csc = Join-Path (Find-MSBuildBin) "Roslyn\csc.exe"
 & $csc /nologo /target:exe "/out:$outDir\RenderFlags.exe" "/r:$ref\PresentationCore.dll" "/r:$ref\PresentationFramework.dll" `
     "/r:$ref\WindowsBase.dll" "/r:$ref\System.Xaml.dll" (Join-Path $here "tools\RenderFlags.cs")
 if ($LASTEXITCODE -ne 0) { throw "RenderFlags did not compile (exit $LASTEXITCODE)" }
