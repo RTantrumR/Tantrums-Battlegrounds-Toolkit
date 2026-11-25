@@ -9,6 +9,7 @@ v1.0.1
 - The box has three looks: icons with names, icons alone, or names alone with each type in its own colour.
 - After two panels join, a short hint under them says how to undo it: right-click the panel.
 - The standings sidebar keeps the same width while players' names come in, so a box joined to it no longer keeps resizing. Switch a part of the sidebar on or off and the box joined to it follows, narrower as well as wider.
+- Joined panels keep the size you gave them by hand while players load into the lobby, and in the next match.
 
 ### Settings
 - Portrait/Sidebar overlay: two size sliders for what is drawn by the leaderboard portraits, one for the name and MMR plate and one for the tavern tier and minion type icons, 70% to 135% each. A picture of the leaderboard under them shows the result as you drag. In duos the icons stop at 120%, where teammates' icons would touch.
@@ -26,6 +27,7 @@ v1.0.1
 - Tooltips in the settings, the card search and over the game are drawn in the toolkit's own style and wrap long text, instead of Windows' small plain box.
 
 ### Standalone program
+- The Language page no longer has an "Automatic" row: it followed Hearthstone Deck Tracker's language, which the standalone program does not have. A language you never picked stays English.
 - After a first install the settings open by themselves, once, on the Config page: if you run Firestone or Hearthstone Deck Tracker too, its ready-made config is the first thing to apply.
 - When the settings close, they fold into the toolkit's logo, which flies to its icon in the Windows tray: that icon is where they open from again.
 - Click the toolkit's tray icon to open the settings, also while it waits for Hearthstone. A double click still opens the card search.
