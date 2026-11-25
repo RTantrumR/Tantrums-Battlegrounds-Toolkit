@@ -713,11 +713,18 @@ begin
   else if Pos('<ShareMatchData>false</ShareMatchData>', String(Xml)) > 0 then Result := 'no';
 end;
 
+procedure PrivacyLinkClick(Sender: TObject);
+var
+  Code: Integer;
+begin
+  ShellExec('open', 'https://hsbg.cards/privacy#match-stats', '', '', SW_SHOWNORMAL, ewNoWait, Code);
+end;
+
 // Match data for the site's community statistics: on unless the player unticks it here (or did
 // so before, in the toolkit's settings). /SHAREDATA=yes|no for a silent run.
 procedure CreateSharePage;
 var
-  T: TNewStaticText;
+  T, Link: TNewStaticText;
   Want: String;
 begin
   SharePage := CreateCustomPage(AutoPage.ID, CustomMessage('SharePageCaption'), CustomMessage('SharePageDescription'));
@@ -729,6 +736,16 @@ begin
   ShareCheck.Caption := CustomMessage('ShareCheck');
   ShareCheck.Font.Style := [fsBold];
   T := NewText(SharePage, CustomMessage('ShareHint'), ScaleX(18), ShareCheck.Top + ShareCheck.Height + ScaleY(6), False);
+  // What is sent and how it is kept, in full: the site's privacy policy.
+  Link := TNewStaticText.Create(SharePage);
+  Link.Parent := SharePage.Surface;
+  Link.Left := T.Left;
+  Link.Top := T.Top + T.Height + ScaleY(10);
+  Link.Caption := CustomMessage('SharePrivacy');
+  Link.Font.Style := [fsUnderline];
+  Link.Font.Color := clBlue;
+  Link.Cursor := crHand;
+  Link.OnClick := @PrivacyLinkClick;
   Want := Lowercase(ExpandConstant('{param:SHAREDATA|}'));
   if Want = '' then Want := ReadCurrentShare;
   ShareCheck.Checked := Want <> 'no';
