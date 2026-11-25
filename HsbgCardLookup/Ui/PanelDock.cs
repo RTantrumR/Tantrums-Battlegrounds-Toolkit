@@ -29,6 +29,10 @@ namespace HsbgCardLookup.Ui
         /// it has. Never for the turn counter (one short line that neither stretches nor scales well);
         /// the lobby types box by its layout. A box that does not fit still moves and scales with its group.</summary>
         bool DockStretches(bool stacked);
+        /// <summary>What a fit measures of the box at its own size: its width for a stacked join, its
+        /// height for a side join. Not always the size on screen: the sidebar answers with the height
+        /// of a full lobby however many rows have come in.</summary>
+        double DockLength(bool stacked);
     }
 
     public enum DockSide { Top, Bottom, Left, Right }
@@ -103,7 +107,8 @@ namespace HsbgCardLookup.Ui
         // imported layout, a box that was sized while its neighbour was not on screen). So whenever
         // the widths are worked out afresh, or another set of boxes is on screen, two joined boxes
         // more than 3% apart get one sized to the other (see _fitAnchor for which). At most three
-        // rounds each time: a box's width does not follow its size exactly.
+        // rounds each time: a box's width does not follow its size exactly. All of it in one poll, so
+        // no box is ever drawn at a size on the way to its own.
         private static int _fitRounds = 3;
         private static string _shownSet = "";
 
@@ -121,12 +126,12 @@ namespace HsbgCardLookup.Ui
             double[] last;
             if (!_natural.TryGetValue(p.DockId, out last)) return false;
             if (Math.Abs(last[0] - p.DockScale) > 1e-6) return false;            // resized, not changed
-            double was = stacked ? last[1] : last[2], now = Across(p.DockRoot, stacked);
+            double was = stacked ? last[1] : last[2], now = p.DockLength(stacked);
             return was > 0 && Math.Abs(now - was) / was > 0.01;
         }
 
         private static void RememberNatural(IDockPanel p) =>
-            _natural[p.DockId] = new[] { p.DockScale, p.DockRoot.ActualWidth, p.DockRoot.ActualHeight };
+            _natural[p.DockId] = new[] { p.DockScale, p.DockLength(true), p.DockLength(false) };
 
         // A join's shared dimension: the width of two stacked boxes, the height of two side by side.
         private static bool Stacked(DockSide s) => s == DockSide.Top || s == DockSide.Bottom;
@@ -200,67 +205,38 @@ namespace HsbgCardLookup.Ui
                     if ((GetAsyncKeyState(0x01) & 0x8000) != 0) return;
                     EndSize(true);
                 }
-                // One pass at natural width, so the next can take the wider of the two; the boxes are
-                // still put in place on this one.
+                var canvas = HostServices.Overlay?.Canvas;
+                if (canvas == null) return;
+                canvas.UpdateLayout();                        // a box shown or rebuilt a moment ago has its size now
                 string shownSet = string.Join(",", Panels.Where(Shown).Select(p => p.DockId));
                 if (shownSet != _shownSet) { _shownSet = shownSet; Invalidate(); }
-                bool natural = _widthsStale, refit = false;
-                if (natural)
+                if (_widthsStale)
                 {
                     _widthsStale = false;
                     foreach (var p in Panels) Unstretch(p.DockRoot);
+                    canvas.UpdateLayout();
+                    while (Fit())
+                    {
+                        canvas.UpdateLayout();                // measured again at the new size
+                        if (--_fitRounds <= 0) break;
+                    }
                 }
                 for (int pass = 0; pass < 2; pass++)          // a child of a child follows on the second pass
+                {
+                    if (EvenOut()) canvas.UpdateLayout();
                     foreach (var p in Panels)
                     {
                         Link l;
                         if (!Links.TryGetValue(p.DockId, out l)) continue;
                         var parent = Find(l.Parent);
                         if (!Placed(parent) || !Shown(p)) continue;
-                        bool stacked = Stacked(l.Side);
-                        if (!natural && Shown(parent) && Fits(p, parent, stacked))
-                        {
-                            double mine = Across(p.DockRoot, stacked), its = Across(parent.DockRoot, stacked);
-                            double most = Math.Max(mine, its), least = Math.Min(mine, its);
-                            bool atOwnSize = MinAcross(p.DockRoot, stacked) == 0 && MinAcross(parent.DockRoot, stacked) == 0;
-                            if (atOwnSize && pass == 0)
-                            {
-                                bool mineChanged = ContentChanged(p, stacked), itsChanged = ContentChanged(parent, stacked);
-                                if (mineChanged != itsChanged) _fitAnchor = mineChanged ? p.DockId : parent.DockId;
-                                else if (least > 0 && most / least <= 1.03) _fitAnchor = null;   // fitted: the change that led is done
-                                RememberNatural(p); RememberNatural(parent);
-                            }
-                            // Both at their own size (nothing stretched yet) and clearly apart: size, not stretch.
-                            if (_fitRounds > 0 && pass == 0 && !refit && least > 0 && most / least > 1.03 && atOwnSize)
-                            {
-                                var lead = _fitAnchor == p.DockId ? p : parent;
-                                var follow = lead == p ? parent : p;
-                                double was = follow.DockScale, want = was * Across(lead.DockRoot, stacked) / Across(follow.DockRoot, stacked);
-                                follow.DockScale = want;
-                                // A box at the end of its size range can't follow: the other one is sized to it next round.
-                                if (Math.Abs(follow.DockScale - want) > want * 0.01) _fitAnchor = follow.DockId;
-                                try
-                                {
-                                    Log?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                        "[dock] fit {0} to {1} ({2}): {3:0} vs {4:0} px, scale {5:0.###} -> {6:0.###}, round {7}",
-                                        follow.DockId, lead.DockId, stacked ? "width" : "height", Across(follow.DockRoot, stacked),
-                                        Across(lead.DockRoot, stacked), was, follow.DockScale, 4 - _fitRounds));
-                                }
-                                catch { }
-                                _natural.Remove(follow.DockId);   // measured afresh at its new scale, never read as a content change
-                                refit = true;
-                            }
-                            else
-                                foreach (var r in new[] { parent.DockRoot, p.DockRoot })
-                                    if (Math.Abs(MinAcross(r, stacked) - most) > 0.5 && Across(r, stacked) < most - 0.5) SetMinAcross(r, stacked, most);
-                        }
                         var at = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                         // "Not within 0.4 of it", so that a box never placed before (NaN) is placed too: the
                         // plain "further than 0.4" is false for NaN, and such a box sat at the screen's corner.
                         if (!(Math.Abs(Canvas.GetLeft(p.DockRoot) - at.X) <= 0.4)) Canvas.SetLeft(p.DockRoot, at.X);
                         if (!(Math.Abs(Canvas.GetTop(p.DockRoot) - at.Y) <= 0.4)) Canvas.SetTop(p.DockRoot, at.Y);
                     }
-                if (refit) { _fitRounds--; _widthsStale = true; }      // measured again at the new size
+                }
                 KeepInside();
                 Decorate(true);
             }
@@ -273,6 +249,67 @@ namespace HsbgCardLookup.Ui
         }
         private static bool _failed;
         public static Action<string> Log;
+
+        // The joins on screen whose two boxes are sized to each other: child, parent, and whether they
+        // share a width (stacked) or a height.
+        private static void Pairs(Action<IDockPanel, IDockPanel, bool> each)
+        {
+            foreach (var p in Panels)
+            {
+                Link l;
+                if (!Links.TryGetValue(p.DockId, out l)) continue;
+                var parent = Find(l.Parent);
+                if (Placed(parent) && Shown(p) && Shown(parent) && Fits(p, parent, Stacked(l.Side))) each(p, parent, Stacked(l.Side));
+            }
+        }
+
+        // One round, with every box at its own size (nothing stretched): where a pair is clearly apart
+        // one box of it is sized. False = every pair fits.
+        private static bool Fit()
+        {
+            bool sized = false;
+            Pairs((p, parent, stacked) =>
+            {
+                if (sized) return;
+                double mine = p.DockLength(stacked), its = parent.DockLength(stacked);
+                double most = Math.Max(mine, its), least = Math.Min(mine, its);
+                bool mineChanged = ContentChanged(p, stacked), itsChanged = ContentChanged(parent, stacked);
+                if (mineChanged != itsChanged) _fitAnchor = mineChanged ? p.DockId : parent.DockId;
+                else if (least > 0 && most / least <= 1.03) _fitAnchor = null;   // fitted: the change that led is done
+                RememberNatural(p); RememberNatural(parent);
+                if (least <= 0 || most / least <= 1.03) return;
+                var lead = _fitAnchor == p.DockId ? p : parent;
+                var follow = lead == p ? parent : p;
+                double from = follow.DockLength(stacked), to = lead.DockLength(stacked);
+                double was = follow.DockScale, want = was * to / from;
+                follow.DockScale = want;
+                // A box at the end of its size range can't follow: the other one is sized to it next round.
+                if (Math.Abs(follow.DockScale - want) > want * 0.01) _fitAnchor = follow.DockId;
+                try
+                {
+                    Log?.Invoke(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "[dock] fit {0} to {1} ({2}): {3:0} vs {4:0} px, scale {5:0.###} -> {6:0.###}, round {7}",
+                        follow.DockId, lead.DockId, stacked ? "width" : "height", from, to, was, follow.DockScale, 4 - _fitRounds));
+                }
+                catch { }
+                _natural.Remove(follow.DockId);   // measured afresh at its new scale, never read as a content change
+                sized = true;
+            });
+            return sized;
+        }
+
+        // What little is left between the two boxes of a pair is evened out by stretching the smaller.
+        private static bool EvenOut()
+        {
+            bool any = false;
+            Pairs((p, parent, stacked) =>
+            {
+                double most = Math.Max(Across(p.DockRoot, stacked), Across(parent.DockRoot, stacked));
+                foreach (var r in new[] { parent.DockRoot, p.DockRoot })
+                    if (Math.Abs(MinAcross(r, stacked) - most) > 0.5 && Across(r, stacked) < most - 0.5) { SetMinAcross(r, stacked, most); any = true; }
+            });
+            return any;
+        }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
 
@@ -517,7 +554,7 @@ namespace HsbgCardLookup.Ui
                 for (int pass = 0; pass < 3; pass++)
                 {
                     canvas.UpdateLayout();
-                    double wc = Across(child.DockRoot, stacked), wp = Across(parent.DockRoot, stacked);
+                    double wc = child.DockLength(stacked), wp = parent.DockLength(stacked);
                     if (wc <= 0 || wp <= 0) break;
                     double ratio = wc < wp ? wp / wc : wc / wp;
                     if (ratio < 1.01) break;
@@ -529,14 +566,17 @@ namespace HsbgCardLookup.Ui
             Layout();
         }
 
-        /// <summary>One box of a group was scaled by <paramref name="ratio"/>: the others follow.</summary>
+        /// <summary>One box of a group was scaled by <paramref name="ratio"/>: the others follow, and one
+        /// that is not there yet (the sidebar before its first players) is fitted to this box when it comes,
+        /// instead of undoing the size just given by hand.</summary>
         public static void Scaled(IDockPanel p, double ratio)
         {
             try
             {
                 if (!Enabled || ratio <= 0 || Math.Abs(ratio - 1) < 0.0005) return;
                 foreach (var q in GroupOf(p)) if (q != p) q.DockScale = q.DockScale * ratio;
-                _widthsStale = true;
+                _fitAnchor = p.DockId;
+                Invalidate();
             }
             catch { }
         }

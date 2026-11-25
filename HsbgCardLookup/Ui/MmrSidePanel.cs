@@ -30,6 +30,11 @@ namespace HsbgCardLookup.Ui
         // Assembling with other boxes (PanelDock): only the live panel registers, never a hosted preview.
         public string DockId => "sidebar";
         public bool DockStretches(bool stacked) => true;
+        // Beside another box the sidebar counts as tall as a full lobby makes it. Rows come in one by
+        // one at hero select: fitted to one row, the other box shrank to its smallest, the sidebar then
+        // grew to that one's height, and neither came back to the size it had.
+        public double DockLength(bool stacked) => stacked ? _root.ActualWidth : _fullH;
+        private double _fullH;
         public Border DockRoot => _root;
         private bool _docks;
         // A join can make the box wider than its rows: they then sit in its middle. Only the rows, so
@@ -37,7 +42,8 @@ namespace HsbgCardLookup.Ui
         public void JoinDock() { _docks = true; _list.HorizontalAlignment = HorizontalAlignment.Center; PanelDock.Register(this); }
         public double DockScale
         {
-            get { return _nominalW; }
+            // Off screen the settled width is the one that counts: the laid-out one is from its last showing.
+            get { return _keepWidth && _wpx > 0 ? _wpx : _nominalW; }
             set
             {
                 var canvas = Host;
@@ -513,10 +519,13 @@ namespace HsbgCardLookup.Ui
             // HERE, once the columns really are rebuilt. A settings change invalidates the dock straight
             // away, but that measures the box before this update has run, so every fit came one change late.
             string shape = n + (IsDuos ? "d" : "s") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
-            if (shape != _shape) { _shape = shape; if (_docks) PanelDock.Invalidate(); }
+            bool changed = shape != _shape || _root.Visibility != Visibility.Visible;
+            _shape = shape;
 
             _root.Visibility = Visibility.Visible;
             Layout();
+            // At once, not on the next poll: the box is never drawn away from its group.
+            if (changed && _docks) { PanelDock.Invalidate(); PanelDock.Layout(); }
         }
 
         /// <summary>Arrange mode: show the panel with sample standings + edit chrome, so it can be
@@ -665,6 +674,16 @@ namespace HsbgCardLookup.Ui
             for (int c = 0; c < ColCount; c++)
                 _cols[c].Width = new GridLength(_colUsed[c] ? Math.Ceiling(fixedW[c]) : 0);
 
+            // The height with every row in, the same way: the tallest cell a row can hold, eight times,
+            // the lines between teams, the padding and the border.
+            double cell = IsDuos ? 0 : TextH(_places[0], 11.5 * s, pxPerDip);      // duos: one number spans two rows
+            if (_colUsed[ColName]) cell = Math.Max(cell, TextH(_names[0], 12.5 * s, pxPerDip));
+            if (_colUsed[ColDelta]) cell = Math.Max(cell, TextH(_arrows[0], 10.5 * s, pxPerDip));
+            if (_colUsed[ColRating]) cell = Math.Max(cell, TextH(_ratings[0], 12.5 * s, pxPerDip));
+            if (_colUsed[ColTier]) cell = Math.Max(cell, 20 * s);
+            if (_colUsed[ColTribe]) cell = Math.Max(cell, Math.Max(17 * s, TextH(_tribeCounts[0], 13.5 * s, pxPerDip)));
+            _fullH = MaxSlots * (cell + 3 * s) + (IsDuos ? _teamDividers.Length * (3.5 * s + 1) : 0) + 8 * s + 2;
+
             ClampPosition();
         }
 
@@ -674,6 +693,13 @@ namespace HsbgCardLookup.Ui
             var face = new Typeface(cell.FontFamily, cell.FontStyle, cell.FontWeight, cell.FontStretch);
             return new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
                 face, size, Brushes.White, pxPerDip).WidthIncludingTrailingWhitespace;
+        }
+
+        private static double TextH(TextBlock cell, double size, double pxPerDip)
+        {
+            var face = new Typeface(cell.FontFamily, cell.FontStyle, cell.FontWeight, cell.FontStretch);
+            return new FormattedText("8", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                face, size, Brushes.White, pxPerDip).Height;
         }
 
         // ── Move / resize gestures (LL mouse hook, installed only for the gesture) ───────────────

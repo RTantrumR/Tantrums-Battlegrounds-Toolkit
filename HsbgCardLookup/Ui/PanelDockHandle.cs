@@ -120,22 +120,14 @@ namespace HsbgCardLookup.Ui
             {
                 foreach (var p in group) { p.DockRoot.RenderTransform = null; }
                 if (!keep || Math.Abs(_sizeRatio - 1) < 0.002) return;
-                foreach (var p in group)
-                {
-                    if (p.DockRoot.MinWidth > 0) p.DockRoot.MinWidth = p.DockRoot.MinWidth * _sizeRatio;
-                    if (p.DockRoot.MinHeight > 0) p.DockRoot.MinHeight = p.DockRoot.MinHeight * _sizeRatio;
-                    p.DockScale = p.DockScale * _sizeRatio;
-                }
-                var canvas = HostServices.Overlay?.Canvas;
-                canvas?.UpdateLayout();                 // the new sizes are measured now, not on the next poll
-                _widthsStale = false;
+                foreach (var p in group) p.DockScale = p.DockScale * _sizeRatio;
+                Invalidate();                           // measured, fitted and stretched now, not on the next polls
                 Layout();
                 var root = RootOf(group[0]);
                 var now = Bounds(group);
                 if (!now.IsEmpty)
                     root.DockMoveTo(Canvas.GetLeft(root.DockRoot) + _sizeBox.Left - now.Left, Canvas.GetTop(root.DockRoot) + _sizeBox.Top - now.Top, true);
                 Layout();
-                _widthsStale = true;                    // and the stacked widths are worked out afresh after that
                 PlaceHandle(Bounds(group));
             }
             catch { }

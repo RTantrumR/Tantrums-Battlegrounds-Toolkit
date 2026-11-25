@@ -25,6 +25,7 @@ namespace HsbgCardLookup.Ui
     {
         public string DockId => "turn";
         public bool DockStretches(bool stacked) => false;
+        public double DockLength(bool stacked) => stacked ? _root.ActualWidth : _root.ActualHeight;
         public Border DockRoot => _root;
         public double DockScale
         {
