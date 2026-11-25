@@ -26,7 +26,7 @@ v1.0.1
 - Tooltips in the settings, the card search and over the game are drawn in the toolkit's own style and wrap long text, instead of Windows' small plain box.
 
 ### Standalone program
-- After a first install the settings open by themselves, once, so you see what can be set up.
+- After a first install the settings open by themselves, once, on the Config page: if you run Firestone or Hearthstone Deck Tracker too, its ready-made config is the first thing to apply.
 - When the settings close, they fold into the toolkit's logo, which flies to its icon in the Windows tray: that icon is where they open from again.
 - Click the toolkit's tray icon to open the settings, also while it waits for Hearthstone. A double click still opens the card search.
 - The tray icon's right-click menu is drawn in the toolkit's dark colours instead of Windows' light one.
@@ -36,8 +36,9 @@ v1.0.1
 - After each Solos match the toolkit prepares a short report for community statistics on hsbg.cards: the lobby's heroes, minion types and places, your rating and your final board. No names are in it, neither yours nor your opponents'.
 - The Setup asks about it on its own page, ticked by default. Settings has the same switch on its own "Match data" page; turn it off and nothing is sent.
 - The toolkit keeps a record of your last 200 matches in its data folder.
+- A "Community stats" button on the Match data page opens hsbg.cards/stats/heroes: what everyone's shared matches add up to.
 
 ### Setup
 - The Setup and the toolkit's own files now name the toolkit's author (TantrumUA) and publisher (hsbg.cards) and carry a signature. Windows still shows "Unknown publisher": the signature comes from our own certificate, which no authority vouches for.
-- The Setup installs the standalone program only. Hearthstone Deck Tracker stops running plugins on November 30, so the "Install as HDT plugin" choice is gone. If the HDT plugin is still switched on, the Setup switches it off so the toolkit doesn't run twice.
+- The Setup installs the standalone program only. Hearthstone Deck Tracker stops running plugins on November 30, so the "Install as HDT plugin" choice is gone. If the HDT plugin is still switched on, the Setup says so, closes HDT and switches the plugin off so the toolkit doesn't run twice; on any other PC it no longer mentions HDT at all. The toolkit language page lost its "Same as Hearthstone Deck Tracker" row.
 - The Setup is larger than before (about 11 MB) because its files are no longer packed. Some antivirus scanners read the packed version as suspicious.
