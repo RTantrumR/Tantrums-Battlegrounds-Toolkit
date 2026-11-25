@@ -156,20 +156,6 @@ everything.
 
 See [BUILDING.md](BUILDING.md).
 
-## Privacy
-
-The toolkit talks to two places, and only for these things:
-
-- **hsbg.cards**: card data, card art, the list of mods and the notices in the bell are downloaded from it.
-- **GitHub**: the check for a new release.
-- **Match data, if you leave it on**: after each Solos match a short report goes to hsbg.cards for community
-  statistics. It holds the lobby's heroes, minion types and places, your rating and your final board. It holds no
-  names, neither yours nor your opponents'. The Setup asks about it on its own page, and Settings → Match data
-  has the same switch: turn it off and nothing is sent.
-
-The full text is hsbg.cards' [privacy policy](https://hsbg.cards/privacy#match-stats); see also its
-[terms](https://hsbg.cards/terms#stats) and [about](https://hsbg.cards/about#stats) pages.
-
 ## Code signing policy
 
 Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
