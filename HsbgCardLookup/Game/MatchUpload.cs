@@ -166,8 +166,8 @@ namespace HsbgCardLookup.Game
     public sealed class MatchUploader
     {
         public const string FolderName = "match-uploads";
-        /// <summary>Where reports go. Empty until the site has the address: reports wait on disk.</summary>
-        public const string DefaultEndpoint = "";
+        /// <summary>Where reports go. Empty = nothing is sent and reports wait on disk.</summary>
+        public const string DefaultEndpoint = AssetClient.SiteBase + "/api/v1/matches";
         private const int Keep = 50;                  // waiting reports, the site's allowance for a day; older ones are dropped
         private const int RatingWaitSec = 60;         // the rating packet can follow the match's end
         private const int IdleSec = 30, RetrySec = 300;

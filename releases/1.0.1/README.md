@@ -33,7 +33,7 @@ v1.0.1
 - The overlay no longer draws over Hearthstone's friends list or its Esc menu. While either is open, that part of the screen belongs to the game, and the toolkit's elements there disappear until it closes.
 
 ### Match data
-- After each Solos match the toolkit prepares a short report for community statistics on hsbg.cards: the lobby's heroes, minion types and places, your rating and your final board. No names are in it, neither yours nor your opponents'.
+- After each Solos match the toolkit sends a short report for community statistics on hsbg.cards: the lobby's heroes, minion types and places, your rating and your final board. No names are in it, neither yours nor your opponents'.
 - The Setup asks about it on its own page, ticked by default. Settings has the same switch on its own "Match data" page; turn it off and nothing is sent.
 - The toolkit keeps a record of your last 200 matches in its data folder.
 - A "Community stats" button on the Match data page opens hsbg.cards/stats/heroes: what everyone's shared matches add up to.
