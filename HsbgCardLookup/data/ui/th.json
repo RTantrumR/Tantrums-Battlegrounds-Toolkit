@@ -276,7 +276,7 @@
   "settings.updates.availableHint": "มีอัปเดต v{0}",
   "settings.updates.currentHint": "คุณใช้ v{0} อยู่",
   "settings.updates.installed": "เวอร์ชันที่ติดตั้ง: v{0}",
-  "settings.updates.availableText": "มีอัปเดต v{0} พร้อมใช้งาน ดาวน์โหลดตัวติดตั้งแล้วเรียกใช้: ตัวติดตั้งจะปิด Hearthstone Deck Tracker แทนที่ไฟล์ปลั๊กอิน และสามารถเปิด HDT ขึ้นมาใหม่ได้ รายละเอียดการอัปเดตอยู่ที่หน้าเผยแพร่",
+  "settings.updates.availableText": "มีอัปเดต v{0} พร้อมใช้งาน ดาวน์โหลดตัวติดตั้งแล้วเรียกใช้ รายละเอียดการอัปเดตอยู่ที่หน้าเผยแพร่",
   "settings.updates.openDownload": "ดาวน์โหลดตัวติดตั้ง",
   "settings.updates.skipVersion": "ข้ามเวอร์ชันนี้",
   "settings.updates.notChecked": "ยังไม่ได้ตรวจสอบในเซสชันนี้",

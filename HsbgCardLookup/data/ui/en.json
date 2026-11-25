@@ -276,7 +276,7 @@
   "settings.updates.availableHint": "Update v{0} available.",
   "settings.updates.currentHint": "You're on v{0}.",
   "settings.updates.installed": "Installed version: v{0}",
-  "settings.updates.availableText": "Update v{0} is available. Download the installer and run it: it closes Hearthstone Deck Tracker, replaces the plugin files and can start HDT again. The release notes are on the release page.",
+  "settings.updates.availableText": "Update v{0} is available. Download the installer and run it. The release notes are on the release page.",
   "settings.updates.openDownload": "Download the installer",
   "settings.updates.skipVersion": "Skip this version",
   "settings.updates.notChecked": "Not checked yet this session.",

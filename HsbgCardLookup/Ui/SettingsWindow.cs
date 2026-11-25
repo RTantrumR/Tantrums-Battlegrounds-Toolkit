@@ -176,7 +176,16 @@ namespace HsbgCardLookup.Ui
         private string CurrentLanguageCaption()
         {
             string name = Locales.NativeName(_cardLanguage?.Web);
-            return string.IsNullOrEmpty(_config.Language) ? Strings.F("settings.language.autoCaption", name) : name;
+            return string.IsNullOrEmpty(_config.Language) && HostHasLanguage ? Strings.F("settings.language.autoCaption", name) : name;
+        }
+
+        // Only a host with a language setting of its own (HDT) can be followed; the standalone has none,
+        // so there the Automatic row is not offered and an unset language is English.
+        private bool HostHasLanguage => _cardLanguage?.HdtCode != null;
+        private string PickedLanguage()
+        {
+            string pick = (_config.Language ?? "").Trim();
+            return pick.Length == 0 && !HostHasLanguage ? Locales.English : pick;
         }
 
         /// <summary>The language page: one row per choice — Automatic under the globe, then English
@@ -195,8 +204,9 @@ namespace HsbgCardLookup.Ui
             });
 
             string auto = Locales.WebFromHdt(_cardLanguage?.HdtCode);
-            stack.Children.Add(LanguageRow("", Flags.Globe(26, UiKit.TextPrimary), Strings.T("settings.language.autoRow"),
-                Strings.F("settings.language.autoRowHint", Locales.NativeName(auto))));
+            if (HostHasLanguage)
+                stack.Children.Add(LanguageRow("", Flags.Globe(26, UiKit.TextPrimary), Strings.T("settings.language.autoRow"),
+                    Strings.F("settings.language.autoRowHint", Locales.NativeName(auto))));
             stack.Children.Add(LanguageRow(Locales.English, Flags.Flag(Locales.English, 34), "English", "en-US"));
             foreach (var l in Locales.Cards)
                 stack.Children.Add(LanguageRow(l.Web, Flags.Flag(l.Web, 34), l.Native, l.English + "  ·  " + l.Tag));
@@ -237,7 +247,7 @@ namespace HsbgCardLookup.Ui
             };
             Action repaint = () =>
             {
-                bool on = string.Equals((_config.Language ?? "").Trim(), value, StringComparison.OrdinalIgnoreCase);
+                bool on = string.Equals(PickedLanguage(), value, StringComparison.OrdinalIgnoreCase);
                 row.BorderBrush = on ? UiKit.AccentBrush : UiKit.StrokeBrush;
                 row.Background = on ? UiKit.Br(UiKit.PanelActive) : UiKit.Br(UiKit.RowBg);
                 check.Visibility = on ? Visibility.Visible : Visibility.Hidden;

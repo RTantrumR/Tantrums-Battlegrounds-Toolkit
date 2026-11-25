@@ -276,7 +276,7 @@
   "settings.updates.availableHint": "アップデート v{0} があります。",
   "settings.updates.currentHint": "現在 v{0} です。",
   "settings.updates.installed": "インストール済みバージョン：v{0}",
-  "settings.updates.availableText": "アップデート v{0} が利用可能です。インストーラーをダウンロードして実行してください。Hearthstone Deck Tracker を終了し、プラグインのファイルを置き換え、HDT を再起動できます。リリースノートはリリースページにあります。",
+  "settings.updates.availableText": "アップデート v{0} が利用可能です。インストーラーをダウンロードして実行してください。リリースノートはリリースページにあります。",
   "settings.updates.openDownload": "インストーラーをダウンロード",
   "settings.updates.skipVersion": "このバージョンをスキップ",
   "settings.updates.notChecked": "このセッションではまだ確認していません。",

@@ -276,7 +276,7 @@
   "settings.updates.availableHint": "有可用更新 v{0}。",
   "settings.updates.currentHint": "目前版本 v{0}。",
   "settings.updates.installed": "已安裝版本：v{0}",
-  "settings.updates.availableText": "有可用更新 v{0}。下載安裝程式並執行：它會關閉 Hearthstone Deck Tracker、取代外掛檔案，並可重新啟動 HDT。版本說明在發布頁面。",
+  "settings.updates.availableText": "有可用更新 v{0}。下載安裝程式並執行。版本說明在發布頁面。",
   "settings.updates.openDownload": "下載安裝程式",
   "settings.updates.skipVersion": "略過此版本",
   "settings.updates.notChecked": "本次執行尚未檢查。",

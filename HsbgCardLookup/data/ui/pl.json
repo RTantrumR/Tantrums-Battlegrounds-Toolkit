@@ -276,7 +276,7 @@
   "settings.updates.availableHint": "Dostępna aktualizacja v{0}.",
   "settings.updates.currentHint": "Masz wersję v{0}.",
   "settings.updates.installed": "Zainstalowana wersja: v{0}",
-  "settings.updates.availableText": "Dostępna jest aktualizacja v{0}. Pobierz instalator i uruchom go: zamknie Hearthstone Deck Tracker, podmieni pliki wtyczki i może ponownie uruchomić HDT. Informacje o wydaniu są na stronie wydania.",
+  "settings.updates.availableText": "Dostępna jest aktualizacja v{0}. Pobierz instalator i uruchom go. Informacje o wydaniu są na stronie wydania.",
   "settings.updates.openDownload": "Pobierz instalator",
   "settings.updates.skipVersion": "Pomiń tę wersję",
   "settings.updates.notChecked": "Jeszcze nie sprawdzono w tej sesji.",
