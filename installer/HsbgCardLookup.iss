@@ -16,7 +16,7 @@
 ; the toolkit never runs twice. Its files stay, so switching back is one click in HDT.
 ;
 ; Languages. The wizard runs in the language Windows is set to when it has that one (English
-; otherwise — Russian and Ukrainian systems included); Inno's own "Select Setup Language" box is off.
+; otherwise — Russian systems included); Inno's own "Select Setup Language" box is off.
 ; A small selector at the top right of every page before the install switches it: Inno cannot change
 ; a running wizard's language, so Setup starts itself again with /LANG=, on the same page, carrying
 ; the toolkit choice if the user made one (/TOOLKITLANG=, /STARTPAGE=). Its own lines live in
@@ -92,6 +92,7 @@ Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 Name: "thai"; MessagesFile: "compiler:Languages\Thai.isl"
+Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 ; Not shipped with Inno Setup 6.7: the official translations from jrsoftware/issrc (Files\Languages).
 Name: "chinesesimplified"; MessagesFile: "languages\ChineseSimplified.isl"
 Name: "chinesetraditional"; MessagesFile: "languages\ChineseTraditional.isl"
@@ -270,6 +271,7 @@ begin
   else if L = 'polish' then Result := 'pl'
   else if L = 'brazilianportuguese' then Result := 'pt'
   else if L = 'thai' then Result := 'th'
+  else if L = 'ukrainian' then Result := 'uk'
   else if (L = 'chinesesimplified') or (L = 'chinesetraditional') then
   begin
     if L = 'chinesetraditional' then Result := 'zh-tw' else Result := 'zh-cn';
@@ -446,6 +448,7 @@ begin
   AddLang('th', 'ไทย', 'th-TH', 'flag_th' + F, ColW, Top + 3 * RowH, RowH);
   AddLang('zh-cn', '简体中文', 'zh-CN', 'flag_zh-cn' + F, ColW, Top + 4 * RowH, RowH);
   AddLang('zh-tw', '繁體中文', 'zh-TW', 'flag_zh-tw' + F, ColW, Top + 5 * RowH, RowH);
+  AddLang('uk', 'Українська', 'uk-UA', 'flag_uk' + F, ColW, Top + 6 * RowH, RowH);
 end;
 
 // Preselect: /TOOLKITLANG, else the setting already there, else the wizard's language. Once, right
@@ -484,6 +487,7 @@ begin
   else if InnoName = 'polish' then Result := 'pl'
   else if InnoName = 'brazilianportuguese' then Result := 'pt'
   else if InnoName = 'thai' then Result := 'th'
+  else if InnoName = 'ukrainian' then Result := 'uk'
   else if InnoName = 'chinesesimplified' then Result := 'zh-cn'
   else if InnoName = 'chinesetraditional' then Result := 'zh-tw'
   else Result := 'en';
@@ -607,6 +611,7 @@ begin
   AddWizardLang('polish', 'Polski');
   AddWizardLang('brazilianportuguese', 'Português (Brasil)');
   AddWizardLang('thai', 'ไทย');
+  AddWizardLang('ukrainian', 'Українська');
   AddWizardLang('chinesesimplified', '简体中文');
   AddWizardLang('chinesetraditional', '繁體中文');
   WizardLangCombo.OnChange := @WizardLangChange;

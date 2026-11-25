@@ -105,7 +105,7 @@ if ($LASTEXITCODE -ne 0) { throw "RenderFlags failed (exit $LASTEXITCODE)" }
 # missing a key falls back to English for that key, with a warning.
 $innoNames = [ordered]@{
     "en" = "english"; "de" = "german"; "es" = "spanish"; "fr" = "french"; "it" = "italian"; "ja" = "japanese";
-    "ko" = "korean"; "pl" = "polish"; "pt" = "brazilianportuguese"; "th" = "thai";
+    "ko" = "korean"; "pl" = "polish"; "pt" = "brazilianportuguese"; "th" = "thai"; "uk" = "ukrainian";
     "zh-cn" = "chinesesimplified"; "zh-tw" = "chinesetraditional"
 }
 function Read-Texts([string]$code) {

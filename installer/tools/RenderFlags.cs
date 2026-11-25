@@ -14,7 +14,7 @@ using System.Windows.Media.Imaging;
 
 internal static class RenderFlags
 {
-    private static readonly string[] Codes = { "en", "de", "es", "es-mx", "fr", "it", "ja", "ko", "pl", "pt", "th", "zh-cn", "zh-tw" };
+    private static readonly string[] Codes = { "en", "de", "es", "es-mx", "fr", "it", "ja", "ko", "pl", "pt", "th", "uk", "zh-cn", "zh-tw" };
     private static readonly int[] Widths = { 22, 28, 33, 44 };   // flag width in px at 100/125/150/200 %
 
     [STAThread]
