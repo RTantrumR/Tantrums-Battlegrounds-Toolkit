@@ -2,22 +2,34 @@
 
 **English** | [Українська](README.ua.md)
 
-A [Hearthstone Deck Tracker](https://hsdecktracker.net/) plugin for Battlegrounds players. It puts the
-things you would otherwise hover, alt-tab or memorise on screen while you play.
+A program for Hearthstone Battlegrounds players. It draws over the game and puts the things you would
+otherwise hover, alt-tab or memorise on screen while you play.
 
-<img src="assets/opponent-mmr.png" align="right" width="230" alt="Standings panel and leaderboard portraits showing each opponent's rating, tavern tier and most common minion type" />
+It runs on its own. It started as a [Hearthstone Deck Tracker](https://hsdecktracker.net/) plugin; HDT
+stops running plugins on 30 November 2026, so the toolkit is a standalone program since v1.0.0 and
+needs neither HDT nor any other tracker. It also runs beside HDT or Firestone if you use one.
 
-**On the overlay, all match long**
+<img src="assets/opponent-mmr.png" align="right" width="230" alt="Standings sidebar and leaderboard portraits showing each opponent's rating, tavern tier and most common minion type" />
+
+**On screen, all match long**
 
 - **Opponent tiers and minion types**: every player's tavern tier and the minion type they have most
   of, with its count, next to their leaderboard portrait from turn 1. The game shows this only while
   you hover a portrait; here it is always on screen.
-- **Opponent MMR**: each opponent's rating and today's gain or loss, on the portraits, in a movable
-  standings panel, or both. Solo and Duos.
+- **Opponent names and MMR**: each opponent's name, rating and today's gain or loss, by the portraits,
+  in a movable sidebar, or both. Solo and Duos.
+- **Opponents' last boards**: hover a leaderboard portrait to see the board that player last fought
+  you with and the turn it is from. Click the portrait to keep it open.
+- **Lobby minion types**: the five types in this lobby stay on screen, as icons, names or both, and
+  can show the banned types crossed out.
+- **Turn counter**: the turn number, top right.
 - **Dark Gifts**: a "?" above the Dark Discovery button opens every gift you can still be offered,
-  what it does and which minions can carry it, with the ones available this turn highlighted. From
-  turn 6 it also shows the minion pool of your guaranteed type.
+  what it does and which minions can carry it. From turn 6 it also shows the minion pool of your
+  guaranteed type.
 - **Trinkets and anomaly**: your trinkets and the lobby anomaly stay visible for the whole match.
+
+Every box can be moved and resized in the game itself, and the lobby types box, the sidebar and the
+turn counter join into one panel when you drag them against each other.
 
 **One key away**
 
@@ -26,10 +38,9 @@ things you would otherwise hover, alt-tab or memorise on screen while you play.
 - **Floating cards**: drag a card out of the search and leave it on screen at any size, for yourself
   or for your viewers.
 
-Standard setup includes opponents' Tavern Tier and Tribes by their portraits, a movable floating panel with their Names/MMR and Dark Gifts; trinkets and the anomaly HUD are off until you switch them on in the plugin's settings.
+A new install shows opponents' tavern tiers and minion types by their portraits, the sidebar with
+names and MMR, and Dark Gifts. Everything else is switched on in the settings.
 Card data and art come from [hsbg.cards](https://hsbg.cards).
-
-**Match export is discontinued** as of v0.8.0: the per-round CSV writer is gone. For your match history use [ReplayWatcher](https://hsbg.cards/plugin/replay-watcher) instead.
 
 <br clear="right" />
 
@@ -46,23 +57,29 @@ Card data and art come from [hsbg.cards](https://hsbg.cards).
 
 ## Install
 
-Windows only. Hearthstone must run in **Borderless** or **Windowed** mode, as for HDT's own overlay.
+Windows only. Run Hearthstone in **Borderless** or **Windowed** mode.
 
-1. **Get Hearthstone Deck Tracker.** Install [HDT](https://hsdecktracker.net/) and launch it once.
-2. **Download the installer.** Grab `TantrumsBattlegroundsToolkit-Setup-X.Y.Z.exe` from
+1. **Download the Setup.** Get `TantrumsBattlegroundsToolkit-Setup-X.Y.Z.exe` from
    [Releases](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/latest).
-3. **Run it.** The wizard first checks that HDT is installed. If it is not, the wizard stops on a page
-   that links HDT's download, with **Check again** and **Locate HDT** buttons, and installs nothing
-   until HDT is found. Then it closes HDT, copies the plugin into place and can start HDT again. If Windows
-   SmartScreen warns about an unknown publisher, click *More info → Run anyway*.
-   *Manual install*: the zip on the same page holds the `HsbgCardLookup` folder; drop it into
-   `%APPDATA%\HearthstoneDeckTracker\Plugins\` with HDT closed, or run the zip's `install.bat`.
-4. **Start HDT.** On a first install the installer switches the plugin on for you, and it appears in
-   HDT's **Plugins** menu. If it is not there, enable "Tantrum's Battlegrounds Toolkit" under
-   **Options → Tracker → Plugins**; HDT keeps a new plugin off until it is enabled and does not ask.
-5. **Press `F3` in a match.**
+2. **Run it.** It asks for the toolkit's language, whether the toolkit starts with Windows, and
+   whether to share match data (see [Privacy](#privacy)). If Windows SmartScreen warns about an
+   unknown publisher, click *More info → Run anyway*.
+3. **Play.** The toolkit shows over Hearthstone in a Battlegrounds match. Press `F3` for the card
+   search.
 
-The first launch downloads card art in the background (about 200 MB, once).
+The first start downloads card art in the background (about 200 MB, once).
+
+**Coming from the HDT plugin?** Run the same Setup. It installs the standalone program and switches
+the old plugin off in HDT, so nothing shows twice.
+
+## How it runs
+
+The toolkit lives in the Windows tray. Click its icon to open the settings, double-click it for the
+card search, right-click it for the menu.
+
+With **Start with Windows** on, it waits in the tray using about 2 MB of memory, comes up when
+Hearthstone starts and closes again with the game. With it off, start it from its shortcut when you
+play. You can change this in the settings.
 
 ## Controls
 
@@ -78,50 +95,62 @@ game's card-list book for opening the search with the mouse.
 
 ## Settings
 
-Open them from **Options → Tracker → Plugins → Settings**, or from HDT's **Plugins** menu. Each
-feature has its own page with a preview. **Arrange** lets you drag the trinket, anomaly and standings
-boxes to where you want them, in the game itself.
+Open them from the tray icon. Each feature has its own page with a picture of what it does.
+**Arrange** lets you drag a box to where you want it, in the game itself.
+
+- **Config**: export your setup to a file, import someone else's, or keep named presets. Two
+  ready-made configs, for players who run Firestone or Hearthstone Deck Tracker beside the toolkit,
+  turn off what that program already shows.
+- **BepInEx mods**: the mods from hsbg.cards, which of them you have installed and at which version.
 
 Opponent ratings come from the hsbg.cards leaderboard. Players who are not on it show as `8000↓`.
 
 ## Languages
 
-One setting, **Settings → Language** (its own row, under the globe), follows HDT's language setting by default:
-card names, text and art, the words the search understands (tribes, keywords, card types) and the
-plugin's own menus and messages all come in that language — German, Spanish (EU and Latin America),
-French, Italian, Japanese, Korean, Polish, Portuguese, Thai, Simplified and Traditional Chinese. The
-search also keeps understanding English, so `taunt` and `Spott` both work in German. Any language
-can be pinned instead. The plugin's own texts are
-machine-translated and unreviewed; corrections are welcome as edits to
-`HsbgCardLookup/data/ui/<language>.json`.
+**Settings → Language** sets everything at once: card names, text and art, the words the search
+understands (minion types, keywords, card types) and the toolkit's own menus and messages. Available
+in English, German, Spanish (EU and Latin America), French, Italian, Japanese, Korean, Polish,
+Portuguese, Thai, Simplified and Traditional Chinese. The search keeps understanding English, so
+`taunt` and `Spott` both work in German. Corrections to the toolkit's own texts are welcome as edits
+to `HsbgCardLookup/data/ui/<language>.json`.
 
-Switching the language downloads nothing by itself. A language's card data (about 1 MB) is fetched the
-first time it is actually used, and its card art is fetched card by card as you look at them. The
-English art pack is downloaded once, as before.
+A language's card data (about 1 MB) is fetched the first time it is used, and its card art card by
+card as you look at them.
+
+## Streaming with OBS
+
+Add a **Window Capture** above your Hearthstone capture and pick
+**[TantrumsToolkitStandalone.exe]: Tantrum's BG Toolkit - Overlay**. It needs no filter and no setting
+in the toolkit.
 
 ## Updates
 
-The plugin tells you when a new release is out and links to its installer. It never downloads or
-installs anything by itself: updating is the same installer as the first install, run from your
-browser's download. Card data and art refresh automatically.
+A bell next to the in-game search button tells you when a new version is out and links to its Setup.
+The toolkit never downloads or installs a program by itself: updating is the same Setup as the first
+install. Card data and art refresh automatically.
 
-### What's New in v0.7.1
-- **Match recap survives a reconnect**: after a disconnect and rejoin mid-match, the recap used to count only the turns after the rejoin. It now keeps the whole match.
+[Release notes](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases)
 
-### What's New in v0.7.0
-- **A new name**: HSBG Card Lookup is now Tantrum's Battlegrounds Toolkit. Updating keeps it enabled and keeps your settings.
-- **Match recap**: APM, best turn, peak burst and damage dealt when a solo match ends, next to your season averages.
-- **Installer**: closes and reopens HDT properly, checks that the files fully arrived, and switches the plugin on in HDT on a first install, addressing an issue brought up by a few people.
-- **Ready from the start**: a new install shows opponents' tavern tiers and tribes by their portraits, the Names/MMR panel and Dark Gifts without touching the settings. Existing setups are left as they are, apart from the new match recap, which is on for everyone.
+## Privacy
 
-[Full release notes](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/tag/v0.7.1) | [All releases](https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases)
+The toolkit talks to two places, and only for these things:
+
+- **hsbg.cards**: card data, card art, the list of mods and the notices in the bell are downloaded
+  from it.
+- **GitHub**: the check for a new release.
+- **Match data, if you leave it on**: after each Solos match a short report goes to hsbg.cards for
+  community statistics. It holds the lobby's heroes, minion types and places, your rating and your
+  final board. It holds no names, neither yours nor your opponents'. The Setup asks about it on its
+  own page, and **Settings → Match data** has the same switch: turn it off and nothing is sent.
+
+The full text is hsbg.cards' [privacy policy](https://hsbg.cards/privacy#match-stats); see also its
+[terms](https://hsbg.cards/terms#stats) and [about](https://hsbg.cards/about#stats) pages.
 
 ## Uninstall
 
-Remove "Tantrum's Battlegrounds Toolkit" under Windows **Settings → Apps**, or delete
-`%APPDATA%\HearthstoneDeckTracker\Plugins\HsbgCardLookup\` with HDT closed. Your settings and the
-card-art cache live in `%APPDATA%\HearthstoneDeckTracker\HsbgCardLookup\`; delete that folder too to
-remove everything.
+Remove "Tantrum's Battlegrounds Toolkit" under Windows **Settings → Apps**. Your settings and the
+card-art cache live in `%APPDATA%\TantrumsBattlegroundsToolkit\`; delete that folder too to remove
+everything.
 
 ## Building from source
 
@@ -129,8 +158,9 @@ See [BUILDING.md](BUILDING.md).
 
 ## License
 
-[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party component details.
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party components.
 
 MMR showcase is inspired by [HDT-BGMMRPlugin](https://github.com/Reign-in-blood/HDT-BGMMRPlugin) and was made in cooperation with the author.
 
-*Hearthstone is a trademark of Blizzard Entertainment, Inc. This is an unofficial fan project.*
+Hearthstone is a trademark of Blizzard Entertainment, Inc. This is an unofficial, fan-made tool, not
+affiliated with or endorsed by Blizzard.
