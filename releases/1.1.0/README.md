@@ -3,11 +3,11 @@ v1.1.0: Session Recap, opponents' boards, panels you can assemble, and patch not
 ![The toolkit over a Battlegrounds match: lobby minion types, the sidebar and the Session Recap in one column by the leaderboard](https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/default-layout.jpg)
 
 ### New in the match
-- **Session Recap**: your rating when the session started and now, and your latest matches with the hero, the place and the rating change. It shows in a match and on the Battlegrounds menu, for Solos or Duos, whichever you play. A session ends after 4 hours without a ranked match; right-click the box to start a new one.
+- **Session Recap**: a new box shows your rating when the session started and now, and your latest matches with the hero, the place and the rating change. It shows in a match and on the Battlegrounds menu, for Solos or Duos, whichever you play. A session ends after 4 hours without a ranked match; right-click the box to start a new session.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/session-recap.jpg" alt="The Session Recap box" width="220">
 
-- **Lobby minion types**: the five types in this lobby stay on screen all match. Lay them out as one row, one column, two rows or three rows, as icons, names or both, and add the season's banned types crossed out if you like. Right-click the box to change it on the spot.
+- **Lobby minion types**: the five types in this lobby stay on screen all match. Lay the box out as 1x5, 5x1, 2x3 or 3x2, whatever suits your vision. Show icons, names or both, and turn the banned types on or off to show them crossed out underneath.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/lobby-types.jpg" alt="The lobby minion types box" width="420">
 
@@ -16,14 +16,14 @@ v1.1.0: Session Recap, opponents' boards, panels you can assemble, and patch not
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/opponent-board.jpg" alt="An opponent's last board over the match">
 
 - **Turn counter**: the turn number, top right.
-- **Assemble panels**: drag the lobby types box, the sidebar, the Session Recap and the turn counter against each other and they join into one panel that moves as one. Right-click it to take it apart. Joined boxes can stretch to one width, scale up together, or keep their own sizes.
+- **Assemble panels**: the lobby minion types, the sidebar, the Session Recap and the turn counter can be merged together for your own layout with the Assemble panels setting on, or positioned separately on the screen. Right-clicking some panels gives you options to interact with them and to take them apart. Joined boxes can stretch to one width, scale up together, or keep their own sizes.
 - **New default layout**: the lobby types, the sidebar and the Session Recap stand as one column left of the leaderboard, from under your opponent's name to above yours, with tavern tiers and minion types by the portraits.
-- **Two-line rows**: the sidebar and the Session Recap put the numbers under the name, for narrower boxes with larger text.
-- **The bell**, next to the search button, replaces the "Update available" tag. A green number means a new version, a yellow one new patch notes. Click it to download the update, skip it, or read the patch notes in your language.
+- **Two-line rows**: if the rows of the sidebar and the Session Recap are too wide, turn this on to make them taller instead (it might look funky in some places).
+- **The bell**: a bell next to the in-game search button turns green when a new version is out and yellow for new patch notes, and replaces the "Update available" tag. Click it to download the update, skip it, or read the patch notes in your language.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/bell.jpg" alt="The bell next to the in-game search button" width="260">
 
-- The search button and the bell can be moved and resized like the other boxes.
+- The bell and the search button can now be moved and resized like the other boxes (it was highly requested).
 - The overlay leaves Hearthstone's friends list and Esc menu clear while they are open.
 
 ### Settings
@@ -32,7 +32,7 @@ v1.1.0: Session Recap, opponents' boards, panels you can assemble, and patch not
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/app-updates.jpg" alt="App & updates with the patch notes" width="430">
 
-- **Config page**: export your settings to a file, import someone else's, or keep named presets. Ready-made configs set everything at once: "Default Standalone (Recommended)" is the toolkit's own layout, and the Firestone and Hearthstone Deck Tracker ones turn off what that app already shows, so nothing appears twice.
+- **Config page**: export your settings to a file, import someone else's, or keep named presets. It also has ready-made setups: the toolkit's own default (recommended), and versions for players who run Firestone or Hearthstone Deck Tracker beside it, which turn off what that app already shows. Those were measured at release; other trackers might add features that would need these configs changed.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/ready-configs.jpg" alt="Ready-made configs on the Config page" width="430">
 
@@ -40,16 +40,16 @@ v1.1.0: Session Recap, opponents' boards, panels you can assemble, and patch not
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/in-match-panels.jpg" alt="The In-match panels page" width="430">
 
-- **Portrait/Sidebar overlay**: two sliders size what is drawn by the portraits, the name and MMR plate and the tier and type icons, from 70% to 135%, with a picture of the leaderboard that follows.
+- **Portrait/Sidebar overlay**: two sliders set the size of the name and MMR plate and of the tier and minion type icons by the leaderboard portraits, from 70% to 135%, with a picture that follows as you drag to help you see the result.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/portrait-sliders.jpg" alt="The size sliders and their picture" width="430">
 
-- **BepInEx mods**: the mods listed on hsbg.cards, which ones you have and at which version, and their Setup a click away. Installed mods can be shown in Explorer, checked for an update or moved to the Recycle Bin. New in the list: Tantrum's Board Fix, which keeps your board from jumping around while you buy and reorder.
+- **BepInEx mods**: see the mods from hsbg.cards, which of them you have and at which version, and open their Setup in one click. Installed mods can be shown in Explorer, checked for an update or moved to the Recycle Bin. New in the list: Tantrum's Board Fix, which keeps your board from jumping around. Many players may already know it; it can now be installed and uninstalled quickly from the toolkit.
 
 <img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/bepinex-mods.jpg" alt="The BepInEx mods page" width="430">
 
 - **App & updates**: Start with Windows, the bell's position, "Check for updates" and the time of the last check.
-- Ukrainian: menus, panels and the Setup. Cards and the card search stay in English.
+- Ukrainian: the toolkit's menus, panels and Setup are now also in Ukrainian. Cards and the card search stay in English in that language.
 - Arrange with Hearthstone closed starts the game first.
 - A "Website" button opens hsbg.cards in your language.
 
@@ -59,8 +59,8 @@ v1.1.0: Session Recap, opponents' boards, panels you can assemble, and patch not
 - The Language page has no "Automatic" row any more: it followed Hearthstone Deck Tracker's language. A language you never picked stays English.
 
 ### Match data
-- After each Solos match the toolkit sends a short report to hsbg.cards for community statistics: the lobby's heroes, minion types and places, your rating and your final board. No names, neither yours nor your opponents'.
-- The Setup asks about it, ticked by default; Settings → Match data has the same switch. Off means nothing is sent.
+- After each Solos match the toolkit sends a short report to hsbg.cards, with no names attached: the lobby's heroes, minion types and places, your rating and your final board. Everyone's matches add up to community statistics of heroes, minion types and places, shown completely free of charge.
+- The Setup asks about it, ticked by default. You can turn it off in Settings → Match data, and then nothing is sent.
 - "Community stats" on that page opens what everyone's matches add up to.
 - The toolkit keeps your last 200 matches in its data folder.
 
