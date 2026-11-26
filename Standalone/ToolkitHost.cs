@@ -245,8 +245,18 @@ namespace Toolkit.Standalone
                     string sampleFile = Path.Combine(Shared.ExeDir, "testboard.trigger");
                     if (File.Exists(sampleFile))
                     {
-                        try { File.Delete(sampleFile); } catch { }
+                        string title = "";
+                        try { title = File.ReadAllText(sampleFile).Trim(); File.Delete(sampleFile); } catch { }
+                        HsbgCardLookup.Ui.OpponentBoardPanel.TestTitle = title;   // its content, if any, captions the board
                         HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard = !HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard;
+                    }
+
+                    // Test aid: samplesession.trigger switches the sample session on or off, without the sample board.
+                    string sessionFile = Path.Combine(Shared.ExeDir, "samplesession.trigger");
+                    if (File.Exists(sessionFile))
+                    {
+                        try { File.Delete(sessionFile); } catch { }
+                        HsbgCardLookup.Ui.SessionPanel.TestSession = !HsbgCardLookup.Ui.SessionPanel.TestSession;
                     }
 
                     // Test aid: drop a file named snap.trigger next to the exe to get snap.png.

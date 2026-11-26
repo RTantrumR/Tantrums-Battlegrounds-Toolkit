@@ -163,7 +163,7 @@ namespace HsbgCardLookup.Ui
             try
             {
                 var game = HostServices.Game; var memory = HostServices.Memory;
-                bool sample = OpponentBoardPanel.TestBoard;          // the sample board's test aid shows a sample session too
+                bool sample = OpponentBoardPanel.TestBoard || TestSession;   // the sample board's test aid shows a sample session too
                 bool inMatch = game != null && game.IsBattlegroundsMatch;
                 bool onMenu = !inMatch && memory != null && memory.OnBattlegroundsMenu;
                 if (!inMatch) _matchSince = null; else if (_matchSince == null) _matchSince = DateTime.UtcNow;
@@ -189,6 +189,9 @@ namespace HsbgCardLookup.Ui
             }
         }
         private bool _failed;
+
+        /// <summary>Test aid: the sample session on its own, without the sample board.</summary>
+        public static bool TestSession;
 
         private static SessionView Sample()
         {

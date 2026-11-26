@@ -82,6 +82,8 @@ namespace HsbgCardLookup.Ui
 
         /// <summary>Test aid: draw a fixed sample board (every keyword, long numbers) whatever the game is doing.</summary>
         public static bool TestBoard;
+        /// <summary>Test aid: the sample board's caption in place of "Sample board" (a hero's name, for screenshots).</summary>
+        public static string TestTitle;
         private OpponentBoard _sample;
         private PlayerHistory _sampleHistory;
 
@@ -261,7 +263,7 @@ namespace HsbgCardLookup.Ui
                 if (TestBoard && canvas != null && canvas.ActualHeight > 0)
                 {
                     EnsureArt(canvas.Dispatcher); EnsureTextFace();
-                    Show(canvas, Sample(), Strings.T("boards.sample"), _sampleHistory);
+                    Show(canvas, Sample(), string.IsNullOrEmpty(TestTitle) ? Strings.T("boards.sample") : TestTitle, _sampleHistory);
                     OpenCardUnder(canvas, TestCursor ?? new Point(-1, -1));
                     return;
                 }
