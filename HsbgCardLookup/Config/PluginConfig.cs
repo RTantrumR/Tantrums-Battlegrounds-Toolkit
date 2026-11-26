@@ -389,8 +389,11 @@ namespace HsbgCardLookup.Config
                 OpponentTribeMode = "Portraits",
                 ShowDarkGifts = true,
                 // The left strip, from under the opponent's name to above the player's: lobby types, the
-                // sidebar, the session, as one column (owner, 2026-11-26).
-                CompactRows = true,
+                // sidebar, the session, as one column (owner, 2026-11-26). One-line rows, the joined boxes
+                // sized to one another: with tiers and types by the portraits a row is a name and a rating
+                // (owner, 2026-11-27).
+                CompactRows = false,
+                AssembleFit = "Scale",
                 PanelLinks = new System.Collections.Generic.List<string> { "tribes>sidebar:Top", "session>sidebar:Bottom" },
             };
         }
