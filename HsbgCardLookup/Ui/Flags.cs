@@ -94,6 +94,7 @@ namespace HsbgCardLookup.Ui
                     Path(c, Star(12, 7.5, 4.3, 15, 11.25), "#FFFFFF");
                     Ellipse(c, 15, 11.25, 4.3, 4.3, "#FFFFFF", "#000095", 1.1);
                     break;
+                case "uk": Bands(c, false, "#0057B7", "#FFD700"); break;
                 default:        // a locale without a mark reads as a plain field, never a broken image
                     Rect(c, 0, 0, 60, 45, "#3A4150");
                     break;

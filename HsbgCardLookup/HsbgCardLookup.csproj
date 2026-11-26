@@ -212,6 +212,9 @@
     <None Include="data\locale-terms.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="data\locale-terms.ui.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <!-- The plugin's own UI strings per language (en.json is the key source; tools\check-ui-strings.js). -->
     <None Include="data\ui\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

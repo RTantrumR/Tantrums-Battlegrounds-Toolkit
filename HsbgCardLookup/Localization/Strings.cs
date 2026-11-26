@@ -36,7 +36,7 @@ namespace HsbgCardLookup.Localization
         {
             Catalogs.Clear();
             var loaded = new List<string>();
-            foreach (var web in new[] { Locales.English }.Concat(Locales.Cards.Select(l => l.Web)))
+            foreach (var web in new[] { Locales.English }.Concat(Locales.All.Select(l => l.Web)))
             {
                 var cat = Read(CardStore.BundledDataPath(Path.Combine("ui", web + ".json")));
                 if (cat == null) continue;

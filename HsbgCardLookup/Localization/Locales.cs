@@ -46,12 +46,22 @@ namespace HsbgCardLookup.Localization
             new Locale("zh-tw", "zhTW", "繁體中文",                 "Chinese (Traditional)", "zh-TW"),
         };
 
+        /// <summary>Languages the toolkit's own texts exist in although the site has no card data for
+        /// them: menus and panels in that language, cards and the search's words in English.</summary>
+        public static readonly IReadOnlyList<Locale> UiOnly = new[]
+        {
+            new Locale("uk",    null,   "Українська",              "Ukrainian",             "uk-UA"),
+        };
+
+        /// <summary>Every language the language page offers besides English.</summary>
+        public static IEnumerable<Locale> All => System.Linq.Enumerable.Concat(Cards, UiOnly);
+
         private static readonly Dictionary<string, Locale> ByWebMap = new Dictionary<string, Locale>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, Locale> ByGameMap = new Dictionary<string, Locale>(StringComparer.OrdinalIgnoreCase);
 
         static Locales()
         {
-            foreach (var l in Cards)
+            foreach (var l in All)
             {
                 ByWebMap[l.Web] = l;
                 if (l.Game != null) ByGameMap[l.Game] = l;
@@ -81,7 +91,7 @@ namespace HsbgCardLookup.Localization
         /// <summary>The site's path for a language — its lib/locales.ts localeHref: "/de/patch-notes"
         /// for de, the path itself for English.</summary>
         public static string SitePath(string web, string path) =>
-            string.IsNullOrEmpty(web) || string.Equals(web, English, StringComparison.OrdinalIgnoreCase) ? path : "/" + web + path;
+            IsCardLocale(web) ? "/" + web + path : path;
 
         public static string NativeName(string web)
         {

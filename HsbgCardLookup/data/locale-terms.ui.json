@@ -1,0 +1,34 @@
+{
+  "format": 1,
+  "locales": {
+    "uk": {
+      "tribe": {
+        "Aberration": "Аберація",
+        "All": "Усі",
+        "Beast": "Звір",
+        "Demon": "Демон",
+        "Dragon": "Дракон",
+        "Elemental": "Елементаль",
+        "Mech": "Механізм",
+        "Murloc": "Мурлок",
+        "Naga": "Нага",
+        "Pirate": "Пірат",
+        "Quilboar": "Голкошкур",
+        "Undead": "Нежить"
+      },
+      "cardType": {
+        "anomaly": "Аномалія",
+        "hero": "Герой",
+        "minion": "Істота",
+        "trinket": "Трінкет"
+      },
+      "trinketTier": {
+        "greater": "Більший",
+        "lesser": "Менший"
+      },
+      "category": {
+        "darkgift": "Темний дар"
+      }
+    }
+  }
+}
