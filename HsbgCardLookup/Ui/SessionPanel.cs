@@ -25,8 +25,8 @@ namespace HsbgCardLookup.Ui
     /// The session in a box: the rating it began at and the rating now, and its latest matches (hero,
     /// place, rating change), for the mode being played. On screen during a match and on the
     /// Battlegrounds menu. What a session is: <see cref="MatchSession"/>. Lives on the overlay canvas,
-    /// moved and scaled like <see cref="TurnCounterPanel"/> (config <c>SessionHud</c>; XF is the box's
-    /// RIGHT edge). A right-click offers a new session (<see cref="IDockMenu"/>).
+    /// moved and scaled like <see cref="TurnCounterPanel"/> (config <c>SessionHud</c>), top left by
+    /// default. A right-click offers a new session (<see cref="IDockMenu"/>).
     /// </summary>
     public sealed class SessionPanel : IDockPanel, IDockMenu
     {
@@ -46,7 +46,7 @@ namespace HsbgCardLookup.Ui
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null || canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
             Canvas.SetLeft(_root, left); Canvas.SetTop(_root, top);
-            _xf = (left + _root.ActualWidth) / canvas.ActualWidth; _yf = top / canvas.ActualHeight;
+            _xf = left / canvas.ActualWidth; _yf = top / canvas.ActualHeight;
             if (save) Save();
         }
 
@@ -56,7 +56,7 @@ namespace HsbgCardLookup.Ui
         }
 
         private const double MinScale = 0.4, MaxScale = 4;
-        private const double DefaultXF = 0.995, DefaultYF = 0.06;
+        private const double DefaultXF = 0.005, DefaultYF = 0.008;
         private const double BodyWidth = 150;          // at scale 1: the same whatever the numbers in it
         public const int MinGames = 1, MaxGames = 10;
 
@@ -81,7 +81,7 @@ namespace HsbgCardLookup.Ui
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
         private static readonly Color Good = Color.FromRgb(0x5B, 0xD6, 0x6E), Middle = Color.FromRgb(0xF0, 0xC8, 0x4A), Bad = Color.FromRgb(0xE8, 0x5D, 0x5D);
-        private static readonly Brush Up = Frozen(Good), Down = Frozen(Bad), OnPlace = Frozen(Color.FromRgb(0x12, 0x16, 0x1E));
+        private static readonly Brush Up = Frozen(Good), Down = Frozen(Bad);
         // The portrait inside our render of a hero card.
         private static readonly Rect HeroArt = new Rect(59 / 404.0, 38 / 419.0, 256 / 404.0, 256 / 419.0);
 
@@ -273,15 +273,10 @@ namespace HsbgCardLookup.Ui
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.Children.Add(Portrait(g.Hero, 24 * s));
-                var place = new Border
+                var place = new TextBlock
                 {
-                    Width = 20 * s, Height = 20 * s, CornerRadius = new CornerRadius(10 * s), Margin = new Thickness(6 * s, 0, 0, 0),
-                    Background = Frozen(PlaceColor(g.Place, most)), VerticalAlignment = VerticalAlignment.Center,
-                    Child = new TextBlock
-                    {
-                        Text = g.Place.ToString(CultureInfo.InvariantCulture), FontSize = 12.5 * s, FontWeight = FontWeights.ExtraBold, Foreground = OnPlace,
-                        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-                    }
+                    Text = g.Place.ToString(CultureInfo.InvariantCulture), FontSize = 16 * s, FontWeight = FontWeights.Bold, Foreground = Frozen(PlaceColor(g.Place, most)),
+                    Width = 16 * s, TextAlignment = TextAlignment.Center, Margin = new Thickness(6 * s, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
                 };
                 Grid.SetColumn(place, 1);
                 row.Children.Add(place);
@@ -352,7 +347,7 @@ namespace HsbgCardLookup.Ui
             if (canvas == null) return;
             double cw = canvas.ActualWidth, ch = canvas.ActualHeight;
             if (cw <= 0 || ch <= 0 || PanelDock.Holds(this)) return;
-            Canvas.SetLeft(_root, Clamp(_xf * cw - _root.ActualWidth, 0, Math.Max(0, cw - _root.ActualWidth)));
+            Canvas.SetLeft(_root, Clamp(_xf * cw, 0, Math.Max(0, cw - _root.ActualWidth)));
             Canvas.SetTop(_root, Clamp(_yf * ch, 0, Math.Max(0, ch - _root.ActualHeight)));
         }
 
@@ -388,7 +383,7 @@ namespace HsbgCardLookup.Ui
             }
             else if (_resizing)
             {
-                // Drag up or right to scale up; the box keeps its right edge (see ClampPosition).
+                // Drag up or right to scale up; the box keeps its top-left corner.
                 double before = _scale;
                 _scale = Clamp(_startScale * (1 + (dx - dy) / 160.0), MinScale, MaxScale);
                 _moved = true;
@@ -410,7 +405,7 @@ namespace HsbgCardLookup.Ui
             if (dragged)
             {
                 PanelDock.Dropped(this);
-                _xf = (Canvas.GetLeft(_root) + _root.ActualWidth) / canvas.ActualWidth;
+                _xf = Canvas.GetLeft(_root) / canvas.ActualWidth;
                 _yf = Canvas.GetTop(_root) / canvas.ActualHeight;
             }
             Save();

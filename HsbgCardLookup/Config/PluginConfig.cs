@@ -156,7 +156,7 @@ namespace HsbgCardLookup.Config
         public HudPlacement TurnCounterHud { get; set; } = new HudPlacement();
 
         // The session box (Ui\SessionPanel.cs): rating at its start and now, and its latest matches,
-        // SessionGames of them. XF = its RIGHT edge, WF = its scale. SessionResetTicks: matches begun
+        // SessionGames of them. XF = its left edge, WF = its scale. SessionResetTicks: matches begun
         // before that moment (UTC ticks) are not of the session ("Start a new session"); 0 = never asked.
         public bool ShowSessionPanel { get; set; } = true;
         public int SessionGames { get; set; } = 5;
