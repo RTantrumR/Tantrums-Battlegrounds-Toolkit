@@ -133,6 +133,7 @@
   "settings.app.title": "App e atualizações",
   "settings.app.startHeader": "Inicialização",
   "settings.app.arrangeBellTitle": "Posicionar o sino de notificações",
+  "settings.updates.lastChecked": "Última verificação: {0}.",
   "notes.v110.layout.text": "Os tipos de lacaio do lobby, a barra lateral e o Resumo da sessão agora podem ser unidos em um layout só seu, com a opção Juntar painéis ligada, ou posicionados separadamente na tela. Clicar com o botão direito mostra, em alguns painéis, opções de interação e de separação. Se as linhas ficarem largas demais, você pode ativar o modo Linhas em dois níveis para deixá-las mais altas (pode ficar estranho em alguns lugares).",
   "notes.v110.ready.text": "A página Config tem configurações prontas: a padrão do próprio toolkit (recomendada) e, ao lado dela, versões para quem usa o Firestone ou o Hearthstone Deck Tracker, que desligam o que aquele app já mostra. As versões foram medidas no lançamento, e outros trackers podem criar recursos que exijam mudar essas configs.",
   "notes.v110.lobbytypes.text": "Deixe a caixa de tipos de lacaio do lobby em 1x5, 5x1, 2x3 ou 3x2, como combinar mais com você. Mostre ícones, nomes ou ambos, e ligue ou desligue os tipos banidos, que aparecem riscados embaixo.",

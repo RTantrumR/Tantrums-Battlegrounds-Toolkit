@@ -133,6 +133,7 @@
   "settings.app.title": "应用与更新",
   "settings.app.startHeader": "启动",
   "settings.app.arrangeBellTitle": "调整通知铃铛位置",
+  "settings.updates.lastChecked": "上次检查：{0}",
   "notes.v110.layout.text": "对局随从类型、侧边面板和本次游戏回顾，开启“拼合面板”后可以合并成一个，按你自己的布局排列，也可以分开放在屏幕上。部分面板可以右键打开操作选项，也可以在这里拆开。如果行太宽，可以开启两行显示，让它改为更高（在某些位置可能显示不太协调）。",
   "notes.v110.ready.text": "配置页面提供现成配置：工具箱自己的默认配置（推荐），以及适合同时运行 Firestone 或 Hearthstone Deck Tracker 的玩家的版本，后者会关闭那个应用已经显示的内容（以发布时的情况为准，其他追踪器若新增功能，这些配置可能需要调整）。",
   "notes.v110.lobbytypes.text": "对局随从类型框可以排成 1x5、5x1、2x3 或 3x2，选你喜欢的样式。可以显示图标、名称或两者，也可以选择是否在下方显示被划掉的被禁用类型。",

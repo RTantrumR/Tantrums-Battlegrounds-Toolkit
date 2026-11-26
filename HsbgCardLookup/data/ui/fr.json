@@ -133,6 +133,7 @@
   "settings.app.title": "App et mises à jour",
   "settings.app.startHeader": "Lancement",
   "settings.app.arrangeBellTitle": "Placer la cloche des notifications",
+  "settings.updates.lastChecked": "Dernière vérification : {0}.",
   "notes.v110.layout.text": "Les types du lobby, le panneau latéral et le Résumé de session peuvent maintenant être fusionnés dans une disposition à vous en activant « Assembler les panneaux », ou placés séparément à l’écran. Sur certains panneaux, le clic droit donne accès à des options d’interaction et permet de les séparer. Si les lignes sont trop larges, activez « Lignes sur deux niveaux » pour les rendre plus hautes plutôt que larges (cela peut paraître étrange par endroits).",
   "notes.v110.ready.text": "La page Config propose des réglages tout prêts : celui par défaut du toolkit (recommandé) et, à côté, des versions pour les joueurs qui utilisent Firestone ou Hearthstone Deck Tracker, qui désactivent ce que cette application affiche déjà. (Mesurés à la sortie ; d’autres trackers pourraient ajouter des fonctions qui obligeraient à modifier ces réglages.)",
   "notes.v110.lobbytypes.text": "Disposez la case des types du lobby en 1x5, 5x1, 2x3 ou 3x2, selon ce qui vous convient. Affichez les icônes, les noms ou les deux, et activez ou désactivez les types bannis, qui apparaissent barrés en dessous.",

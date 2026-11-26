@@ -133,6 +133,7 @@
   "settings.app.title": "App e aggiornamenti",
   "settings.app.startHeader": "Avvio",
   "settings.app.arrangeBellTitle": "Posiziona la campanella delle notifiche",
+  "settings.updates.lastChecked": "Ultimo controllo: {0}.",
   "notes.v110.layout.text": "I tipi di servitori della lobby, il pannello laterale e il Riepilogo sessione ora possono essere uniti in un layout tutto tuo attivando «Unisci i pannelli», oppure posizionati separatamente sullo schermo. Su alcuni pannelli il clic destro offre opzioni di interazione e permette di separarli. Se le righe sono troppo larghe, attiva «Righe su due linee» per renderle più alte invece che larghe (in certi punti potrebbe sembrare strano).",
   "notes.v110.ready.text": "La pagina Configurazione offre impostazioni già pronte: quella predefinita del toolkit (consigliata) e, accanto, versioni per chi usa Firestone o Hearthstone Deck Tracker, che disattivano ciò che quell'app mostra già. (Misurate al momento del rilascio; altri tracker potrebbero introdurre funzioni che richiederebbero di modificare queste impostazioni.)",
   "notes.v110.lobbytypes.text": "Disponi il riquadro dei tipi della lobby come 1x5, 5x1, 2x3 o 3x2, come preferisci. Mostra icone, nomi o entrambi, e attiva o disattiva i tipi esclusi, che compaiono barrati sotto.",

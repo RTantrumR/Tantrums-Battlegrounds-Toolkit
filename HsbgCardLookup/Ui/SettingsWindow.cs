@@ -903,6 +903,12 @@ namespace HsbgCardLookup.Ui
                 () => _config.SessionGames.ToString(System.Globalization.CultureInfo.InvariantCulture), v => _config.SessionGames = int.Parse(v, System.Globalization.CultureInfo.InvariantCulture));
             FollowPart(sessionGames, () => _config.ShowSessionPanel && _config.SessionShowGames);
             stack.Children.Add(sessionGames);
+            if (!_indexing)
+            {
+                Action redrawSession;
+                stack.Children.Add(SettingsDemos.Session(_config, _store, out redrawSession));
+                _modeRefresh.Add(redrawSession);
+            }
 
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
@@ -980,7 +986,19 @@ namespace HsbgCardLookup.Ui
             }));
             if (!_indexing)
             {
-                try { stack.Children.Add(SettingsDemos.Assemble(_config)); } catch { }
+                // Drawn again when the join's behaviour changes (assembling on/off, Joined boxes, two-line rows).
+                var assembleHost = new Border();
+                string assembleSig = null;
+                Action drawAssemble = () =>
+                {
+                    string sig = _config.AssemblePanels + "|" + _config.AssembleFit + "|" + _config.CompactRows;
+                    if (sig == assembleSig) return;
+                    assembleSig = sig;
+                    try { assembleHost.Child = SettingsDemos.Assemble(_config); } catch { }
+                };
+                drawAssemble();
+                stack.Children.Add(assembleHost);
+                _modeRefresh.Add(drawAssemble);
             }
             stack.Children.Add(new TextBlock
             {
@@ -1473,25 +1491,13 @@ namespace HsbgCardLookup.Ui
             _onUpdatesPage = true;
             MarkNotesSeen();
 
-            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: true));
-            stack.Children.Add(new TextBlock
-            {
-                Text = Strings.F("settings.updates.installed", _currentVersion),
-                Foreground = UiKit.TextPrimary, FontSize = 15, Margin = new Thickness(0, 0, 0, 12)
-            });
-            _updateActionsHost = new StackPanel();
-            stack.Children.Add(_updateActionsHost);
-            RepaintUpdateArea();
-
-            // What each version brought, one card per change.
-            AddNotes(stack);
-
-            // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
+            // Start-up and the bell first: Start with Windows is the standalone's own switch (HDT starts
+            // the plugin, and has its own); the in-game bell carries the update news, so it is placed here.
             bool? autostart = null;
             try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
+            stack.Children.Add(GroupHeader(Strings.T("settings.app.startHeader"), first: true));
             if (autostart.HasValue)
             {
-                stack.Children.Add(GroupHeader(Strings.T("settings.app.startHeader")));
                 stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
                 {
                     try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
@@ -1503,10 +1509,16 @@ namespace HsbgCardLookup.Ui
                     TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
             }
-
-            // The in-game bell carries the update news, so it is placed from here.
-            stack.Children.Add(new Border { Height = 10 });
             stack.Children.Add(ArrangeHudRow(ArrangeTarget.Bell, Strings.T("settings.app.arrangeBellTitle")));
+
+            // The installed version with "Check for updates" beside it, and what the last check said.
+            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title")));
+            _updateActionsHost = new StackPanel();
+            stack.Children.Add(_updateActionsHost);
+            RepaintUpdateArea();
+
+            // What each version brought, one card per change.
+            AddNotes(stack);
 
             ShowPage();
         }
@@ -1527,7 +1539,27 @@ namespace HsbgCardLookup.Ui
             if (_updateActionsHost == null) return;
             _updateActionsHost.Children.Clear();
 
-            if (_updateNotice != null && _updateNotice.AvailableForDownload)
+            var line = new DockPanel { Margin = new Thickness(0, 0, 0, 6), LastChildFill = true };
+            bool offer = _updateNotice != null && _updateNotice.AvailableForDownload;
+            if (!offer)
+            {
+                var check = SmallButton(Strings.T("settings.updates.check"), () =>
+                {
+                    _status.Text = Strings.T("settings.updates.checking");
+                    _checkForUpdates();
+                });
+                check.Margin = new Thickness(10, 0, 0, 0);
+                DockPanel.SetDock(check, Dock.Right);
+                line.Children.Add(check);
+            }
+            line.Children.Add(new TextBlock
+            {
+                Text = Strings.F("settings.updates.installed", _currentVersion), Foreground = UiKit.TextPrimary, FontSize = 15,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            _updateActionsHost.Children.Add(line);
+
+            if (offer)
             {
                 _updateActionsHost.Children.Add(new TextBlock
                 {
@@ -1543,17 +1575,21 @@ namespace HsbgCardLookup.Ui
                 return;
             }
 
-            string msg = _updateNotice?.Message ?? Strings.T("settings.updates.notChecked");
+            // A check runs at every start and every 20 minutes; one that finds nothing new says nothing,
+            // so the time of the last one is what there is to tell.
+            string msg = _updateNotice?.Message;
+            if (msg == null)
+            {
+                DateTime at;
+                msg = DateTime.TryParse(_config.LastUpdateCheckUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out at)
+                    ? Strings.F("settings.updates.lastChecked", at.ToLocalTime().ToString(at.ToLocalTime().Date == DateTime.Today ? "t" : "g", System.Globalization.CultureInfo.CurrentCulture))
+                    : Strings.T("settings.updates.checking");
+            }
             _updateActionsHost.Children.Add(new TextBlock
             {
                 Text = msg, Foreground = (_updateNotice?.IsError ?? false) ? Brushes.IndianRed : UiKit.TextMuted,
                 FontSize = 13, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
             });
-            _updateActionsHost.Children.Add(SmallButton(Strings.T("settings.updates.check"), () =>
-            {
-                _status.Text = Strings.T("settings.updates.checking");
-                _checkForUpdates();
-            }));
         }
 
         // The Match data page's two ways out to the site, each in its own colours: a small picture, then the words.

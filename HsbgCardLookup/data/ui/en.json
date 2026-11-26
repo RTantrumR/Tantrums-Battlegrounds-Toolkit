@@ -133,6 +133,7 @@
   "settings.app.title": "App & updates",
   "settings.app.startHeader": "Starting",
   "settings.app.arrangeBellTitle": "Position the notifications bell",
+  "settings.updates.lastChecked": "Last checked: {0}.",
   "settings.notes.header": "What's new",
   "settings.notes.version": "Version {0}",
   "settings.notes.showMe": "Show me",

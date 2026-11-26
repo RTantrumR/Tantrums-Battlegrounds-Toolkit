@@ -133,6 +133,7 @@
   "settings.app.title": "App y actualizaciones",
   "settings.app.startHeader": "Inicio",
   "settings.app.arrangeBellTitle": "Ubicar la campana de notificaciones",
+  "settings.updates.lastChecked": "Última comprobación: {0}.",
   "notes.v110.layout.text": "Los tipos de esbirro de la sala, el panel lateral y el Resumen de sesión ahora se pueden unir en un diseño propio activando «Unir paneles», o colocar por separado en la pantalla. En algunos paneles, el clic derecho ofrece opciones de interacción y permite separarlos. Si las filas quedan demasiado anchas, activa «Filas de dos líneas» para que sean más altas en lugar de anchas (puede verse raro en algunos lugares).",
   "notes.v110.ready.text": "La página Config ofrece ajustes ya preparados: el propio del toolkit (recomendado) y, a su lado, versiones para quienes usan Firestone o Hearthstone Deck Tracker, que desactivan lo que esa app ya muestra. (Medidos al momento del lanzamiento; otros trackers podrían agregar funciones que obligarían a cambiar esos ajustes.)",
   "notes.v110.lobbytypes.text": "Distribuye el cuadro de tipos de la sala como 1x5, 5x1, 2x3 o 3x2, como más te convenga. Muestra iconos, nombres o ambos, y activa o desactiva los tipos excluidos, que aparecen tachados debajo.",
