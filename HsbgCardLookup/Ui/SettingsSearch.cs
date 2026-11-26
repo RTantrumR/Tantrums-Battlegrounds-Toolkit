@@ -124,7 +124,10 @@ namespace HsbgCardLookup.Ui
                 double.TryParse(page.Substring(at + 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out wait);
                 page = page.Substring(0, at);
             }
-            if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
+            // "<page> full": the whole window (side menu and all) instead of the page alone.
+            bool full = page.EndsWith(" full", StringComparison.Ordinal);
+            if (full) page = page.Substring(0, page.Length - 5).Trim();
+            if (page == "tools") BuildTools(); else if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
             else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig(); else if (page == "data") BuildMatchData();
             else if (page == "trinkets") BuildTrinkets(); else if (page == "anomaly") BuildAnomaly(); else BuildPanels();
             Action shoot = null;
@@ -141,7 +144,7 @@ namespace HsbgCardLookup.Ui
             {
                 try
                 {
-                    var el = _pageRoot as FrameworkElement;
+                    var el = (full ? Content : _pageRoot) as FrameworkElement;
                     int w = (int)Math.Ceiling(el.ActualWidth), h = (int)Math.Ceiling(el.ActualHeight);
                     var shot = new DrawingVisual();
                     using (var dc = shot.RenderOpen())
