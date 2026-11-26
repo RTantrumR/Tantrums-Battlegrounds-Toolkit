@@ -116,13 +116,10 @@ namespace HsbgCardLookup.Ui
             return link;
         }
 
+        // One change as a card. "Show me" sits in the card's top-right corner. A wide picture takes the
+        // card's whole width with the words under it; a tall one stands at the left with the words beside it.
         private UIElement NoteCard(NotesVersion v, NotesEntry e)
         {
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            // The picture: at most 190 x 150, its own proportions kept.
             System.Windows.Media.Imaging.BitmapImage bmp = null;
             try
             {
@@ -130,42 +127,66 @@ namespace HsbgCardLookup.Ui
                 if (path != null) bmp = ImageCache.Load(path, 0);
             }
             catch { }
-            if (bmp != null)
-            {
-                var img = new Image { Source = bmp, Stretch = Stretch.Uniform, MaxWidth = 190, MaxHeight = 150, VerticalAlignment = VerticalAlignment.Top };
-                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-                grid.Children.Add(new Border
-                {
-                    Child = img, CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(0, 0, 14, 0),
-                    VerticalAlignment = VerticalAlignment.Top
-                });
-            }
+            bool wide = bmp != null && bmp.PixelWidth >= 1.3 * bmp.PixelHeight;
 
-            var col = new StackPanel();
-            Grid.SetColumn(col, 1);
-            col.Children.Add(new TextBlock
+            // The title, with "Show me" at its right.
+            var head = new Grid();
+            head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            head.Children.Add(new TextBlock
             {
                 Text = Strings.T(NoteKey(v, e, "title")), Foreground = UiKit.TextPrimary, FontSize = 15, FontWeight = FontWeights.SemiBold,
-                TextWrapping = TextWrapping.Wrap
-            });
-            col.Children.Add(new TextBlock
-            {
-                Text = Strings.T(NoteKey(v, e, "text")), Foreground = UiKit.TextSecondary, FontSize = 13, TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 4, 0, 0)
+                TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center
             });
             var open = PageFor(e.Page);
             if (open != null)
             {
                 var show = SmallButton(Strings.T("settings.notes.showMe"), () => GoToSetting(open, e.Row != null ? Strings.T(e.Row) : e.Text));
-                show.HorizontalAlignment = HorizontalAlignment.Left;
-                show.Margin = new Thickness(0, 10, 0, 0);
-                col.Children.Add(show);
+                show.VerticalAlignment = VerticalAlignment.Top;
+                show.Margin = new Thickness(10, 0, 0, 0);
+                Grid.SetColumn(show, 1);
+                head.Children.Add(show);
             }
-            grid.Children.Add(col);
+            var text = new TextBlock
+            {
+                Text = Strings.T(NoteKey(v, e, "text")), Foreground = UiKit.TextSecondary, FontSize = 13, TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 6, 0, 0)
+            };
+
+            UIElement body;
+            if (bmp == null || wide)
+            {
+                var col = new StackPanel();
+                col.Children.Add(head);
+                if (bmp != null)
+                {
+                    // As wide as the card, but never blown up past half again its own size.
+                    var img = new Image { Source = bmp, Stretch = Stretch.Uniform, MaxWidth = bmp.PixelWidth * 1.5, HorizontalAlignment = HorizontalAlignment.Left };
+                    RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                    col.Children.Add(new Border { Child = img, CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left });
+                }
+                col.Children.Add(text);
+                body = col;
+            }
+            else
+            {
+                var grid = new Grid();
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var img = new Image { Source = bmp, Stretch = Stretch.Uniform, MaxWidth = 170, MaxHeight = 280, VerticalAlignment = VerticalAlignment.Top };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                grid.Children.Add(new Border { Child = img, CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Top });
+                var col = new StackPanel();
+                Grid.SetColumn(col, 1);
+                col.Children.Add(head);
+                col.Children.Add(text);
+                grid.Children.Add(col);
+                body = grid;
+            }
 
             return new Border
             {
-                Child = grid, Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
+                Child = body, Background = UiKit.Br(UiKit.RowBg), BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(12), Margin = new Thickness(0, 0, 0, 8)
             };
         }

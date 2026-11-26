@@ -125,6 +125,9 @@ namespace HsbgCardLookup.Ui
                 page = page.Substring(0, at);
             }
             // "<page> full": the whole window (side menu and all) instead of the page alone.
+            // "<page> x2": drawn at twice the size (sharper pictures to cut from).
+            double zoom = 1;
+            if (page.EndsWith(" x2", StringComparison.Ordinal)) { zoom = 2; page = page.Substring(0, page.Length - 3).Trim(); }
             bool full = page.EndsWith(" full", StringComparison.Ordinal);
             if (full) page = page.Substring(0, page.Length - 5).Trim();
             if (page == "current") { } else if (page == "tools") BuildTools(); else if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
@@ -152,7 +155,7 @@ namespace HsbgCardLookup.Ui
                         dc.DrawRectangle(Background ?? Brushes.Black, null, new Rect(0, 0, w, h));
                         dc.DrawRectangle(new VisualBrush(el) { Stretch = Stretch.None }, null, new Rect(0, 0, w, h));
                     }
-                    var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                    var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)(w * zoom), (int)(h * zoom), 96 * zoom, 96 * zoom, PixelFormats.Pbgra32);
                     bmp.Render(shot);
                     var png = new System.Windows.Media.Imaging.PngBitmapEncoder();
                     png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
