@@ -146,7 +146,9 @@ namespace HsbgCardLookup.Ui
 
         // A join's shared dimension: the width of two stacked boxes, the height of two side by side.
         private static bool Stacked(DockSide s) => s == DockSide.Top || s == DockSide.Bottom;
-        private static bool Fits(IDockPanel a, IDockPanel b, bool stacked) => a.DockStretches(stacked) && b.DockStretches(stacked);
+        // With AssembleMatchSizes off nothing fits anything: joined boxes keep the sizes they have.
+        private static bool Fits(IDockPanel a, IDockPanel b, bool stacked) =>
+            _config != null && _config.AssembleMatchSizes && a.DockStretches(stacked) && b.DockStretches(stacked);
         private static double Across(FrameworkElement r, bool stacked) => stacked ? r.ActualWidth : r.ActualHeight;
         private static double MinAcross(FrameworkElement r, bool stacked) => stacked ? r.MinWidth : r.MinHeight;
         private static void SetMinAcross(FrameworkElement r, bool stacked, double v) { if (stacked) r.MinWidth = v; else r.MinHeight = v; }

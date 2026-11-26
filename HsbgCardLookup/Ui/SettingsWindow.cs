@@ -953,6 +953,14 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.general.assembleOn") : Strings.T("settings.general.assembleOff");
                 Changed();
             }));
+            var matchSizes = ToggleRow(Strings.T("settings.general.assembleFit"), _config.AssembleMatchSizes, v =>
+            {
+                _config.AssembleMatchSizes = v;
+                _status.Text = v ? Strings.T("settings.general.assembleFitOn") : Strings.T("settings.general.assembleFitOff");
+                Changed();
+            });
+            FollowPart(matchSizes, () => _config.AssemblePanels);
+            stack.Children.Add(matchSizes);
             if (!_indexing)
             {
                 try { stack.Children.Add(SettingsDemos.Assemble(_config)); } catch { }

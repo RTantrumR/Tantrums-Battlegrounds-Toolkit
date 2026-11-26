@@ -148,6 +148,9 @@ namespace HsbgCardLookup.Config
         // Floating boxes assemble into one when dragged together (lobby types, sidebar, turn counter).
         // PanelLinks holds the joins, "child>parent:Side" (see Ui\PanelDock.cs).
         public bool AssemblePanels { get; set; } = true;
+        // Joined boxes are sized to one another (one width when stacked, one height side by side); off =
+        // they join at the sizes they have and the dock never resizes one.
+        public bool AssembleMatchSizes { get; set; } = true;
         public System.Collections.Generic.List<string> PanelLinks { get; set; } = new System.Collections.Generic.List<string>();
 
         // The match's turn number in a small box, top right; XF = its RIGHT edge, WF = its scale
