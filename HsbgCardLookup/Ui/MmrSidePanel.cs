@@ -68,7 +68,8 @@ namespace HsbgCardLookup.Ui
         private const double RefW = 210;          // panel width at scale 1 (fonts are tuned to this)
         private const double MinW = 140, MaxW = 480;
         private const double DefaultXF = 0.005, DefaultYF = 0.30;
-        private const double MaxNameW = 108;      // reference px; longer names ellipsize
+        private const double MaxNameW = 90;       // reference px; a longer name is set smaller, down to MinNameScale, then cut
+        private const double NameSize = 12.5, MinNameScale = 0.72;
 
         /// <summary>What fills the name column: "Battletags", "Heroes" or "Off". See
         /// <see cref="PluginConfig.PanelNameMode"/>.</summary>
@@ -618,9 +619,9 @@ namespace HsbgCardLookup.Ui
             double s = w / RefW;
             _nominalW = w;
 
-            _root.Padding = new Thickness(7 * s, 4 * s, 7 * s, 4 * s);
+            _root.Padding = new Thickness(5 * s, 4 * s, 5 * s, 4 * s);
             // The arrow sits in the box's own top-right corner whatever the padding has grown to.
-            _handle.Margin = new Thickness(0, 2 - 4 * s, 2 - 7 * s, 0);
+            _handle.Margin = new Thickness(0, 2 - 4 * s, 2 - 5 * s, 0);
             foreach (var d in _teamDividers)
                 d.Margin = new Thickness(2 * s, 2.5 * s, 2 * s, 1.0 * s);
             // Column gaps are LEFT margins, never right: a collapsed column then takes its gap with
@@ -636,22 +637,21 @@ namespace HsbgCardLookup.Ui
                 _places[i].FontSize = 11.5 * s;
                 _places[i].MinWidth = 13 * s;   // so 1..8 all occupy one column width
                 _places[i].Margin = new Thickness(0, 1.5 * s, 0, 1.5 * s);
-                _names[i].FontSize = 12.5 * s;
-                _names[i].Margin = new Thickness(7 * s, 1.5 * s, 0, 1.5 * s);
+                _names[i].Margin = new Thickness(5 * s, 1.5 * s, 0, 1.5 * s);
                 // Cap the name rather than letting it widen the panel without limit: a long battletag
                 // is trimmed with an ellipsis instead of pushing the rating off to the right.
                 _names[i].MaxWidth = MaxNameW * s;
                 _arrows[i].FontSize = 10.5 * s;
                 _arrows[i].Margin = new Thickness(9 * s, 1.5 * s, 0, 1.5 * s);
                 _ratings[i].FontSize = 12.5 * s;
-                _ratings[i].Margin = new Thickness(6 * s, 1.5 * s, 0, 1.5 * s);
+                _ratings[i].Margin = new Thickness(5 * s, 1.5 * s, 0, 1.5 * s);
                 _tiers[i].Height = 20 * s;
-                _tiers[i].Margin = new Thickness(6 * s, 1.5 * s, 0, 1.5 * s);
-                _tribeCells[i].Margin = new Thickness(6 * s, 1.5 * s, 0, 1.5 * s);
+                _tiers[i].Margin = new Thickness(4 * s, 1.5 * s, 0, 1.5 * s);
+                _tribeCells[i].Margin = new Thickness(4 * s, 1.5 * s, 0, 1.5 * s);
                 _tribes[i].Width = _tribes[i].Height = 17 * s;   // reads as the tier shield's size (a disc fills its box, a shield doesn't)
                 _tribes[i].StrokeThickness = 1.2 * s;
                 _tribeCounts[i].FontSize = 13.5 * s;
-                _tribeCounts[i].Margin = new Thickness(3 * s, 0, 0, 0);
+                _tribeCounts[i].Margin = new Thickness(2 * s, 0, 0, 0);
             }
 
             // Every column has a FIXED width: its gap plus the widest thing it can ever hold at this
@@ -664,12 +664,12 @@ namespace HsbgCardLookup.Ui
             double[] fixedW =
             {
                 13 * s,                                                                   // place: 1..8
-                7 * s + MaxNameW * s,                                                     // name, at its cap
+                5 * s + MaxNameW * s,                                                     // name, at its cap
                 9 * s + TextW(_arrows[0], "▼888", 10.5 * s, pxPerDip),                    // ▲/▼ and up to 3 digits
-                6 * s + Math.Max(TextW(_ratings[0], "88888", 12.5 * s, pxPerDip),
+                5 * s + Math.Max(TextW(_ratings[0], "88888", 12.5 * s, pxPerDip),
                                  TextW(_ratings[0], "8000↓", 12.5 * s, pxPerDip)),        // 5 digits or "8000↓"
-                6 * s + 20 * s,                                                           // the tier shield
-                6 * s + 17 * s + 3 * s + TextW(_tribeCounts[0], "8", 13.5 * s, pxPerDip), // type disc + count
+                4 * s + 20 * s,                                                           // the tier shield
+                4 * s + 17 * s + 2 * s + TextW(_tribeCounts[0], "8", 13.5 * s, pxPerDip), // type disc + count
             };
             for (int c = 0; c < ColCount; c++)
                 _cols[c].Width = new GridLength(_colUsed[c] ? Math.Ceiling(fixedW[c]) : 0);
@@ -684,7 +684,25 @@ namespace HsbgCardLookup.Ui
             if (_colUsed[ColTribe]) cell = Math.Max(cell, Math.Max(17 * s, TextH(_tribeCounts[0], 13.5 * s, pxPerDip)));
             _fullH = MaxSlots * (cell + 3 * s) + (IsDuos ? _teamDividers.Length * (3.5 * s + 1) : 0) + 8 * s + 2;
 
+            FitNames();
             ClampPosition();
+        }
+
+        // A name as large as its column allows: full size when it fits, smaller for its length (owner,
+        // 2026-11-26: the column no longer keeps room for the longest name there is, so every other
+        // part of a row is larger at the same panel width).
+        private void FitNames()
+        {
+            double s = _nominalW / RefW;
+            double pxPerDip = 1;
+            try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
+            for (int i = 0; i < MaxSlots; i++)
+            {
+                string text = _names[i].Text;
+                double full = NameSize * s, room = MaxNameW * s * 0.96;   // a little short of the column: a name that only just fits is cut
+                double wide = string.IsNullOrEmpty(text) ? 0 : TextW(_names[i], text, full, pxPerDip);
+                _names[i].FontSize = wide > room ? full * Math.Max(MinNameScale, room / wide) : full;
+            }
         }
 
         // The width of a text in a cell's own font at a given size.
