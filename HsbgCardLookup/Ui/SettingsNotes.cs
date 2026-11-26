@@ -34,6 +34,7 @@ namespace HsbgCardLookup.Ui
         {
             [JsonProperty("id")] public string Id { get; set; }
             [JsonProperty("image")] public string Image { get; set; }
+            [JsonProperty("images")] public List<string> Images { get; set; }
             [JsonProperty("page")] public string Page { get; set; }
             [JsonProperty("row")] public string Row { get; set; }
             [JsonProperty("text")] public string Text { get; set; }
@@ -120,13 +121,18 @@ namespace HsbgCardLookup.Ui
         // card's whole width with the words under it; a tall one stands at the left with the words beside it.
         private UIElement NoteCard(NotesVersion v, NotesEntry e)
         {
-            System.Windows.Media.Imaging.BitmapImage bmp = null;
-            try
+            var pictures = new List<System.Windows.Media.Imaging.BitmapImage>();
+            foreach (var name in (e.Images ?? new List<string>()).Concat(new[] { e.Image }))
             {
-                var path = string.IsNullOrEmpty(e.Image) ? null : CardStore.BundledDataPath(Path.Combine("patchnotes", e.Image));
-                if (path != null) bmp = ImageCache.Load(path, 0);
+                if (string.IsNullOrEmpty(name)) continue;
+                try
+                {
+                    var path = CardStore.BundledDataPath(Path.Combine("patchnotes", name));
+                    if (path != null) pictures.Add(ImageCache.Load(path, 0));
+                }
+                catch { }
             }
-            catch { }
+            var bmp = pictures.FirstOrDefault();
             bool wide = bmp != null && bmp.PixelWidth >= 1.3 * bmp.PixelHeight;
 
             // The title, with "Show me" at its right.
@@ -158,12 +164,12 @@ namespace HsbgCardLookup.Ui
             {
                 var col = new StackPanel();
                 col.Children.Add(head);
-                if (bmp != null)
+                foreach (var pic in pictures)
                 {
-                    // As wide as the card, but never blown up past half again its own size.
-                    var img = new Image { Source = bmp, Stretch = Stretch.Uniform, MaxWidth = bmp.PixelWidth * 1.5, HorizontalAlignment = HorizontalAlignment.Left };
+                    // As wide as the card, but never blown up past half again its own size; several stack.
+                    var img = new Image { Source = pic, Stretch = Stretch.Uniform, MaxWidth = pic.PixelWidth * 1.5, HorizontalAlignment = HorizontalAlignment.Left };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-                    col.Children.Add(new Border { Child = img, CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left });
+                    col.Children.Add(new Border { Child = img, CornerRadius = new CornerRadius(6), ClipToBounds = true, Margin = new Thickness(0, ReferenceEquals(pic, bmp) ? 10 : 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Left });
                 }
                 col.Children.Add(text);
                 body = col;
