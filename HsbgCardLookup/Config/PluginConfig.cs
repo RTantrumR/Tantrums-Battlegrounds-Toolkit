@@ -377,7 +377,7 @@ namespace HsbgCardLookup.Config
                 // The left strip, from under the opponent's name to above the player's: lobby types, the
                 // sidebar, the session, as one column (owner, 2026-11-26).
                 CompactRows = true,
-                PanelLinks = new System.Collections.Generic.List<string> { "sidebar>tribes:Bottom", "session>sidebar:Bottom" },
+                PanelLinks = new System.Collections.Generic.List<string> { "tribes>sidebar:Top", "session>sidebar:Bottom" },
             };
         }
 

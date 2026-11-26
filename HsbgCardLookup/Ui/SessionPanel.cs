@@ -58,8 +58,8 @@ namespace HsbgCardLookup.Ui
         private const double MinScale = 0.4, MaxScale = 4;
         private const double DefaultXF = 0.005, DefaultYF = 0.008;
         private const double BodyWidth = 222, SummaryWidth = 120;   // at scale 1, with the matches and without: the same whatever the numbers
-        private const double NameWidth = 118, ChangeWidth = 40, NameSize = 15, MinNameSize = 9;
-        private const double CompactWidth = 156, CompactName = 112;   // two-line rows: a portrait and a name wide
+        private const double NameWidth = 118, ChangeWidth = 40, NameSize = 15;
+        private const double CompactWidth = 171, CompactName = 128;   // two-line rows: a portrait and a name wide
         public const int MinGames = 1, MaxGames = 10;
 
         private readonly PluginConfig _config;
@@ -222,7 +222,7 @@ namespace HsbgCardLookup.Ui
             if (_scale <= 0 && canvas.ActualHeight > 0)
             {
                 // Two-line rows start a quarter larger: about the width of the strip left of the leaderboard.
-                _scale = Clamp((_config.CompactRows ? 1.25 : 1) * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
+                _scale = Clamp((_config.CompactRows ? 1.23 : 1) * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
                 Save();
             }
             int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));
@@ -297,10 +297,6 @@ namespace HsbgCardLookup.Ui
                     Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = NameSize * s, TextTrimming = TextTrimming.CharacterEllipsis,
                     MaxWidth = NameWidth * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(6 * s, 0, 4 * s, 0), VerticalAlignment = VerticalAlignment.Center
                 };
-                // As the lobby types' names: as large as the column allows, smaller only for its length.
-                name.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                if (name.DesiredSize.Width > NameWidth * s)
-                    name.FontSize = Math.Max(MinNameSize * s, NameSize * s * NameWidth * s / name.DesiredSize.Width);
                 Grid.SetColumn(name, 1);
                 row.Children.Add(name);
                 var place = new TextBlock
@@ -341,9 +337,6 @@ namespace HsbgCardLookup.Ui
                 Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = NameSize * s, TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = CompactName * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7 * s, 0, 0, 0)
             };
-            name.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            if (name.DesiredSize.Width > CompactName * s)
-                name.FontSize = Math.Max(MinNameSize * s, NameSize * s * CompactName * s / name.DesiredSize.Width * 0.97);
             Grid.SetColumn(name, 1); Grid.SetColumnSpan(name, 2);
             row.Children.Add(name);
             var place = new TextBlock

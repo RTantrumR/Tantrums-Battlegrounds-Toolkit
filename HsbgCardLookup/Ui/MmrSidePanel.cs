@@ -67,10 +67,10 @@ namespace HsbgCardLookup.Ui
         private const int MaxSlots = 8;
         private const double RefW = 210;          // panel width at scale 1 (fonts are tuned to this)
         private const double MinW = 140, MaxW = 480;
-        private const double DefaultXF = 0.005, DefaultYF = 0.30;
-        private const double MaxNameW = 90;       // reference px; a longer name is set smaller, down to MinNameScale, then cut
-        private const double NameSize = 12.5, MinNameScale = 0.72;
-        private const double MaxNameW2 = 112;     // the name's line in the two-line form: the row is this wide
+        private const double DefaultXF = 0, DefaultYF = 0.1794;   // the owner's own place for it: the strip left of the leaderboard
+        private const double MaxNameW = 108;      // reference px; a longer name is cut with an ellipsis, never set smaller (owner, 2026-11-26)
+        private const double NameSize = 12.5;
+        private const double MaxNameW2 = 128;     // the name's line in the two-line form: the row is this wide
 
         /// <summary>What fills the name column: "Battletags", "Heroes" or "Off". See
         /// <see cref="PluginConfig.PanelNameMode"/>.</summary>
@@ -615,7 +615,7 @@ namespace HsbgCardLookup.Ui
                 {
                     // Never sized before: two-line rows start half as large again, which makes the box about as
                     // wide as the strip left of the leaderboard (213 px at 1080p).
-                    _wpx = Clamp(_wf > 0 ? _wf * cw : RefW * (TwoLines ? 1.5 : 1) * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
+                    _wpx = Clamp(_wf > 0 ? _wf * cw : RefW * (TwoLines ? 1.475 : 1) * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
                     try { WidthSettled?.Invoke(_wpx); } catch { }
                 }
                 _wf = _wpx / cw;
@@ -641,10 +641,11 @@ namespace HsbgCardLookup.Ui
                 span.MinWidth = 13 * s;
                 span.Margin = new Thickness(0);
             }
-            // Two lines only when there is more than a rating to put under the name. With the tiers and
-            // the types by the portraits (and no rating changes), the rating fits beside the name on one
-            // line of the same narrow width: the name gives way, set smaller and then cut.
-            bool two = TwoLines && (_colUsed[ColTier] || _colUsed[ColTribe] || _colUsed[ColDelta]);
+            // Two lines only when a tier or a type goes under the name. With those by the portraits (the
+            // first-run default) the rating fits beside the name on one line of the same narrow width,
+            // and the name gives way: it is cut. That narrow line has no room for a rating change: the
+            // column is dropped there (it shows in the two-line form and in the wide one).
+            bool two = TwoLines && (_colUsed[ColTier] || _colUsed[ColTribe]);
             bool narrow = TwoLines && !two;
             double statSize = (two ? 11.5 : 12.5) * s, tierH = (two ? 16 : 20) * s, tribeD = (two ? 15 : 17) * s, countSize = (two ? 12.5 : 13.5) * s;
             double pxPerDip = 1;
@@ -672,9 +673,11 @@ namespace HsbgCardLookup.Ui
                 _places[i].FontSize = 11.5 * s;
                 _places[i].MinWidth = 13 * s;   // so 1..8 all occupy one column width
                 _places[i].Margin = new Thickness(0, top, 0, bottom);
+                _names[i].FontSize = NameSize * s;
                 _names[i].Margin = new Thickness(5 * s, top, 0, two ? 0 : bottom);
-                // Cap the name rather than letting it widen the panel without limit (see FitNames).
+                // Cap the name rather than letting it widen the panel without limit (it is cut with an ellipsis).
                 _names[i].MaxWidth = _nameRoom;
+                if (narrow) _arrows[i].Visibility = Visibility.Collapsed;
                 _arrows[i].FontSize = (two ? 9.5 : 10.5) * s;
                 _arrows[i].Margin = new Thickness((two ? 4 : 9) * s, two ? 0 : top, 0, bottom);
                 _ratings[i].FontSize = statSize;
@@ -697,6 +700,7 @@ namespace HsbgCardLookup.Ui
             // box as wide as its neighbour): a star column with the fixed width as its least.
             double[] fixedW = { 13 * s, 5 * s + _nameRoom, wDelta, wRating, wTier, wTribe };
             bool[] used = (bool[])_colUsed.Clone();
+            if (narrow) used[ColDelta] = false;
             if (two)
             {
                 // The rating sits in the name's column, under the name; the row is as wide as the wider
@@ -726,25 +730,7 @@ namespace HsbgCardLookup.Ui
             double cell = two ? Math.Max(placeH, nameH + statH) : Math.Max(placeH, Math.Max(nameH, statH));
             _fullH = MaxSlots * (cell + 3 * s) + (IsDuos ? _teamDividers.Length * (3.5 * s + 1) : 0) + 8 * s + 2;
 
-            FitNames();
             ClampPosition();
-        }
-
-        // A name as large as its column allows: full size when it fits, smaller for its length (owner,
-        // 2026-11-26: the column no longer keeps room for the longest name there is, so every other
-        // part of a row is larger at the same panel width).
-        private void FitNames()
-        {
-            double s = _nominalW / RefW;
-            double pxPerDip = 1;
-            try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
-            for (int i = 0; i < MaxSlots; i++)
-            {
-                string text = _names[i].Text;
-                double full = NameSize * s, room = _nameRoom * 0.96;   // a little short of the column: a name that only just fits is cut
-                double wide = string.IsNullOrEmpty(text) ? 0 : TextW(_names[i], text, full, pxPerDip);
-                _names[i].FontSize = wide > room ? full * Math.Max(MinNameScale, room / wide) : full;
-            }
         }
 
         // The width of a text in a cell's own font at a given size.
