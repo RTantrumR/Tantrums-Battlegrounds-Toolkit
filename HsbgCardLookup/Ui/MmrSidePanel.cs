@@ -136,6 +136,7 @@ namespace HsbgCardLookup.Ui
         private Point _startCursor;
         private double _startLeft, _startTop, _startW;
         private double _nominalW = RefW;    // drives the scale; the real width comes from the parts that are on
+        private double _nameRoom = MaxNameW;  // the widest a name may be drawn, set by Layout
         private string _shape = "";         // rows and parts on screen last time, so a change re-fits its joins
 
         private static readonly Brush PanelBg = Frozen(Color.FromArgb(0xDC, 0x0A, 0x0D, 0x14));
@@ -640,8 +641,21 @@ namespace HsbgCardLookup.Ui
                 span.MinWidth = 13 * s;
                 span.Margin = new Thickness(0);
             }
-            bool two = TwoLines;
+            // Two lines only when there is more than a rating to put under the name. With the tiers and
+            // the types by the portraits (and no rating changes), the rating fits beside the name on one
+            // line of the same narrow width: the name gives way, set smaller and then cut.
+            bool two = TwoLines && (_colUsed[ColTier] || _colUsed[ColTribe] || _colUsed[ColDelta]);
+            bool narrow = TwoLines && !two;
             double statSize = (two ? 11.5 : 12.5) * s, tierH = (two ? 16 : 20) * s, tribeD = (two ? 15 : 17) * s, countSize = (two ? 12.5 : 13.5) * s;
+            double pxPerDip = 1;
+            try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
+            double wDelta = (two ? 4 : 9) * s + TextW(_arrows[0], "\u25BC888", (two ? 9.5 : 10.5) * s, pxPerDip);   // up / down and up to 3 digits
+            double wRating = 5 * s + Math.Max(TextW(_ratings[0], "88888", statSize, pxPerDip), TextW(_ratings[0], "8000\u2193", statSize, pxPerDip));
+            double wTier = 4 * s + tierH;
+            double wTribe = 4 * s + tribeD + 2 * s + TextW(_tribeCounts[0], "8", countSize, pxPerDip);
+            // The name's room: its own cap, or in the narrow one-line form what the rating leaves of the
+            // two-line row's width.
+            _nameRoom = two ? MaxNameW2 * s : narrow ? Math.Max(40 * s, MaxNameW2 * s - (_colUsed[ColRating] ? wRating : 0)) : MaxNameW * s;
             for (int i = 0; i < MaxSlots; i++)
             {
                 int row = RowOf(i), line2 = two ? row + 1 : row;
@@ -660,7 +674,7 @@ namespace HsbgCardLookup.Ui
                 _places[i].Margin = new Thickness(0, top, 0, bottom);
                 _names[i].Margin = new Thickness(5 * s, top, 0, two ? 0 : bottom);
                 // Cap the name rather than letting it widen the panel without limit (see FitNames).
-                _names[i].MaxWidth = (two ? MaxNameW2 : MaxNameW) * s;
+                _names[i].MaxWidth = _nameRoom;
                 _arrows[i].FontSize = (two ? 9.5 : 10.5) * s;
                 _arrows[i].Margin = new Thickness((two ? 4 : 9) * s, two ? 0 : top, 0, bottom);
                 _ratings[i].FontSize = statSize;
@@ -681,13 +695,7 @@ namespace HsbgCardLookup.Ui
             // arrived, and the fit chased it). A part switched off still gives its column back.
             // The name's column is the one that takes spare room when the box is stretched (a joined
             // box as wide as its neighbour): a star column with the fixed width as its least.
-            double pxPerDip = 1;
-            try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
-            double wDelta = (two ? 4 : 9) * s + TextW(_arrows[0], "\u25BC888", (two ? 9.5 : 10.5) * s, pxPerDip);   // up / down and up to 3 digits
-            double wRating = 5 * s + Math.Max(TextW(_ratings[0], "88888", statSize, pxPerDip), TextW(_ratings[0], "8000\u2193", statSize, pxPerDip));
-            double wTier = 4 * s + tierH;
-            double wTribe = 4 * s + tribeD + 2 * s + TextW(_tribeCounts[0], "8", countSize, pxPerDip);
-            double[] fixedW = { 13 * s, 5 * s + MaxNameW * s, wDelta, wRating, wTier, wTribe };
+            double[] fixedW = { 13 * s, 5 * s + _nameRoom, wDelta, wRating, wTier, wTribe };
             bool[] used = (bool[])_colUsed.Clone();
             if (two)
             {
@@ -733,7 +741,7 @@ namespace HsbgCardLookup.Ui
             for (int i = 0; i < MaxSlots; i++)
             {
                 string text = _names[i].Text;
-                double full = NameSize * s, room = (TwoLines ? MaxNameW2 : MaxNameW) * s * 0.96;   // a little short of the column: a name that only just fits is cut
+                double full = NameSize * s, room = _nameRoom * 0.96;   // a little short of the column: a name that only just fits is cut
                 double wide = string.IsNullOrEmpty(text) ? 0 : TextW(_names[i], text, full, pxPerDip);
                 _names[i].FontSize = wide > room ? full * Math.Max(MinNameScale, room / wide) : full;
             }
