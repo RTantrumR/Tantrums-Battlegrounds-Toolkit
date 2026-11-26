@@ -58,7 +58,7 @@ namespace HsbgCardLookup.Ui
         private const double MinScale = 0.4, MaxScale = 4;
         private const double DefaultXF = 0.005, DefaultYF = 0.008;
         private const double BodyWidth = 222, SummaryWidth = 120;   // at scale 1, with the matches and without: the same whatever the numbers
-        private const double NameWidth = 112, ChangeWidth = 40;
+        private const double NameWidth = 118, ChangeWidth = 40, NameSize = 15, MinNameSize = 9;
         public const int MinGames = 1, MaxGames = 10;
 
         private readonly PluginConfig _config;
@@ -278,7 +278,7 @@ namespace HsbgCardLookup.Ui
             {
                 if (!first) _body.Children.Add(Line(0.4, new Thickness(0)));
                 first = false;
-                var row = new Grid { Height = 30 * s };
+                var row = new Grid { Height = 33 * s };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -288,12 +288,16 @@ namespace HsbgCardLookup.Ui
                 // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
                 BgCard hero = null;
                 try { hero = g.Hero == null ? null : _store?.Lookup(Regex.Replace(g.Hero, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(g.Hero); } catch { }
-                row.Children.Add(Portrait(hero, 24 * s));
+                row.Children.Add(Portrait(hero, 29 * s));
                 var name = new TextBlock
                 {
-                    Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = 13 * s, TextTrimming = TextTrimming.CharacterEllipsis,
-                    MaxWidth = NameWidth * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7 * s, 0, 4 * s, 0), VerticalAlignment = VerticalAlignment.Center
+                    Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = NameSize * s, TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxWidth = NameWidth * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(6 * s, 0, 4 * s, 0), VerticalAlignment = VerticalAlignment.Center
                 };
+                // As the lobby types' names: as large as the column allows, smaller only for its length.
+                name.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                if (name.DesiredSize.Width > NameWidth * s)
+                    name.FontSize = Math.Max(MinNameSize * s, NameSize * s * NameWidth * s / name.DesiredSize.Width);
                 Grid.SetColumn(name, 1);
                 row.Children.Add(name);
                 var place = new TextBlock
