@@ -190,6 +190,70 @@ namespace HsbgCardLookup.Ui
         }
         private bool _failed;
 
+        // ── Its picture in the settings: a session filling up, the newest match on top ──────────
+        // Eight matches come in one by one, as many shown as "Matches shown" allows (older ones drop off
+        // the bottom, as in a match); then it holds and starts over.
+        private static readonly string[] DemoHeroes = { "BG23_HERO_306", "TB_BaconShop_HERO_34", "BG21_HERO_000", "TB_BaconShop_HERO_41", "TB_BaconShop_HERO_08", "BG20_HERO_202", "TB_BaconShop_HERO_56", "BG20_HERO_100" };
+        private static readonly int[] DemoPlaces = { 1, 5, 8, 3, 6, 2, 4, 1 }, DemoChanges = { 95, -12, -81, 52, -38, 71, 24, 102 };   // oldest first
+        private const int DemoStart = 6480;
+
+        public static FrameworkElement Preview(PluginConfig config, CardStore store, Dispatcher ui, out Action refresh)
+        {
+            var body = new StackPanel();
+            var box = new Border
+            {
+                Background = PanelBg, BorderBrush = UiKit.StrokeBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(9, 6, 9, 7), Child = body, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top
+            };
+            int count = 0;
+            Action paint = () =>
+            {
+                try
+                {
+                    var v = new SessionView { Start = DemoStart };
+                    int rating = DemoStart;
+                    for (int i = 0; i < count; i++) rating += DemoChanges[i];
+                    v.Current = rating;
+                    int r = rating;
+                    for (int i = count - 1; i >= 0; i--)            // newest first
+                    {
+                        v.Games.Add(new SessionGame { Hero = DemoHeroes[i], Place = DemoPlaces[i], Rating = r, Change = DemoChanges[i] });
+                        r -= DemoChanges[i];
+                    }
+                    FrameworkElement newest;
+                    Fill(body, v, config, store, ui, 1, Math.Max(MinGames, Math.Min(MaxGames, config.SessionGames)), out newest);
+                    if (newest != null)
+                        newest.BeginAnimation(UIElement.OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
+                    box.Opacity = config.ShowSessionPanel ? 1 : 0.4;
+                }
+                catch { }
+            };
+            // The room the full session takes, kept from the start, so the page under it doesn't jump as rows come in.
+            var room = new Grid { VerticalAlignment = VerticalAlignment.Top };
+            room.Children.Add(box);
+            Action reserve = () =>
+            {
+                int was = count;
+                count = DemoHeroes.Length; paint();
+                box.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                room.MinHeight = box.DesiredSize.Height;
+                count = was; paint();
+            };
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+            int hold = 0;
+            timer.Tick += (s, e) =>
+            {
+                if (count < DemoHeroes.Length) { count++; paint(); return; }
+                if (++hold < 4) return;                             // the full session stays a moment
+                hold = 0; count = 0; paint();
+            };
+            box.Loaded += (s, e) => timer.Start();
+            box.Unloaded += (s, e) => timer.Stop();
+            reserve();
+            refresh = reserve;
+            return room;
+        }
+
         /// <summary>Test aid: the sample session on its own, without the sample board.</summary>
         public static bool TestSession;
 
@@ -247,6 +311,16 @@ namespace HsbgCardLookup.Ui
             double s = _scale;
             _root.Padding = new Thickness(9 * s, 6 * s, 9 * s, 7 * s);
             _handle.Margin = new Thickness(0, 2 - 6 * s, 2 - 9 * s, 0);     // in the box's own corner, whatever the padding
+            FrameworkElement newest;
+            Fill(_body, view, _config, _store, _ui, s, Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames)), out newest);
+        }
+
+        // The box's words and rows, for the box itself and for its picture in the settings. newest: the
+        // top match's row (null without one).
+        private static void Fill(StackPanel body, SessionView view, PluginConfig config, CardStore store, Dispatcher ui, double s, int rows, out FrameworkElement newest)
+        {
+            newest = null;
+            var _body = body; var _config = config; var _store = store;
             _body.MinWidth = (!_config.SessionShowGames ? SummaryWidth : _config.CompactRows ? CompactWidth : BodyWidth) * s;
             _body.Children.Clear();
 
@@ -281,7 +355,6 @@ namespace HsbgCardLookup.Ui
             }
 
             if (!_config.SessionShowGames || view.Games.Count == 0) return;
-            int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));
             int most = view.Games.Any(g => g.Duos) ? 4 : 8;
             // A table under the summary: a line above it and between its rows, and one down it that
             // sets the rating changes apart. The change column holds a sign and three digits whatever
@@ -296,14 +369,15 @@ namespace HsbgCardLookup.Ui
                 // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
                 BgCard hero = null;
                 try { hero = g.Hero == null ? null : _store?.Lookup(Regex.Replace(g.Hero, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(g.Hero); } catch { }
-                if (_config.CompactRows) { _body.Children.Add(CompactRow(g, hero, most, s)); continue; }
+                if (_config.CompactRows) { var compact = CompactRow(g, hero, most, s, ui); if (newest == null) newest = compact; _body.Children.Add(compact); continue; }
                 var row = new Grid { Height = 33 * s };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ChangeWidth * s) });
-                row.Children.Add(Portrait(hero, 29 * s));
+                if (newest == null) newest = row;
+                row.Children.Add(Portrait(hero, 29 * s, ui));
                 var name = new TextBlock
                 {
                     Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = NameSize * s, TextTrimming = TextTrimming.CharacterEllipsis,
@@ -333,7 +407,7 @@ namespace HsbgCardLookup.Ui
 
         // The two-line form: the portrait beside both lines, the name on the first, the place and the
         // rating change at the two ends of the second.
-        private FrameworkElement CompactRow(SessionGame g, BgCard hero, int most, double s)
+        private static FrameworkElement CompactRow(SessionGame g, BgCard hero, int most, double s, Dispatcher ui)
         {
             var row = new Grid { Margin = new Thickness(0, 3 * s, 0, 3 * s) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -341,7 +415,7 @@ namespace HsbgCardLookup.Ui
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var portrait = Portrait(hero, 36 * s);
+            var portrait = Portrait(hero, 36 * s, ui);
             Grid.SetRowSpan(portrait, 2);
             row.Children.Add(portrait);
             var name = new TextBlock
@@ -390,7 +464,7 @@ namespace HsbgCardLookup.Ui
         private static Color Mix(Color a, Color b, double t) =>
             Color.FromRgb((byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
-        private Ellipse Portrait(BgCard card, double size)
+        private static Ellipse Portrait(BgCard card, double size, Dispatcher ui)
         {
             var e = new Ellipse
             {
@@ -406,7 +480,7 @@ namespace HsbgCardLookup.Ui
                 else CardArt.LoadAsync(card, false, 0).ContinueWith(t =>
                 {
                     if (t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion && t.Result != null)
-                        _ui.BeginInvoke(new Action(() => set(t.Result)));
+                        ui.BeginInvoke(new Action(() => set(t.Result)));
                 });
             }
             catch { }
