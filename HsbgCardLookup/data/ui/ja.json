@@ -416,6 +416,7 @@
   "settings.tools.desc.replayWatcher": "バトルグラウンドの試合を記録し、タイムラインと最大4倍速でハースストーン内で再生します。",
   "settings.tools.desc.deckInspector": "ボード上のデッキを手に取って回転させます。自分のデッキも相手のデッキも見られます。",
   "settings.tools.desc.friendSearch": "ハースストーンのフレンドリストに検索バーを追加します。入力ミスは許容されます。",
+  "settings.tools.desc.boardFix": "バトルグラウンドの酒場で、ミニオンが置いた場所にとどまります。購入、配置、並べ替えの最中に盤面が飛び跳ねなくなります。",
   "settings.tools.tab.catalogue": "カタログ",
   "settings.tools.tab.installed": "インストール済み ({0})",
   "settings.tools.installedVersion": "インストール済み：{0}",

@@ -416,6 +416,7 @@
   "settings.tools.desc.replayWatcher": "Grava suas partidas de Campos de Batalha e as reproduz dentro do Hearthstone, com linha do tempo e velocidade de até x4.",
   "settings.tools.desc.deckInspector": "Pegue um baralho do tabuleiro e gire-o: o seu ou o do seu oponente.",
   "settings.tools.desc.friendSearch": "Adiciona uma barra de busca à lista de amigos do Hearthstone. Erros de digitação são perdoados.",
+  "settings.tools.desc.boardFix": "Seus lacaios ficam onde você os coloca na taverna de Campos de Batalha: o tabuleiro não pula mais enquanto você compra, posiciona e reordena.",
   "settings.tools.tab.catalogue": "Catálogo",
   "settings.tools.tab.installed": "Instalados ({0})",
   "settings.tools.installedVersion": "Instalada: {0}",

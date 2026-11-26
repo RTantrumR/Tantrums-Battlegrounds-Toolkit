@@ -416,6 +416,7 @@
   "settings.tools.desc.replayWatcher": "錄製你的英雄戰場對戰，並在爐石戰記內重播，附有時間軸，最高支援 4 倍速。",
   "settings.tools.desc.deckInspector": "從場景中拿起一副牌組並轉動檢視：你的或對手的。",
   "settings.tools.desc.friendSearch": "為爐石戰記的好友清單新增搜尋列。打錯字也能找到。",
+  "settings.tools.desc.boardFix": "在英雄戰場的酒館中，手下會停在你放下的位置：購買、放置和調整順序時，場面不再來回跳動。",
   "settings.tools.tab.catalogue": "目錄",
   "settings.tools.tab.installed": "已安裝（{0}）",
   "settings.tools.installedVersion": "已安裝：{0}",
