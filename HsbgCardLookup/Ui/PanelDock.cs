@@ -70,6 +70,7 @@ namespace HsbgCardLookup.Ui
 
         // The join on offer while a box is being dragged.
         private static IDockPanel _offerTo;
+        private static IDockPanel _offerFrom;     // the box of the dragged group that would meet it
         private static DockSide _offerSide;
         private static Rectangle _barA, _barB;
         private static Border _ghost;
@@ -424,8 +425,6 @@ namespace HsbgCardLookup.Ui
                     var want = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                     double dx = Canvas.GetLeft(p.DockRoot) - want.X, dy = Canvas.GetTop(p.DockRoot) - want.Y;
                     MoveTo(root, Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, false);
-                    Layout();
-                    return;
                 }
                 Layout();                                   // the group's other boxes come along
                 Offer(p);
@@ -433,15 +432,17 @@ namespace HsbgCardLookup.Ui
             catch { }
         }
 
-        // Is a side of the dragged box near the facing side of a box outside its group?
+        // Is a side of any box of the dragged group near the facing side of a box outside it? The group
+        // is one piece: whichever of its boxes is held, the one that reaches the other box joins it.
         private static void Offer(IDockPanel p)
         {
-            IDockPanel best = null; DockSide bestSide = DockSide.Top; double bestGap = Reach;
+            IDockPanel best = null, bestFrom = null; DockSide bestSide = DockSide.Top; double bestGap = Reach;
             var mine = GroupOf(p);
-            var a = RectOf(p);
+            foreach (var from in mine)
             foreach (var q in Panels)
             {
-                if (mine.Contains(q) || !Shown(q)) continue;
+                if (mine.Contains(q) || !Shown(q) || !Shown(from)) continue;
+                var a = RectOf(from);
                 var b = RectOf(q);
                 double across = Math.Min(a.Right, b.Right) - Math.Max(a.Left, b.Left);      // shared width
                 double along = Math.Min(a.Bottom, b.Bottom) - Math.Max(a.Top, b.Top);       // shared height
@@ -455,14 +456,23 @@ namespace HsbgCardLookup.Ui
                 foreach (var t in tries)
                 {
                     if (t.Value >= bestGap) continue;
-                    // One box to a side.
-                    if (Links.Any(kv => kv.Value.Parent == q.DockId && kv.Value.Side == t.Key && Shown(Find(kv.Key)))) continue;
-                    best = q; bestSide = t.Key; bestGap = t.Value;
+                    // One box to a side, on both boxes that would meet.
+                    if (Taken(q, t.Key) || Taken(from, Opposite(t.Key))) continue;
+                    best = q; bestFrom = from; bestSide = t.Key; bestGap = t.Value;
                 }
             }
-            if (best == _offerTo && (best == null || bestSide == _offerSide)) { if (best != null) PlaceOffer(p); return; }
-            _offerTo = best; _offerSide = bestSide;
-            if (best == null) HideOffer(); else PlaceOffer(p);
+            if (best == _offerTo && bestFrom == _offerFrom && (best == null || bestSide == _offerSide)) { if (best != null) PlaceOffer(bestFrom); return; }
+            _offerTo = best; _offerFrom = bestFrom; _offerSide = bestSide;
+            if (best == null) HideOffer(); else PlaceOffer(bestFrom);
+        }
+
+        // A box already has a neighbour on that side: a child joined there, or its own parent (a box
+        // that sits below its parent has the parent on its top side).
+        private static bool Taken(IDockPanel box, DockSide side)
+        {
+            if (Links.Any(kv => kv.Value.Parent == box.DockId && kv.Value.Side == side && Shown(Find(kv.Key)))) return true;
+            Link l;
+            return Links.TryGetValue(box.DockId, out l) && Opposite(l.Side) == side && Shown(Find(l.Parent));
         }
 
         // The two sides that will meet light up, and an outline shows the place (and the width) the
@@ -525,14 +535,15 @@ namespace HsbgCardLookup.Ui
             try
             {
                 if (!Enabled) return;
-                var to = _offerTo; var side = _offerSide;
-                _offerTo = null; HideOffer();
+                var to = _offerTo; var side = _offerSide; var joiner = _offerFrom;
+                _offerTo = null; _offerFrom = null; HideOffer();
                 var root = RootOf(p);
-                if (to != null && root == p)
+                if (to != null && joiner != null)
                 {
-                    var from = RectOf(p);
-                    Join(p, to, side);
-                    Joined(p, to, side, from);
+                    var from = RectOf(joiner);
+                    Reroot(joiner);
+                    Join(joiner, to, side);
+                    Joined(joiner, to, side, from);
                     return;
                 }
                 if (root != p) MoveTo(root, Canvas.GetLeft(root.DockRoot), Canvas.GetTop(root.DockRoot), true);
@@ -558,6 +569,19 @@ namespace HsbgCardLookup.Ui
             var from = RectOf(c);
             Join(c, p, s);
             Joined(c, p, s, from);
+        }
+
+        // A box has one parent, so the box of a group that joins another group must be its group's
+        // root: the joins on the way up from it are turned around (child and parent change places, the
+        // side becomes its opposite). Nothing moves: the same boxes meet on the same sides.
+        private static void Reroot(IDockPanel p)
+        {
+            var up = new List<KeyValuePair<string, Link>>();
+            string id = p.DockId;
+            Link l;
+            for (int guard = 0; guard < 8 && Links.TryGetValue(id, out l); guard++) { up.Add(new KeyValuePair<string, Link>(id, l)); id = l.Parent; }
+            foreach (var kv in up) Links.Remove(kv.Key);
+            foreach (var kv in up) Links[kv.Value.Parent] = new Link { Parent = kv.Key, Side = Opposite(kv.Value.Side) };
         }
 
         // Link the two, and where both fit each other bring the smaller side up to the larger one's
