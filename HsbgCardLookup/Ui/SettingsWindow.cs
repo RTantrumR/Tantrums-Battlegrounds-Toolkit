@@ -877,11 +877,19 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.session.on") : Strings.T("settings.session.off");
                 Changed();
             }));
+            var sessionMatches = ToggleRow(Strings.T("settings.session.matches"), _config.SessionShowGames, v =>
+            {
+                _config.SessionShowGames = v;
+                _status.Text = v ? Strings.T("settings.session.matchesOn") : Strings.T("settings.session.matchesOff");
+                Changed();
+            });
+            FollowPart(sessionMatches, () => _config.ShowSessionPanel);
+            stack.Children.Add(sessionMatches);
             var counts = Enumerable.Range(SessionPanel.MinGames, SessionPanel.MaxGames - SessionPanel.MinGames + 1).Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             var sessionGames = CycleRow(Strings.T("settings.session.games"), counts, counts,
                 counts.Select(n => Strings.F("settings.session.gamesHint", n)).ToArray(),
                 () => _config.SessionGames.ToString(System.Globalization.CultureInfo.InvariantCulture), v => _config.SessionGames = int.Parse(v, System.Globalization.CultureInfo.InvariantCulture));
-            FollowPart(sessionGames, () => _config.ShowSessionPanel);
+            FollowPart(sessionGames, () => _config.ShowSessionPanel && _config.SessionShowGames);
             stack.Children.Add(sessionGames);
 
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));

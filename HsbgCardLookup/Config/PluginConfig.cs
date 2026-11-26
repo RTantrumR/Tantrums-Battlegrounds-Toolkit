@@ -159,6 +159,7 @@ namespace HsbgCardLookup.Config
         // SessionGames of them. XF = its left edge, WF = its scale. SessionResetTicks: matches begun
         // before that moment (UTC ticks) are not of the session ("Start a new session"); 0 = never asked.
         public bool ShowSessionPanel { get; set; } = true;
+        public bool SessionShowGames { get; set; } = true;   // the matches under the rating
         public int SessionGames { get; set; } = 5;
         public HudPlacement SessionHud { get; set; } = new HudPlacement();
         public long SessionResetTicks { get; set; }

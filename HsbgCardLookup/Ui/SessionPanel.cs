@@ -57,7 +57,8 @@ namespace HsbgCardLookup.Ui
 
         private const double MinScale = 0.4, MaxScale = 4;
         private const double DefaultXF = 0.005, DefaultYF = 0.008;
-        private const double BodyWidth = 215;          // at scale 1: the same whatever the numbers in it
+        private const double BodyWidth = 222, SummaryWidth = 120;   // at scale 1, with the matches and without: the same whatever the numbers
+        private const double NameWidth = 112, ChangeWidth = 40;
         public const int MinGames = 1, MaxGames = 10;
 
         private readonly PluginConfig _config;
@@ -223,7 +224,7 @@ namespace HsbgCardLookup.Ui
                 Save();
             }
             int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));
-            string sig = string.Join("|", new[] { duos ? "d" : "s", view.Start?.ToString(), view.Current?.ToString(), Strings.Web, _scale.ToString("0.###", CultureInfo.InvariantCulture) }
+            string sig = string.Join("|", new[] { duos ? "d" : "s", _config.SessionShowGames ? "g" : "", view.Start?.ToString(), view.Current?.ToString(), Strings.Web, _scale.ToString("0.###", CultureInfo.InvariantCulture) }
                 .Concat(view.Games.Take(rows).Select(g => g.Hero + ":" + g.Place + ":" + g.Change)));
             _view = view;
             bool rebuilt = sig != _shown;
@@ -241,7 +242,7 @@ namespace HsbgCardLookup.Ui
             double s = _scale;
             _root.Padding = new Thickness(9 * s, 6 * s, 9 * s, 7 * s);
             _handle.Margin = new Thickness(0, 2 - 6 * s, 2 - 9 * s, 0);     // in the box's own corner, whatever the padding
-            _body.MinWidth = BodyWidth * s;
+            _body.MinWidth = (_config.SessionShowGames ? BodyWidth : SummaryWidth) * s;
             _body.Children.Clear();
 
             int? net = view.Games.Count > 0 && view.Start.HasValue && view.Current.HasValue ? view.Current - view.Start : null;
@@ -265,15 +266,24 @@ namespace HsbgCardLookup.Ui
                 });
             }
 
+            if (!_config.SessionShowGames || view.Games.Count == 0) return;
             int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));
             int most = view.Games.Any(g => g.Duos) ? 4 : 8;
+            // A table under the summary: a line above it and between its rows, and one down it that
+            // sets the rating changes apart. The change column holds a sign and three digits whatever
+            // the numbers are ("+300" is common as a season starts), so the rows line up.
+            _body.Children.Add(Line(0.9, new Thickness(0, 6 * s, 0, 0)));
+            bool first = true;
             foreach (var g in view.Games.Take(rows))
             {
-                var row = new Grid { Margin = new Thickness(0, 4 * s, 0, 0) };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                if (!first) _body.Children.Add(Line(0.4, new Thickness(0)));
+                first = false;
+                var row = new Grid { Height = 30 * s };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ChangeWidth * s) });
                 // A hero skin is its own card ("TB_BaconShop_HERO_90_SKIN_G"); we show the hero it dresses.
                 // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
                 BgCard hero = null;
@@ -282,26 +292,34 @@ namespace HsbgCardLookup.Ui
                 var name = new TextBlock
                 {
                     Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = 13 * s, TextTrimming = TextTrimming.CharacterEllipsis,
-                    MaxWidth = 116 * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(6 * s, 0, 6 * s, 0), VerticalAlignment = VerticalAlignment.Center
+                    MaxWidth = NameWidth * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7 * s, 0, 4 * s, 0), VerticalAlignment = VerticalAlignment.Center
                 };
-                Grid.SetColumn(name, 2);
+                Grid.SetColumn(name, 1);
                 row.Children.Add(name);
                 var place = new TextBlock
                 {
                     Text = g.Place.ToString(CultureInfo.InvariantCulture), FontSize = 16 * s, FontWeight = FontWeights.Bold, Foreground = Frozen(PlaceColor(g.Place, most)),
-                    Width = 16 * s, TextAlignment = TextAlignment.Center, Margin = new Thickness(6 * s, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
+                    Width = 18 * s, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 };
-                Grid.SetColumn(place, 1);
+                Grid.SetColumn(place, 2);
                 row.Children.Add(place);
+                var divider = new Rectangle { Width = 1, Fill = UiKit.StrokeBrush, Opacity = 0.9, Margin = new Thickness(5 * s, 0, 0, 0), SnapsToDevicePixels = true };
+                Grid.SetColumn(divider, 3);
+                row.Children.Add(divider);
                 if (g.Change.HasValue)
                 {
                     var change = ChangeText(g.Change.Value, 14 * s, HorizontalAlignment.Right);
-                    Grid.SetColumn(change, 3);
+                    Grid.SetColumn(change, 4);
                     row.Children.Add(change);
                 }
                 _body.Children.Add(row);
             }
         }
+
+        private static Rectangle Line(double opacity, Thickness margin) => new Rectangle
+        {
+            Height = 1, Fill = UiKit.StrokeBrush, Opacity = opacity, Margin = margin, SnapsToDevicePixels = true
+        };
 
         private static TextBlock ChangeText(int change, double size, HorizontalAlignment align) => new TextBlock
         {
