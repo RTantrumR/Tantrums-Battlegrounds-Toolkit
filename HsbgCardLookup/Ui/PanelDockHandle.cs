@@ -126,7 +126,7 @@ namespace HsbgCardLookup.Ui
                 var root = RootOf(group[0]);
                 var now = Bounds(group);
                 if (!now.IsEmpty)
-                    root.DockMoveTo(Canvas.GetLeft(root.DockRoot) + _sizeBox.Left - now.Left, Canvas.GetTop(root.DockRoot) + _sizeBox.Top - now.Top, true);
+                    MoveTo(root, Canvas.GetLeft(root.DockRoot) + _sizeBox.Left - now.Left, Canvas.GetTop(root.DockRoot) + _sizeBox.Top - now.Top, true);
                 Layout();
                 PlaceHandle(Bounds(group));
             }

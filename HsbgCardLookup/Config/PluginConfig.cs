@@ -455,9 +455,13 @@ namespace HsbgCardLookup.Config
         public double X { get; set; }
         public double Y { get; set; }
         public double W { get; set; }
-        public double XF { get; set; }
-        public double YF { get; set; }
-        public double WF { get; set; }
+        // Never NaN, read or written: a box placed at NaN is drawn at the corner and cannot be dragged
+        // (a config written by a build before 2026-11-26 can hold one).
+        public double XF { get { return _xf; } set { _xf = Real(value); } }
+        public double YF { get { return _yf; } set { _yf = Real(value); } }
+        public double WF { get { return _wf; } set { _wf = Real(value); } }
+        private double _xf, _yf, _wf;
+        private static double Real(double v) => double.IsNaN(v) || double.IsInfinity(v) ? 0 : v;
         // A floating box's size as settled at its first showing (a width in pixels, or a scale):
         // 0 = not settled yet. From then on the game window's size no longer changes the box.
         public double Px { get; set; }

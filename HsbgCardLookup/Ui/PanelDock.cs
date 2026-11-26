@@ -156,6 +156,16 @@ namespace HsbgCardLookup.Ui
         private static bool Shown(IDockPanel p) => p != null && p.DockRoot.Visibility == Visibility.Visible && p.DockRoot.ActualHeight > 0;
         private static bool Placed(IDockPanel p) => p != null && !double.IsNaN(Canvas.GetLeft(p.DockRoot)) && !double.IsNaN(Canvas.GetTop(p.DockRoot));
 
+        // The one way the dock moves a box. A box that has not been on screen in this run (the others of
+        // its group can be: the session box shows on the Battlegrounds menu, the rest only in a match)
+        // has no place on the canvas yet, and arithmetic on that gives NaN: such a move is dropped, or
+        // the NaN would be saved as the box's place and the box could never be dragged again.
+        private static void MoveTo(IDockPanel p, double left, double top, bool save)
+        {
+            if (p == null || double.IsNaN(left) || double.IsNaN(top) || double.IsInfinity(left) || double.IsInfinity(top)) return;
+            p.DockMoveTo(left, top, save);
+        }
+
         private static IDockPanel ParentOf(IDockPanel p)
         {
             Link l;
@@ -348,7 +358,7 @@ namespace HsbgCardLookup.Ui
                     Canvas.SetLeft(p.DockRoot, Canvas.GetLeft(p.DockRoot) + dx);
                     Canvas.SetTop(p.DockRoot, Canvas.GetTop(p.DockRoot) + dy);
                 }
-                root.DockMoveTo(Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, _hook == IntPtr.Zero);
+                MoveTo(root, Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, _hook == IntPtr.Zero);
             }
         }
 
@@ -407,9 +417,11 @@ namespace HsbgCardLookup.Ui
                     // is off the place its group gives it.
                     Link l = Links[p.DockId];
                     var parent = Find(l.Parent);
+                    // Its group is not on the canvas yet: the box moves alone, by its own placement.
+                    if (!Placed(parent) || !Placed(root)) return;
                     var want = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                     double dx = Canvas.GetLeft(p.DockRoot) - want.X, dy = Canvas.GetTop(p.DockRoot) - want.Y;
-                    root.DockMoveTo(Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, false);
+                    MoveTo(root, Canvas.GetLeft(root.DockRoot) + dx, Canvas.GetTop(root.DockRoot) + dy, false);
                     Layout();
                     return;
                 }
@@ -521,7 +533,7 @@ namespace HsbgCardLookup.Ui
                     Joined(p, to, side, from);
                     return;
                 }
-                if (root != p) root.DockMoveTo(Canvas.GetLeft(root.DockRoot), Canvas.GetTop(root.DockRoot), true);
+                if (root != p) MoveTo(root, Canvas.GetLeft(root.DockRoot), Canvas.GetTop(root.DockRoot), true);
             }
             catch { }
         }
@@ -603,14 +615,15 @@ namespace HsbgCardLookup.Ui
                 // Each box keeps the spot it has, a step away from the seam so the parting shows.
                 foreach (var q in group)
                 {
+                    if (!Placed(q)) continue;               // never on screen in this run: its saved place stands
                     double x = Canvas.GetLeft(q.DockRoot), y = Canvas.GetTop(q.DockRoot);
-                    if (q != root)
+                    if (q != root && Placed(root))
                     {
                         var r = RectOf(root);
                         x += Math.Sign(x - r.Left) * 10; y += Math.Sign(y - r.Top) * 10;
                     }
                     Unstretch(q.DockRoot);
-                    q.DockMoveTo(x, y, true);
+                    MoveTo(q, x, y, true);
                     Nudge(q.DockRoot, 0.94);
                 }
                 Decorate(false);
