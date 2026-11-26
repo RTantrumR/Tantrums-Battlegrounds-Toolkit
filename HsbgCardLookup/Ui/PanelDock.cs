@@ -35,6 +35,13 @@ namespace HsbgCardLookup.Ui
         double DockLength(bool stacked);
     }
 
+    /// <summary>A box with entries of its own for the right-click menu; they come first, before
+    /// "take apart", on a right-click anywhere on the box's group.</summary>
+    public interface IDockMenu
+    {
+        IEnumerable<KeyValuePair<string, Action>> DockMenu();
+    }
+
     public enum DockSide { Top, Bottom, Left, Right }
 
     /// <summary>
@@ -92,9 +99,13 @@ namespace HsbgCardLookup.Ui
             panel.DockRoot.MouseMove += (s, e) => Hover(panel);
             panel.DockRoot.MouseRightButtonUp += (s, e) =>
             {
-                if (!Enabled || GroupOf(panel).Count < 2) return;
+                var group = GroupOf(panel);
+                var items = new List<KeyValuePair<string, Action>>();
+                foreach (var q in group) if (Shown(q) && q is IDockMenu) items.AddRange(((IDockMenu)q).DockMenu());
+                if (Enabled && group.Count >= 2) items.Add(new KeyValuePair<string, Action>(Strings.T("dock.takeApart"), () => TakeApart(panel)));
+                if (items.Count == 0) return;
                 e.Handled = true;
-                HudContextMenu.ShowMenu(new[] { new KeyValuePair<string, Action>(Strings.T("dock.takeApart"), () => TakeApart(panel)) });
+                HudContextMenu.ShowMenu(items);
             };
         }
 

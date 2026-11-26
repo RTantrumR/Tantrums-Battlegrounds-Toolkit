@@ -90,6 +90,11 @@ namespace HsbgCardLookup.Host
         bool IsSpectating { get; }
         /// <summary>The client's game type number (PegasusShared.GameType); 0 when unknown.</summary>
         int GameType { get; }
+        /// <summary>The Battlegrounds menu (its lobby screen, no match) is on screen.</summary>
+        bool OnBattlegroundsMenu { get; }
+        /// <summary>The account's Battlegrounds rating as the client last had it from the server (it asks
+        /// as the Battlegrounds menu opens); null when the host can't tell.</summary>
+        int? OwnRating(bool duos);
     }
 
     /// <summary>A card's text template as the client holds it, and which of its text builders fills it.</summary>

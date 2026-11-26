@@ -135,6 +135,8 @@ namespace HsbgCardLookup.Host.Hdt
         public int[] MatchRatingChange() => null;
         public bool IsSpectating => false;
         public int GameType => 0;
+        public bool OnBattlegroundsMenu => false;
+        public int? OwnRating(bool duos) => null;
     }
 
     internal sealed class HdtOverlay : IOverlaySurface

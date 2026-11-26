@@ -40,6 +40,10 @@ namespace Toolkit.Standalone
         public int GameType;                                     // GameMgr.m_gameType (PegasusShared.GameType)
         public bool HasRating;                                   // the game sent this match's rating change
         public int RatingNew, RatingChange;
+        public const int SceneBacon = 15;                        // SceneMgr.Mode.BACON: the Battlegrounds menu
+        public int SceneMode;                                    // SceneMgr.m_mode; 0 = not read
+        public bool HasOwnRating;                                // the client's cache of the account's rating was found
+        public int OwnRating, OwnDuosRating;
         public long ReadMs;
         public long Reads;                                       // ReadProcessMemory calls this walk took
 
@@ -90,7 +94,12 @@ namespace Toolkit.Standalone
 
         public GameReader(Action<string> log) { _log = log; }
 
-        private long _gameMgr;
+        private long _gameMgr, _sceneMgr, _netCache;
+        // The account's own rating, from NetCache's NetCacheBaconRatingInfo. The client replaces the
+        // object when the server answers again, so it is looked up afresh, but only now and then.
+        private DateTime _ownRatingRead;
+        private bool _hasOwnRating;
+        private int _ownRating, _ownDuosRating;
         private DateTime _seasonsTried;
         /// <summary>The client's Battlegrounds season events, once read (the server's calendar: it doesn't change in a session).</summary>
         public static volatile List<ClientEvent> Seasons;
@@ -100,7 +109,7 @@ namespace Toolkit.Standalone
         private void Detach()
         {
             _mem?.Dispose(); _mem = null; _mono = null; _pid = 0; _statics = false; _entities.Clear(); _offCardId = -1;
-            _gameMgr = 0;
+            _gameMgr = 0; _sceneMgr = 0; _netCache = 0; _hasOwnRating = false; _ownRatingRead = DateTime.MinValue;
             _cardRecords = null; CardTexts.Clear();
         }
 
@@ -211,6 +220,21 @@ namespace Toolkit.Standalone
             return d;
         }
 
+        private void ReadOwnRating()
+        {
+            var m = _mono;
+            if (_netCache == 0) _netCache = ClientEvents.Service(m, "NetCache");
+            if (_netCache == 0) return;
+            foreach (var kv in m.RefMap(m.Obj(_netCache, "m_netCache"), 4096))
+            {
+                if (kv.Value == 0 || m.ClassName(m.ClassOf(kv.Value)) != "NetCacheBaconRatingInfo") continue;
+                _ownRating = m.Int(kv.Value, "<Rating>k__BackingField");
+                _ownDuosRating = m.Int(kv.Value, "<DuosRating>k__BackingField");
+                _hasOwnRating = true;
+                return;
+            }
+        }
+
         private Snapshot Walk()
         {
             var m = _mono;
@@ -234,6 +258,14 @@ namespace Toolkit.Standalone
                 s.Spectating = spectator != 0 && (m.M.I32(spectator) & 0xFF) != 0;
                 s.GameType = m.Int(_gameMgr, "m_gameType");
             }
+            if (_sceneMgr == 0) _sceneMgr = ClientEvents.Service(m, "SceneMgr");
+            if (_sceneMgr != 0) s.SceneMode = m.Int(_sceneMgr, "m_mode");
+            if ((DateTime.UtcNow - _ownRatingRead).TotalSeconds > 3)
+            {
+                _ownRatingRead = DateTime.UtcNow;
+                try { ReadOwnRating(); } catch { }
+            }
+            s.HasOwnRating = _hasOwnRating; s.OwnRating = _ownRating; s.OwnDuosRating = _ownDuosRating;
             if (Seasons == null && (DateTime.UtcNow - _seasonsTried).TotalSeconds > 30)
             {
                 _seasonsTried = DateTime.UtcNow;

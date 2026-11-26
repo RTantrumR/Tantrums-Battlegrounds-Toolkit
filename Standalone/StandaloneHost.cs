@@ -148,6 +148,13 @@ namespace Toolkit.Standalone
 
         public bool IsSpectating => _game.Current?.Spectating ?? false;
         public int GameType => _game.Current?.GameType ?? 0;
+        public bool OnBattlegroundsMenu { get { var s = _game.Current; return s != null && s.GameStateAddr == 0 && s.SceneMode == Snapshot.SceneBacon; } }
+        public int? OwnRating(bool duos)
+        {
+            var s = _game.Current;
+            if (s == null || !s.HasOwnRating) return null;
+            return duos ? s.OwnDuosRating : s.OwnRating;
+        }
 
         public CardTextRecord CardText(string cardId)
         {

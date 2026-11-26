@@ -135,6 +135,7 @@
     <Compile Include="Assets\UnityBundle.cs" />
     <Compile Include="Game\OpponentBoards.cs" />
     <Compile Include="Game\MatchRecorder.cs" />
+    <Compile Include="Game\MatchSession.cs" />
     <Compile Include="Game\MatchUpload.cs" />
     <Compile Include="Game\SeasonCalendar.cs" />
     <Compile Include="Ui\OpponentBoardPanel.cs" />
@@ -143,6 +144,7 @@
     <Compile Include="Game\SnapshotText.cs" />
     <Compile Include="Ui\LobbyTribesPanel.cs" />
     <Compile Include="Ui\TurnCounterPanel.cs" />
+    <Compile Include="Ui\SessionPanel.cs" />
     <Compile Include="Ui\PanelDock.cs" />
     <Compile Include="Ui\PanelDockHandle.cs" />
     <Compile Include="Ui\MmrSidePanel.cs" />

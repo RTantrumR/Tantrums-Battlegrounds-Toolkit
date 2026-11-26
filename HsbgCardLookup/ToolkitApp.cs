@@ -48,6 +48,7 @@ namespace HsbgCardLookup
         private Game.OpponentBoards _opponentBoards;              // per opponent, the board they last fought us with
         private Ui.OpponentBoardPanel _boardPanel;                // …shown from the leaderboard portraits
         private Ui.TurnCounterPanel _turnCounter;                 // the match's turn number, top right
+        private Ui.SessionPanel _sessionPanel;                    // the session: rating then and now, latest matches
         private Ui.LobbyTribesPanel _lobbyTribes;                 // the lobby's minion types, whole match
         private Game.DarkGiftWatcher _darkGifts;                  // opt-in Dark Gift list (“?” marker by the button)
         private Ui.ArrangeBanner _arrangeBanner;                  // in-game strip shown while positioning
@@ -159,6 +160,9 @@ namespace HsbgCardLookup
                     _matchRecorder.Saved = _matchUploader.Enqueue;
                 }
             }
+            _sessionPanel = new Ui.SessionPanel(_config, _store,
+                new Game.MatchSession(System.IO.Path.Combine(PluginConfig.DataDir, Game.MatchRecorder.FolderName), a => _ui.BeginInvoke(a), Log), _ui);
+            if (_matchRecorder != null) _matchRecorder.Saved += r => _sessionPanel.MatchSaved();
             _boardPanel = new Ui.OpponentBoardPanel(_config, _store, _opponentBoards, Log);
             _searchButton = new Ui.SearchButton(_config, ToggleSearch, Log);
             _bell = new Ui.NotificationBell(_config, OpenDownloadPage, SkipVersion, Log);
@@ -200,6 +204,7 @@ namespace HsbgCardLookup
             _boardPanel?.Poll();     // …and shows one from a leaderboard portrait
             _lobbyTribes?.Poll(); // the lobby's minion types box
             _turnCounter?.Poll(); // the turn number
+            _sessionPanel?.Poll(); // the session box
             Ui.PanelDock.Layout(); // boxes assembled into one stay together
             _darkGifts?.Poll();  // opt-in Dark Gift list (“?” marker above the Dark Discovery button)
             _searchButton?.Poll(); // in-game 🔍 button by the card-list book (shows during a BG match)
@@ -224,6 +229,7 @@ namespace HsbgCardLookup
                 _darkGifts?.CloseAll();
                 _lobbyTribes?.CloseAll();
                 _turnCounter?.CloseAll();
+                _sessionPanel?.CloseAll();
                 _boardPanel?.CloseAll();
                 _searchButton?.CloseAll();
                 _bell?.CloseAll();
@@ -523,6 +529,7 @@ namespace HsbgCardLookup
             _darkGifts?.OnLanguageChanged();
             _lobbyTribes?.OnLanguageChanged();
             _turnCounter?.OnLanguageChanged();
+            _sessionPanel?.OnLanguageChanged();
             _boardPanel?.OnLanguageChanged();
             _bgHud?.OnLanguageChanged();
             _bgMmr?.OnLanguageChanged();
@@ -578,6 +585,7 @@ namespace HsbgCardLookup
             Ui.PanelDock.Init(_config);
             _lobbyTribes?.ReloadPlacement();
             _turnCounter?.ReloadPlacement();
+            _sessionPanel?.ReloadPlacement();
             _boardPanel?.ReloadPlacement();
             ApplySettings();
         }
@@ -592,6 +600,7 @@ namespace HsbgCardLookup
             _darkGifts?.OnSettingsChanged(); // Dark Gift panel on/off
             _lobbyTribes?.OnSettingsChanged();
             _turnCounter?.OnSettingsChanged();
+            _sessionPanel?.OnSettingsChanged();
             Ui.PanelDock.Invalidate();
             _boardPanel?.OnSettingsChanged();
             _searchButton?.OnSettingsChanged(); // in-game search button on/off

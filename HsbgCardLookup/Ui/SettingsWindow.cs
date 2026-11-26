@@ -870,6 +870,20 @@ namespace HsbgCardLookup.Ui
                 Changed();
             }, demo: _indexing ? null : SettingsDemos.TurnCounter()));
 
+            stack.Children.Add(GroupHeader(Strings.T("settings.session.header")));
+            stack.Children.Add(ToggleRow(Strings.T("settings.session.label"), _config.ShowSessionPanel, v =>
+            {
+                _config.ShowSessionPanel = v;
+                _status.Text = v ? Strings.T("settings.session.on") : Strings.T("settings.session.off");
+                Changed();
+            }));
+            var counts = Enumerable.Range(SessionPanel.MinGames, SessionPanel.MaxGames - SessionPanel.MinGames + 1).Select(n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var sessionGames = CycleRow(Strings.T("settings.session.games"), counts, counts,
+                counts.Select(n => Strings.F("settings.session.gamesHint", n)).ToArray(),
+                () => _config.SessionGames.ToString(System.Globalization.CultureInfo.InvariantCulture), v => _config.SessionGames = int.Parse(v, System.Globalization.CultureInfo.InvariantCulture));
+            FollowPart(sessionGames, () => _config.ShowSessionPanel);
+            stack.Children.Add(sessionGames);
+
             stack.Children.Add(GroupHeader(Strings.T("settings.panels.typesHeader")));
             stack.Children.Add(ToggleRow(Strings.T("settings.lobbyTribes.label"), _config.ShowLobbyTribes, v =>
             {

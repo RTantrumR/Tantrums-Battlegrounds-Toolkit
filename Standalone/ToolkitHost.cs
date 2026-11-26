@@ -285,7 +285,7 @@ namespace Toolkit.Standalone
         private static string Summary(Snapshot s)
         {
             if (s == null) return "no read";
-            if (s.GameStateAddr == 0) return "region=" + s.Region + " no game";
+            if (s.GameStateAddr == 0) return "region=" + s.Region + " no game, scene " + s.SceneMode + (s.HasOwnRating ? ", rating " + s.OwnRating + " / duos " + s.OwnDuosRating : ", no rating");
             return "region=" + s.Region + " game 0x" + s.GameStateAddr.ToString("X") + " tiles=" + s.Tiles.Count
                 + " duoTeams=" + s.TeamsWithTwo + " over=" + s.HoveredHeroEntityId + " me=" + s.LocalPlayerEntityId + " opp=" + s.OpponentPlayerEntityId + " lobby=" + s.Lobby.Count + " tribes=[" + string.Join(",", s.LobbyTribes) + "]"
                 + " entities~" + (s.Entities.Count / 25 * 25) + " turn=" + Turn(s) + " readMs~" + (s.ReadMs / 10 * 10);

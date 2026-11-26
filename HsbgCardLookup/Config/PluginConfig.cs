@@ -155,6 +155,14 @@ namespace HsbgCardLookup.Config
         public bool ShowTurnCounter { get; set; } = true;
         public HudPlacement TurnCounterHud { get; set; } = new HudPlacement();
 
+        // The session box (Ui\SessionPanel.cs): rating at its start and now, and its latest matches,
+        // SessionGames of them. XF = its RIGHT edge, WF = its scale. SessionResetTicks: matches begun
+        // before that moment (UTC ticks) are not of the session ("Start a new session"); 0 = never asked.
+        public bool ShowSessionPanel { get; set; } = true;
+        public int SessionGames { get; set; } = 5;
+        public HudPlacement SessionHud { get; set; } = new HudPlacement();
+        public long SessionResetTicks { get; set; }
+
         // Opponents' last boards: hover a leaderboard portrait to see one; a click pins it only when
         // BoardPinOnClick is on (off by default, owner 2026-11-23).
         // One JSON record per Battlegrounds match in the data folder's match-records\ (Game\MatchRecorder.cs).
