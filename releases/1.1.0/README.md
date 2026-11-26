@@ -20,6 +20,7 @@ v1.1.0
 - Joined panels keep the size you gave them by hand while players load into the lobby, and in the next match.
 
 ### Settings
+- Patch notes inside the app: App & updates now shows what each version brought, a card per change with a picture and a "Show me" button that opens the setting it is about. The tab says "New" until you have looked. "Check for updates" moved to the top of that page.
 - Language: Ukrainian. The menus, the panels and the Setup are in Ukrainian; cards, card text and the search stay in English.
 - Config page: a new ready-made config, "Default Standalone (Recommended)", first in the list, sets the toolkit's own default layout and features. The Firestone and Hearthstone Deck Tracker configs now start from it and then turn off what that app already shows. Your hotkeys are kept.
 - In-match panels: switches for the Session Recap (on or off, the latest matches, how many of them: 1 to 10), "Joined boxes" (stretch to one width, scale everything up, or keep the sizes you gave them) and "Two-line rows".
