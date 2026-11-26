@@ -189,6 +189,17 @@ namespace Toolkit.Standalone
                         catch { }
                     }
 
+                    // Test aid: stall.trigger ("<ms>") holds the UI thread that long, as a slow moment would:
+                    // what a gesture's mouse hook has to survive (Windows drops a hook that answers late).
+                    string stallFile = Path.Combine(Shared.ExeDir, "stall.trigger");
+                    if (File.Exists(stallFile))
+                    {
+                        int ms = 0; try { int.TryParse(File.ReadAllText(stallFile).Trim(), out ms); } catch { }
+                        try { File.Delete(stallFile); } catch { }
+                        Shared.Log("stall: " + ms + " ms");
+                        if (ms > 0) Thread.Sleep(Math.Min(ms, 10000));
+                    }
+
                     // Test aid: settings.trigger next to the exe opens the settings window.
                     string settingsFile = Path.Combine(Shared.ExeDir, "settings.trigger");
                     if (File.Exists(settingsFile))
