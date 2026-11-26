@@ -1713,6 +1713,15 @@ namespace HsbgCardLookup.Ui
                 CornerRadius = new CornerRadius(7), Padding = new Thickness(5, 5, 5, 5),
                 Width = ControlW, Child = inner, VerticalAlignment = VerticalAlignment.Center
             };
+            // As wide as its longest choice in this language (two arrows, their margins, padding, border), never narrower.
+            double longest = 0;
+            foreach (var c in captions)
+            {
+                valueLbl.Text = c ?? "";
+                valueLbl.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                longest = Math.Max(longest, valueLbl.DesiredSize.Width);
+            }
+            box.Width = Math.Max(ControlW, Math.Ceiling(longest) + 2 * 14 + 4 + 10 + 2 + 4);
 
             int IndexOf(string v)
             {
