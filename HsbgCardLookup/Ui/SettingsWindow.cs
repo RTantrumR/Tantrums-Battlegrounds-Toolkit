@@ -1491,6 +1491,36 @@ namespace HsbgCardLookup.Ui
             _onUpdatesPage = true;
             MarkNotesSeen();
 
+            // The install's public ID, small in the page's top-right corner: for the rare player asked to
+            // read it out (it finds the reports this toolkit sent; it can't claim them like the install key).
+            string publicId = null;
+            try { publicId = Game.MatchUploader.ReportId(PluginConfig.DataDir); } catch { }
+            if (publicId != null && stack.Children.Count > 0 && stack.Children[0] is DockPanel head)
+            {
+                var idRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+                idRow.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.app.reportId") + " " + publicId, Foreground = UiKit.TextMuted, FontSize = 11.5,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+                var glyph = new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M4,0 h7 a1,1 0 0 1 1,1 v8 h-1.5 v-7.5 h-6.5 z M0,3 h8 a1,1 0 0 1 1,1 v8 a1,1 0 0 1 -1,1 h-7 a1,1 0 0 1 -1,-1 z"),
+                    Fill = UiKit.TextMuted, Width = 11, Height = 12, Stretch = Stretch.Uniform
+                };
+                var copy = new Border { Child = glyph, Padding = new Thickness(5, 3, 5, 3), Margin = new Thickness(4, 0, 0, 0), Cursor = Cursors.Hand, Background = Brushes.Transparent, CornerRadius = new CornerRadius(4) };
+                copy.MouseEnter += (s2, e2) => { copy.Background = UiKit.Br(UiKit.RowBg); glyph.Fill = UiKit.TextPrimary; };
+                copy.MouseLeave += (s2, e2) => { copy.Background = Brushes.Transparent; glyph.Fill = UiKit.TextMuted; };
+                copy.MouseLeftButtonUp += (s2, e2) =>
+                {
+                    try { Clipboard.SetText(publicId); _status.Text = Strings.F("settings.app.copied", publicId); } catch { }
+                };
+                Tip.Set(copy, Strings.T("settings.app.copy"));
+                idRow.Children.Add(copy);
+                DockPanel.SetDock(idRow, Dock.Right);
+                head.Children.Insert(0, idRow);
+            }
+
             // Start-up and the bell first: Start with Windows is the standalone's own switch (HDT starts
             // the plugin, and has its own); the in-game bell carries the update news, so it is placed here.
             bool? autostart = null;
@@ -1516,32 +1546,6 @@ namespace HsbgCardLookup.Ui
             _updateActionsHost = new StackPanel();
             stack.Children.Add(_updateActionsHost);
             RepaintUpdateArea();
-
-            // The install's public report ID, to quote when asking about the reports this toolkit sent.
-            string reportId = null;
-            try { reportId = Game.MatchUploader.ReportId(PluginConfig.DataDir); } catch { }
-            if (reportId != null)
-            {
-                var idLine = new DockPanel { Margin = new Thickness(0, 4, 0, 2), LastChildFill = true };
-                Border copy = null;
-                copy = SmallButton(Strings.T("settings.app.copy"), () =>
-                {
-                    try { Clipboard.SetText(reportId); _status.Text = Strings.F("settings.app.copied", reportId); } catch { }
-                });
-                copy.Margin = new Thickness(10, 0, 0, 0);
-                DockPanel.SetDock(copy, Dock.Right);
-                idLine.Children.Add(copy);
-                var idText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 15, Foreground = UiKit.TextPrimary };
-                idText.Inlines.Add(new System.Windows.Documents.Run(Strings.T("settings.app.reportId") + ": "));
-                idText.Inlines.Add(new System.Windows.Documents.Run(reportId) { FontFamily = new FontFamily("Consolas"), Foreground = UiKit.AccentBrush, FontWeight = FontWeights.SemiBold });
-                idLine.Children.Add(idText);
-                stack.Children.Add(idLine);
-                stack.Children.Add(new TextBlock
-                {
-                    Text = Strings.T("settings.app.reportIdHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
-                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
-                });
-            }
 
             // What each version brought, one card per change.
             AddNotes(stack);
