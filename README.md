@@ -44,17 +44,6 @@ Remove "Tantrum's Battlegrounds Toolkit" under Windows **Settings → Apps**. Se
 See [BUILDING.md](BUILDING.md). Corrections to the toolkit's own texts are welcome as edits to
 `HsbgCardLookup/data/ui/<language>.json`.
 
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
-[SignPath Foundation](https://signpath.org/).
-
-- Committers and reviewers: [RTantrumR](https://github.com/RTantrumR)
-- Approvers: [RTantrumR](https://github.com/RTantrumR)
-
-Releases are built from this repository by GitHub Actions ([build.yml](.github/workflows/build.yml)); only those
-builds are signed. Privacy policy: see [Privacy](#privacy) above.
-
 ## License
 
 [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party components.
