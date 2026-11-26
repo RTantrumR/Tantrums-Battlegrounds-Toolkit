@@ -48,7 +48,7 @@ namespace HsbgCardLookup.Ui
 
         private const double RefCellW = 46;       // one type's column at scale 1: the box is always this
                                                   // wide per type, a longer name is set smaller instead
-        private const double LabelSize = 10.5, MinLabelSize = 6;
+        private const double LabelSize = 13, MinLabelSize = 6;    // a name is this large unless its length asks for less
         private const double MinScale = 0.4, MaxScale = 4.8;   // of the settled (pixel) scale
         private const double DefaultXF = 0.005, DefaultYF = 0.115;
 
@@ -463,7 +463,7 @@ namespace HsbgCardLookup.Ui
                     continue;
                 }
                 // A name too long for its column is set smaller until it fits, never cut.
-                double room = (RefCellW - 5) * s;
+                double room = (RefCellW - 3) * s;
                 label.Width = double.NaN;
                 label.FontSize = LabelSize * s;
                 label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -471,7 +471,7 @@ namespace HsbgCardLookup.Ui
                 if (wide > room) label.FontSize = Math.Max(MinLabelSize * s, LabelSize * s * room / wide);
                 label.Width = RefCellW * s;
                 var row = (Grid)label.Parent;
-                row.Height = 15 * s;
+                row.Height = 18 * s;
                 row.Margin = new Thickness(0, 1 * s, 0, 0);
             }
         }
