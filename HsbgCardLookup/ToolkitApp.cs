@@ -191,6 +191,14 @@ namespace HsbgCardLookup
             // that they exist is the first thing a new user should learn, and the ready-made configs
             // are what a player with another tracker needs first.
             if (_config.Welcome) { Log("fresh install: opening the settings once, on Config"); OpenSettings(); _settings?.ShowConfigPage(); }
+            else if (_config.OfferConfig)
+            {
+                // The first start of 1.1 on settings from before it (an earlier version's, or the HDT
+                // plugin's): the ready-made configs, with the new default layout on top.
+                Log("settings from before 1.1: opening the settings once, on Config");
+                try { _config.Save(); } catch { }
+                OpenSettings(); _settings?.ShowConfigPage();
+            }
         }
 
         /// <summary>About every 100 ms, on the UI thread.</summary>

@@ -153,6 +153,13 @@ namespace HsbgCardLookup.Config
         // enlarged, text and all, until it matches: the rule until 2026-11-26) or "None" (they join at
         // the sizes they have).
         public string AssembleFit { get; set; } = "Stretch";
+        // The ready-made configs were shown once, unasked: a config written before 1.1 has no such
+        // element, so the first start of 1.1 opens the settings on the Config page (the new default
+        // layout is one click there). A fresh install is shown them by its own welcome.
+        public bool ConfigOffered { get; set; }
+        /// <summary>This start is the one that offers them.</summary>
+        [XmlIgnore] public bool OfferConfig { get; private set; }
+
         // Rows of the sidebar and of the session box on two lines (the name, and its numbers under it):
         // a box as wide as a name, for the strip left of the game's leaderboard. On at a first run.
         public bool CompactRows { get; set; }
@@ -288,6 +295,7 @@ namespace HsbgCardLookup.Config
                     {
                         config = (PluginConfig)new XmlSerializer(typeof(PluginConfig)).Deserialize(fs);
                         config.Migrate();
+                        if (!config.ConfigOffered) { config.ConfigOffered = true; config.OfferConfig = true; }
                     }
                 }
             }
@@ -363,10 +371,14 @@ namespace HsbgCardLookup.Config
         /// initializers of settings that older versions already saved are deliberately NOT changed to
         /// this — they are also what an element missing from an older config.xml resolves to, so
         /// changing them would re-arrange an existing user's display.</summary>
+        /// <summary>The settings of a fresh install, for the "Default Standalone" ready-made config.</summary>
+        public static PluginConfig FreshDefaults() { var c = FirstRun(); c.Migrate(); return c; }
+
         private static PluginConfig FirstRun()
         {
             return new PluginConfig
             {
+                ConfigOffered = true,
                 ShowOpponentMmr = true,
                 OpponentMmrMode = "Panel",
                 OpponentNameMode = "Panel",

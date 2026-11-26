@@ -152,9 +152,11 @@ namespace HsbgCardLookup.Ui
         }
 
         // ── Ready-made configs ──
-        // Each one changes only the switches it lists. The other trackers' entries turn off what that
-        // app draws itself out of the box (docs/research/compat-firestone-hdt.md): Firestone 19.4.7's
-        // settings defaults, HDT 1.60.7's overlay code.
+        // Every one starts from the toolkit's own default layout and settings (what a fresh install
+        // has: PluginConfig.FreshDefaults, every setting a shared config may hold bar the hotkeys); the
+        // other trackers' entries then turn off what that app draws itself out of the box
+        // (docs/research/compat-firestone-hdt.md): Firestone 19.4.7's settings defaults, HDT 1.60.7's
+        // overlay code.
 
         private sealed class ReadyConfig
         {
@@ -171,6 +173,14 @@ namespace HsbgCardLookup.Ui
 
         private static readonly ReadyConfig[] ReadyConfigs =
         {
+            // Ours: the site's mark, on the toolkit's own panel blue with its gold.
+            new ReadyConfig
+            {
+                Name = "Default Standalone (Recommended)", ForKey = "settings.config.ready.default", Pinned = true, Logo = "toolkit",
+                Fill = Color.FromRgb(0x1A, 0x21, 0x30), FillDark = Color.FromRgb(0x10, 0x14, 0x1C), Rim = Color.FromRgb(0xE8, 0xB5, 0x4B),
+                Accent = Color.FromRgb(0xE8, 0xB5, 0x4B), Text = Color.FromRgb(0xD9, 0xE0, 0xEC),
+                Off = new KeyValuePair<string, Action<PluginConfig>>[0]
+            },
             // Firestone's launcher icon: the flame's amber on its brown, framed in its gold-brown.
             new ReadyConfig
             {
@@ -226,7 +236,7 @@ namespace HsbgCardLookup.Ui
                 Padding = new Thickness(14, 6, 14, 6), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0),
                 Child = new TextBlock { Text = Strings.T("settings.config.ready.apply"), FontSize = 13.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(r.Accent) }
             };
-            Tip.Set(apply, string.Join("\n", r.Off.Select(part => Strings.T(part.Key))), title: Strings.T("settings.config.ready.turnsOff"));
+            if (r.Off.Length > 0) Tip.Set(apply, string.Join("\n", r.Off.Select(part => Strings.T(part.Key))), title: Strings.T("settings.config.ready.turnsOff"));
             apply.MouseEnter += (s, e) => apply.Background = tint(0x4D);
             apply.MouseLeave += (s, e) => apply.Background = tint(0x26);
             apply.MouseLeftButtonUp += (s, e) => { e.Handled = true; ApplyReady(r); };
@@ -272,8 +282,14 @@ namespace HsbgCardLookup.Ui
         private void ApplyReady(ReadyConfig r)
         {
             FlushPending();
+            // The default layout and settings first, the player's own hotkeys kept; then what this one turns off.
+            var keys = new[] { _config.BrowserKey, _config.GoldenKey, _config.FocusKey };
+            var fresh = ConfigShare.Read(System.Text.Encoding.UTF8.GetBytes(ConfigShare.Write(PluginConfig.FreshDefaults())));
+            if (fresh.Ok) fresh.ApplyTo(_config);
+            _config.BrowserKey = keys[0]; _config.GoldenKey = keys[1]; _config.FocusKey = keys[2];
             foreach (var part in r.Off) part.Value(_config);
-            Changed();
+            if (ReloadLayout != null) ReloadLayout(); else _onChanged();
+            BuildConfig();
             _status.Text = Strings.F("settings.config.readyApplied", r.Name);
         }
 

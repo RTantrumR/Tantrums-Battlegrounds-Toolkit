@@ -75,6 +75,7 @@ namespace HsbgCardLookup.Config
             { "DarkGiftMode", v => v == "Both" || v == "Gifts" || v == "Minions" },
             { "LobbyTribesLayout", v => v == "1x5" || v == "5x1" || v == "2x3" || v == "3x2" },
             { "LobbyTribesStyle", v => v == "IconsText" || v == "Icons" || v == "Text" },
+            { "AssembleFit", v => v == "Stretch" || v == "Scale" || v == "None" },
         };
 
         private static bool IsKey(string v) => KeyNames.Contains(v) && !NoKeys.Contains(v);
@@ -87,7 +88,7 @@ namespace HsbgCardLookup.Config
             { "XF", new[] { -1.0, 2 } }, { "YF", new[] { -1.0, 2 } }, { "WF", new[] { 0.0, 20 } }, { "Px", new[] { 0.0, 8000 } },
         };
 
-        private static readonly Regex LinkRx = new Regex(@"^(tribes|sidebar|turn)>(tribes|sidebar|turn):(Top|Bottom|Left|Right)$", RegexOptions.CultureInvariant);
+        private static readonly Regex LinkRx = new Regex(@"^(tribes|sidebar|turn|session)>(tribes|sidebar|turn|session):(Top|Bottom|Left|Right)$", RegexOptions.CultureInvariant);
 
         // ── Writing ──────────────────────────────────────────────────────────────────────────
 
@@ -326,7 +327,7 @@ namespace HsbgCardLookup.Config
                 if (!m.Success || m.Groups[1].Value == m.Groups[2].Value || !children.Add(m.Groups[1].Value)) return false;
                 links.Add(v);
             }
-            if (links.Count > 2) return false;                            // three boxes: two joins at most
+            if (links.Count > 3) return false;                            // four boxes: three joins at most
             r.Setters.Add(c => prop.SetValue(c, new List<string>(links)));
             return true;
         }
