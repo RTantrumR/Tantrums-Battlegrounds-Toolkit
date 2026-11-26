@@ -1,10 +1,15 @@
 v1.1.0: Session Recap, a new default layout, and patch notes inside the app
 
+![The toolkit over a Battlegrounds match: lobby minion types, the sidebar and the Session Recap in one column by the leaderboard](https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/default-layout.jpg)
+
 ### In the match
 - New Session Recap box: your rating when the session started and now, and your latest matches with the hero, the place and the rating change. It shows during a match and on the Battlegrounds menu, and follows Solos or Duos, whichever you play. A session ends after 4 hours without a ranked match; right-click the box to start a new one yourself.
 - New default layout: the lobby minion types, the standings sidebar and the Session Recap stand as one column in the strip left of the leaderboard, from under your opponent's name to above yours. Tavern tiers and minion types sit by the portraits.
 - The sidebar and the Session Recap can put each row on two lines, the name on the first and its numbers under it: narrower boxes, larger text. When the sidebar shows only names and ratings, each player still fits on one line.
 - A name too long for the sidebar or the Session Recap is cut off with "…" instead of being written smaller.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/session-recap.jpg" alt="The Session Recap box" width="220">
+
 - The lobby minion types box draws its icons and names larger in the same width.
 - Hold any box of an assembled panel to join the whole panel to another box.
 - When joined boxes are stretched to match and the sidebar is made taller, its rows sit in the middle of the box instead of at its top.
@@ -14,25 +19,49 @@ v1.1.0: Session Recap, a new default layout, and patch notes inside the app
 - Right-click the lobby minion types box, while it stands on its own, to pick its layout and look on the spot.
 - The lobby minion types box can also show the banned types: the season's types that are not in this lobby, crossed out next to the five that are. Off by default.
 - The box has three looks: icons with names, icons alone, or names alone with each type in its own colour.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/lobby-types.jpg" alt="The lobby minion types box" width="420">
+
 - A bell now sits left of the search button. A green number means a new version of the toolkit is out, a yellow one means new patch notes. Click it for a small menu: download the update, skip it, or open the patch notes in your language. Read items stay in the menu, so you can still open a link after the match.
 - The bell replaces the "Update available" tag above the search button and the bell inside the card search.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/bell.jpg" alt="The bell next to the in-game search button" width="260">
+
 - A pinned opponent board has a resize arrow in its top-right corner while the cursor is on it. Drag it and the board grows or shrinks around the middle of its top edge. To move the board, use "Position the board" in Settings as before.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/opponent-board.jpg" alt="An opponent's last board over the match">
+
 - Fixed: a box that had never been on screen could save a broken position, after which the assembled boxes could no longer be dragged.
 - Fixed: with Hearthstone on a second monitor, a panel's right-click menu opened on the first one.
 
 ### Settings
 - Patch notes inside the app: App & updates shows what each version brought, one card per change with a picture and a "Show me" button that opens the setting the change is about and scrolls to it. The tab says "New" until you have looked.
 - App & updates starts with Start with Windows and the bell's Arrange. "Check for updates" sits beside the installed version, with the time of the last check under it (the toolkit checks at every start and every 20 minutes).
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/app-updates.jpg" alt="App & updates with the patch notes" width="430">
+
 - Language: Ukrainian. The menus, the panels and the Setup are in Ukrainian; cards, card text and the search stay in English.
 - Config page: ready-made configs. "Default Standalone (Recommended)", first in the list, sets the toolkit's own default layout and features. The ones for Firestone and Hearthstone Deck Tracker start from it, then turn off what that app already shows, so nothing appears twice. Your hotkeys are kept.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/ready-configs.jpg" alt="Ready-made configs on the Config page" width="430">
+
 - In-match panels: switches for the Session Recap (on or off, the latest matches, how many of them: 1 to 10), "Joined boxes" (stretch to one width, scale everything up, or keep the sizes you gave them) and "Two-line rows".
 - In-match panels: a picture of the Session Recap filling up with a session's matches, newest on top, as many as "Matches shown" allows.
 - In-match panels: the "Assemble panels" picture plays the join the way your "Joined boxes" setting does it, and a line under it says that a right-click takes an assembled panel apart.
 - In-match panels: the lobby minion types box can be laid out as one row (1 × 5), one column (5 × 1), two rows (2 × 3) or three rows (3 × 2), with a picture of the box that follows the layout, the look and the banned types as you change them.
 - The General page is now two: "In-match panels" (turn counter, Session Recap, lobby minion types, joining the boxes), which the window opens on, and "Card search" (hotkeys, the in-game button, floating cards, the card art folder). "Start with Windows" moved to "App & updates".
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/in-match-panels.jpg" alt="The In-match panels page" width="430">
+
 - Portrait/Sidebar overlay: two size sliders for what is drawn by the leaderboard portraits, one for the name and MMR plate and one for the tavern tier and minion type icons, 70% to 135% each. A picture of the leaderboard under them shows the result as you drag. In duos the icons stop at 120%, where teammates' icons would touch.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/portrait-sliders.jpg" alt="The size sliders and their picture" width="430">
+
 - More pictures instead of words, drawn over a real game: the turn counter, hovering and pinning an opponent's board (the game's own leaderboard, the board as the toolkit draws it, a minion's big card), opening the search and dragging a card out of it, and "Assemble panels" with the real boxes.
 - New "BepInEx mods" page with two tabs. Catalogue lists the mods from hsbg.cards with a short description, which of them you have and at which version, and a Download button that opens the mod's Setup in your browser. Installed lists the mods in Hearthstone's BepInEx folder: show one in Explorer, check it for an update, or move it to the Recycle Bin. New in the catalogue: Tantrum's Board Fix, which keeps your Battlegrounds board from jumping around while you buy, drop and reorder.
+
+<img src="https://raw.githubusercontent.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/master/assets/release-1.1/bepinex-mods.jpg" alt="The BepInEx mods page" width="430">
+
 - The in-game search button and the bell can be moved and resized like the other boxes: the search button's Arrange sits on its own line on the Card search page, the bell's on App & updates. A bell you never moved stays left of the search button, wherever that goes.
 - Arrange with Hearthstone closed starts the game through Battle.net (and Battle.net too, if needed), then begins the arrange once the game is up.
 - The Trinket HUD and Anomaly HUD pages show their sample card at full size while Hearthstone is closed. In the standalone program it used to shrink to a speck.
