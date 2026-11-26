@@ -232,7 +232,8 @@ namespace HsbgCardLookup.Ui
         {
             page();
             if (string.IsNullOrEmpty(label)) return;
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            // After the page is laid out: its rows have their places then.
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
             {
                 if (_pageRoot == null) return;
                 var rows = new List<FrameworkElement>();
@@ -244,11 +245,27 @@ namespace HsbgCardLookup.Ui
                 var target = rows.FirstOrDefault(r => AllText(r).IndexOf(label, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (target == null) return;
                 foreach (var r in rows) r.Opacity = ReferenceEquals(r, target) ? 1 : 0.22;
-                try { target.BringIntoView(); } catch { }
+                ScrollNearTop(target);
                 var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.8) };
                 timer.Tick += (s, a) => { timer.Stop(); foreach (var r in rows) r.Opacity = 1; };
                 timer.Start();
             }));
+        }
+
+        // The page scrolled so the row stands a little below its top edge, not wherever "bring into view"
+        // stops (the window's bottom edge, for a row further down).
+        private static void ScrollNearTop(FrameworkElement row)
+        {
+            try
+            {
+                DependencyObject d = row;
+                while (d != null && !(d is ScrollViewer)) d = VisualTreeHelper.GetParent(d);
+                var sv = d as ScrollViewer;
+                if (sv == null) { row.BringIntoView(); return; }
+                double y = row.TransformToAncestor(sv).Transform(new Point(0, 0)).Y + sv.VerticalOffset;
+                sv.ScrollToVerticalOffset(Math.Max(0, y - 48));
+            }
+            catch { try { row.BringIntoView(); } catch { } }
         }
 
         private static void Flatten(FrameworkElement el, List<FrameworkElement> into)
