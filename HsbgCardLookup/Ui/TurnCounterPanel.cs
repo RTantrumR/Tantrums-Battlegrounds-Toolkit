@@ -125,12 +125,9 @@ namespace HsbgCardLookup.Ui
             {
                 if (!_config.ShowTurnCounter || ArrangeSession.IsActive) { Hide(); return; }
                 int turn = 0;
-                if (OpponentBoardPanel.TestBoard) turn = 7;          // the sample board's test aid shows a sample turn too
-                else
-                {
-                    var g = HostServices.Game;
-                    if (g != null && g.IsBattlegroundsMatch) turn = g.TurnNumber;
-                }
+                var g = HostServices.Game;
+                if (g != null && g.IsBattlegroundsMatch) turn = g.TurnNumber;
+                else if (OpponentBoardPanel.TestBoard) turn = 7;     // the sample board's test aid shows a sample turn too, out of a match
                 if (turn < 1) { Hide(); return; }
                 Show(turn);
             }
