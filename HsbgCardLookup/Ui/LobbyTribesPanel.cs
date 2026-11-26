@@ -447,11 +447,12 @@ namespace HsbgCardLookup.Ui
             {
                 if (c.Icon != null)
                 {
-                    c.Icon.Width = c.Icon.Height = 34 * s;
+                    c.Icon.Width = c.Icon.Height = 40 * s;
                     c.Icon.StrokeThickness = (c.Marked ? 2.0 : 1.4) * s;
-                    if (c.Cross != null) { c.Cross.Width = c.Cross.Height = 20 * s; c.Cross.StrokeThickness = 3.4 * s; }
-                    // Without names the icons stand a little apart; with them the name's column does that.
-                    c.Root.Margin = c.Label == null ? new Thickness(3 * s, 0, 3 * s, 0) : new Thickness(0);
+                    if (c.Cross != null) { c.Cross.Width = c.Cross.Height = 24 * s; c.Cross.StrokeThickness = 3.4 * s; }
+                    // The icon takes the width its cell always had (40 of a bare icon's, 46 under a name):
+                    // larger icons in a box no wider (owner, 2026-11-26).
+                    c.Root.Margin = new Thickness(0);
                 }
                 var label = c.Label;
                 if (label == null) continue;
