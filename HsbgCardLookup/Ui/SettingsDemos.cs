@@ -520,8 +520,8 @@ namespace HsbgCardLookup.Ui
             // The sidebar: shown for each pass, sized and squared where the box joins it, nudged on the join.
             var sideOpacity = new List<double[]> { new[] { 0.0, 0 } };
             var sideSize = new List<double[]> { new[] { 0.0, 1 } };
-            var sideWide = new List<double[]> { new[] { 0.0, sb.Width } };    // Stretch: the sidebar's frame
-            var sideTall = new List<double[]> { new[] { 0.0, sb.Height } };
+            var sideWide = new List<double[]> { new[] { 0.0, 0 } };    // Stretch: the sidebar's least size (0 = its own)
+            var sideTall = new List<double[]> { new[] { 0.0, 0 } };
             var nudgeKeys = new List<double[]> { new[] { 0.0, 1 } };
             var cornerTimes = new List<double> { 0 };
             var cornerValues = new List<object> { r };
@@ -545,8 +545,9 @@ namespace HsbgCardLookup.Ui
                 if (stretch)
                 {
                     // The frame stretched along the seam; what is inside keeps its size.
-                    loop.Keys(p.Box, FrameworkElement.WidthProperty, sizeTimes, new[] { bw, bw, boxW, boxW, bw, bw });
-                    loop.Keys(p.Box, FrameworkElement.HeightProperty, sizeTimes, new[] { bh, bh, boxH, boxH, bh, bh });
+                    // As PanelDock stretches: through the least width / height, the box laying itself out in it.
+                    loop.Keys(p.Box, FrameworkElement.MinWidthProperty, sizeTimes, new[] { 0, 0, boxW, boxW, 0, 0 });
+                    loop.Keys(p.Box, FrameworkElement.MinHeightProperty, sizeTimes, new[] { 0, 0, boxH, boxH, 0, 0 });
                 }
                 loop.Show(p.Box, t + 0.05, t + fade);
                 loop.Steps(p.Box, Border.CornerRadiusProperty, new[] { 0, t + drop, t + back },
@@ -557,9 +558,9 @@ namespace HsbgCardLookup.Ui
                 sideSize.Add(new[] { t + drop, 1 }); sideSize.Add(new[] { t + drop + 0.16, sideScale });
                 sideSize.Add(new[] { t + back, sideScale }); sideSize.Add(new[] { t + back + 0.01, 1 });
                 sideWide.Add(new[] { t + drop, sb.Width }); sideWide.Add(new[] { t + drop + 0.16, sideW });
-                sideWide.Add(new[] { t + back, sideW }); sideWide.Add(new[] { t + back + 0.01, sb.Width });
+                sideWide.Add(new[] { t + back, sideW }); sideWide.Add(new[] { t + back + 0.01, 0 });
                 sideTall.Add(new[] { t + drop, sb.Height }); sideTall.Add(new[] { t + drop + 0.16, sideH });
-                sideTall.Add(new[] { t + back, sideH }); sideTall.Add(new[] { t + back + 0.01, sb.Height });
+                sideTall.Add(new[] { t + back, sideH }); sideTall.Add(new[] { t + back + 0.01, 0 });
                 nudgeKeys.Add(new[] { t + drop + 0.18, 1 }); nudgeKeys.Add(new[] { t + drop + 0.29, 1.03 }); nudgeKeys.Add(new[] { t + drop + 0.40, 1 });
                 cornerTimes.Add(t + drop);
                 cornerValues.Add(p.Stacked ? new CornerRadius(0, 0, r.BottomRight, r.BottomLeft) : new CornerRadius(r.TopLeft, 0, 0, r.BottomLeft));
@@ -638,8 +639,8 @@ namespace HsbgCardLookup.Ui
             keys(root, new PropertyPath("RenderTransform.Children[0].ScaleX"), nudgeKeys);
             if (stretch)
             {
-                keys(root, FrameworkElement.WidthProperty, sideWide);
-                keys(root, FrameworkElement.HeightProperty, sideTall);
+                keys(root, FrameworkElement.MinWidthProperty, sideWide);
+                keys(root, FrameworkElement.MinHeightProperty, sideTall);
             }
             loop.Steps(root, Border.CornerRadiusProperty, cornerTimes.ToArray(), cornerValues.ToArray());
             cursorKeys.Add(new[] { len, rest.X, rest.Y });

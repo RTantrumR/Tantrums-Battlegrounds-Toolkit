@@ -320,7 +320,14 @@ namespace HsbgCardLookup.Ui
 
             // Re-clamp whenever the size actually changes (a column switched off, a row more, a
             // rescale). Never during a drag — that would fight the cursor.
-            _root.SizeChanged += (s, e) => { if (!_dragging && !_resizing) ClampPosition(); };
+            _root.SizeChanged += (s, e) =>
+            {
+                // Stretched taller to its neighbour in a joined panel (PanelDock gives it a MinHeight):
+                // the rows sit in the middle of the room, not at its top over an empty band.
+                var v = _root.MinHeight > 1 ? VerticalAlignment.Center : VerticalAlignment.Stretch;
+                if (_list.VerticalAlignment != v) _list.VerticalAlignment = v;
+                if (!_dragging && !_resizing) ClampPosition();
+            };
 
             _handleHide = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
             _handleHide.Tick += (s, e) =>
