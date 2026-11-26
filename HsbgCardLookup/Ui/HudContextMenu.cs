@@ -114,11 +114,23 @@ namespace HsbgCardLookup.Ui
             Top = dip.Y - 8;
         }
 
+        // Inside the work area of the screen the cursor is on: the game may be on any monitor, and one
+        // left of the primary has negative coordinates (SystemParameters.WorkArea is the primary's alone,
+        // and sent such a menu to the primary screen's left edge).
         private void ClampToWorkArea()
         {
             try
             {
-                var wa = SystemParameters.WorkArea;
+                Rect wa = SystemParameters.WorkArea;
+                GetCursorPos(out POINT p);
+                var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+                if (GetMonitorInfo(MonitorFromPoint(p, 2 /* MONITOR_DEFAULTTONEAREST */), ref info))
+                {
+                    var tl = new Point(info.rcWork.Left, info.rcWork.Top); var br = new Point(info.rcWork.Right, info.rcWork.Bottom);
+                    var ct = PresentationSource.FromVisual(this)?.CompositionTarget;
+                    if (ct != null) { tl = ct.TransformFromDevice.Transform(tl); br = ct.TransformFromDevice.Transform(br); }
+                    wa = new Rect(tl, br);
+                }
                 double w = ActualWidth > 0 ? ActualWidth : 180, h = ActualHeight > 0 ? ActualHeight : 70;
                 if (Left + w > wa.Right) Left = wa.Right - w;
                 if (Top + h > wa.Bottom) Top = wa.Bottom - h;
@@ -127,6 +139,11 @@ namespace HsbgCardLookup.Ui
             }
             catch { }
         }
+
+        [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
+        [StructLayout(LayoutKind.Sequential)] private struct MONITORINFO { public int cbSize; public RECT rcMonitor, rcWork; public int dwFlags; }
+        [DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
+        [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
 
         private void OnSourceInitialized(object sender, EventArgs e)
         {
