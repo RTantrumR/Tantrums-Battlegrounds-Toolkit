@@ -1517,6 +1517,32 @@ namespace HsbgCardLookup.Ui
             stack.Children.Add(_updateActionsHost);
             RepaintUpdateArea();
 
+            // The install's public report ID, to quote when asking about the reports this toolkit sent.
+            string reportId = null;
+            try { reportId = Game.MatchUploader.ReportId(PluginConfig.DataDir); } catch { }
+            if (reportId != null)
+            {
+                var idLine = new DockPanel { Margin = new Thickness(0, 4, 0, 2), LastChildFill = true };
+                Border copy = null;
+                copy = SmallButton(Strings.T("settings.app.copy"), () =>
+                {
+                    try { Clipboard.SetText(reportId); _status.Text = Strings.F("settings.app.copied", reportId); } catch { }
+                });
+                copy.Margin = new Thickness(10, 0, 0, 0);
+                DockPanel.SetDock(copy, Dock.Right);
+                idLine.Children.Add(copy);
+                var idText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 15, Foreground = UiKit.TextPrimary };
+                idText.Inlines.Add(new System.Windows.Documents.Run(Strings.T("settings.app.reportId") + ": "));
+                idText.Inlines.Add(new System.Windows.Documents.Run(reportId) { FontFamily = new FontFamily("Consolas"), Foreground = UiKit.AccentBrush, FontWeight = FontWeights.SemiBold });
+                idLine.Children.Add(idText);
+                stack.Children.Add(idLine);
+                stack.Children.Add(new TextBlock
+                {
+                    Text = Strings.T("settings.app.reportIdHint"), Foreground = UiKit.TextMuted, FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
+                });
+            }
+
             // What each version brought, one card per change.
             AddNotes(stack);
 

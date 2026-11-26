@@ -205,6 +205,24 @@ namespace HsbgCardLookup.Game
             catch { return Guid.NewGuid().ToString("N"); }
         }
 
+        /// <summary>The install's public report ID ("3F9A-C21E"): the first 8 hex digits of the SHA-256 of
+        /// its install key (lower-case hex, as sent), upper-cased. Shown to the player to quote when asking
+        /// about their reports; the site finds them by hashing the stored keys the same way. Unlike the key
+        /// itself it can't be used to claim an install's reports.</summary>
+        public static string ReportId(string dataDir)
+        {
+            try
+            {
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                {
+                    var hash = sha.ComputeHash(System.Text.Encoding.ASCII.GetBytes(InstallKey(dataDir)));
+                    string hex = BitConverter.ToString(hash, 0, 4).Replace("-", "");
+                    return hex.Substring(0, 4) + "-" + hex.Substring(4, 4);
+                }
+            }
+            catch { return null; }
+        }
+
         /// <summary>A match was written (again when its rating arrives): its report replaces the waiting one.</summary>
         public void Enqueue(MatchRecord rec)
         {
