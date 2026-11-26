@@ -1,6 +1,14 @@
-v1.0.1
+v1.1.0
 
 ### In the match
+- New Session Recap box: your rating when the session started and now, and your latest matches with the hero, the place and the rating change. It shows during a match and on the Battlegrounds menu, and follows Solos or Duos, whichever you play. A session ends after 4 hours without a ranked match; right-click the box to start a new one yourself.
+- New default layout: the lobby minion types, the standings sidebar and the Session Recap stand as one column in the strip left of the leaderboard, from under your opponent's name to above yours. Tavern tiers and minion types sit by the portraits.
+- The sidebar and the Session Recap can put each row on two lines, the name on the first and its numbers under it: narrower boxes, larger text. When the sidebar shows only names and ratings, each player still fits on one line.
+- A name too long for the sidebar or the Session Recap is cut off with "…" instead of being written smaller.
+- The lobby minion types box draws its icons and names larger in the same width.
+- Hold any box of an assembled panel to join the whole panel to another box.
+- Fixed: a box that had never been on screen could save a broken position, after which the assembled boxes could no longer be dragged.
+- Fixed: with Hearthstone on a second monitor, a panel's right-click menu opened on the first one.
 - A bell now sits left of the search button. A green number means a new version of the toolkit is out, a yellow one means new patch notes. Click it for a small menu: download the update, skip it, or open the patch notes in your language. Read items stay in the menu, so you can still open a link after the match.
 - The bell replaces the "Update available" tag above the search button and the bell inside the card search.
 - A pinned opponent board has a resize arrow in its top-right corner while the cursor is on it. Drag it and the board grows or shrinks around the middle of its top edge. To move the board, use "Position the board" in Settings as before.
@@ -12,6 +20,10 @@ v1.0.1
 - Joined panels keep the size you gave them by hand while players load into the lobby, and in the next match.
 
 ### Settings
+- Language: Ukrainian. The menus, the panels and the Setup are in Ukrainian; cards, card text and the search stay in English.
+- Config page: a new ready-made config, "Default Standalone (Recommended)", first in the list, sets the toolkit's own default layout and features. The Firestone and Hearthstone Deck Tracker configs now start from it and then turn off what that app already shows. Your hotkeys are kept.
+- In-match panels: switches for the Session Recap (on or off, the latest matches, how many of them: 1 to 10), "Joined boxes" (stretch to one width, scale everything up, or keep the sizes you gave them) and "Two-line rows".
+- The BepInEx mods page lists Tantrum's Board Fix, which keeps your board from jumping around in the Battlegrounds shop.
 - Portrait/Sidebar overlay: two size sliders for what is drawn by the leaderboard portraits, one for the name and MMR plate and one for the tavern tier and minion type icons, 70% to 135% each. A picture of the leaderboard under them shows the result as you drag. In duos the icons stop at 120%, where teammates' icons would touch.
 - The General page is now two: "In-match panels" (turn counter, lobby minion types, joining the boxes), which the window opens on, and "Card search" (hotkeys, the in-game button, floating cards, the card art folder). "Start with Windows" moved to the Updates page, now "App & updates".
 - In-match panels: the lobby minion types box can be laid out as one row (1 × 5), one column (5 × 1), two rows (2 × 3) or three rows (3 × 2), with a picture of the box that follows the layout, the look and the banned types as you change them.
@@ -27,6 +39,7 @@ v1.0.1
 - Tooltips in the settings, the card search and over the game are drawn in the toolkit's own style and wrap long text, instead of Windows' small plain box.
 
 ### Standalone program
+- The first start after updating from an older version opens the settings once, on the Config page, with the new default layout at the top of the ready-made configs.
 - The Language page no longer has an "Automatic" row: it followed Hearthstone Deck Tracker's language, which the standalone program does not have. A language you never picked stays English.
 - After a first install the settings open by themselves, once, on the Config page: if you run Firestone or Hearthstone Deck Tracker too, its ready-made config is the first thing to apply.
 - When the settings close, they fold into the toolkit's logo, which flies to its icon in the Windows tray: that icon is where they open from again.
