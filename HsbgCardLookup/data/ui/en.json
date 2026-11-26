@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Records your Battlegrounds games and plays them back inside Hearthstone, with a timeline and up to x4 speed.",
   "settings.tools.desc.deckInspector": "Pick up a deck from the board and turn it around: yours or your opponent's.",
   "settings.tools.desc.friendSearch": "Adds a search bar to Hearthstone's friends list. Typos are forgiven.",
-  "settings.tools.desc.boardFix": "Your minions stay where you put them in the Battlegrounds shop: the board no longer jumps around while you buy, drop and reorder.",
+  "settings.tools.desc.boardFix": "Your minions stay where you put them on the Battlegrounds board: no more board jumping around while you buy, drop and reorder.",
   "settings.tools.tab.catalogue": "Catalogue",
   "settings.tools.tab.installed": "Installed ({0})",
   "settings.tools.installedVersion": "Installed: {0}",

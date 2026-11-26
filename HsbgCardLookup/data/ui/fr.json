@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Enregistre vos parties de Champs de bataille et les rejoue dans Hearthstone, avec une chronologie et une vitesse jusqu’à x4.",
   "settings.tools.desc.deckInspector": "Prenez un deck sur le plateau et faites-le tourner : le vôtre ou celui de votre adversaire.",
   "settings.tools.desc.friendSearch": "Ajoute une barre de recherche à la liste d’amis de Hearthstone. Les fautes de frappe sont tolérées.",
-  "settings.tools.desc.boardFix": "Vos serviteurs restent là où vous les posez dans la taverne des Champs de bataille : le plateau ne saute plus quand vous achetez, posez et réorganisez.",
+  "settings.tools.desc.boardFix": "Vos serviteurs restent là où vous les posez sur le plateau des Champs de bataille : il ne saute plus quand vous achetez, posez et réorganisez.",
   "settings.tools.tab.catalogue": "Catalogue",
   "settings.tools.tab.installed": "Installés ({0})",
   "settings.tools.installedVersion": "Installé : {0}",

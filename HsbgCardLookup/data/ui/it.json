@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Registra le tue partite della Battaglia e le riproduce dentro Hearthstone, con una timeline e velocità fino a x4.",
   "settings.tools.desc.deckInspector": "Prendi un mazzo dal tavolo e giralo: il tuo o quello dell'avversario.",
   "settings.tools.desc.friendSearch": "Aggiunge una barra di ricerca all'elenco amici di Hearthstone. I refusi vengono perdonati.",
-  "settings.tools.desc.boardFix": "I tuoi servitori restano dove li metti nella taverna della Battaglia: il tabellone non salta più mentre compri, schieri e riordini.",
+  "settings.tools.desc.boardFix": "I tuoi servitori restano dove li metti sul tabellone della Battaglia: non salta più mentre compri, schieri e riordini.",
   "settings.tools.tab.catalogue": "Catalogo",
   "settings.tools.tab.installed": "Installate ({0})",
   "settings.tools.installedVersion": "Installata: {0}",

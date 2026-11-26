@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Zeichnet Eure Schlachtfeld-Partien auf und spielt sie in Hearthstone ab, mit Zeitleiste und bis zu x4 Geschwindigkeit.",
   "settings.tools.desc.deckInspector": "Nehmt ein Deck vom Spielbrett und dreht es herum: Euer eigenes oder das Eures Gegners.",
   "settings.tools.desc.friendSearch": "Fügt der Freundesliste von Hearthstone eine Suchleiste hinzu. Tippfehler werden verziehen.",
-  "settings.tools.desc.boardFix": "Eure Diener bleiben im Schlachtfeld-Shop, wo Ihr sie hinstellt: Das Spielbrett springt beim Kaufen, Ausspielen und Umsortieren nicht mehr herum.",
+  "settings.tools.desc.boardFix": "Eure Diener bleiben auf dem Schlachtfeld-Spielbrett, wo Ihr sie hinstellt: Kein Herumspringen mehr beim Kaufen, Ausspielen und Umsortieren.",
   "settings.tools.tab.catalogue": "Katalog",
   "settings.tools.tab.installed": "Installiert ({0})",
   "settings.tools.installedVersion": "Installiert: {0}",

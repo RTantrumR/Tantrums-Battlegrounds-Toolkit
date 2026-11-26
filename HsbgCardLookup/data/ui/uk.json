@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Записує ваші ігри на Полях бою і відтворює їх просто в Hearthstone, зі шкалою часу та швидкістю до x4.",
   "settings.tools.desc.deckInspector": "Візьміть колоду зі столу й покрутіть її: свою або суперника.",
   "settings.tools.desc.friendSearch": "Додає рядок пошуку до списку друзів Hearthstone. Одруківки пробачаються.",
-  "settings.tools.desc.boardFix": "Ваші істоти лишаються там, де ви їх поставили, у таверні Полів бою: стіл більше не стрибає, поки ви купуєте, викладаєте й переставляєте.",
+  "settings.tools.desc.boardFix": "Ваші істоти лишаються там, де ви їх поставили, на столі Полів бою: стіл більше не стрибає, поки ви купуєте, викладаєте й переставляєте.",
   "settings.tools.tab.catalogue": "Каталог",
   "settings.tools.tab.installed": "Встановлені ({0})",
   "settings.tools.installedVersion": "Встановлено: {0}",

@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Graba tus partidas de Campos de batalla y las reproduce dentro de Hearthstone, con línea de tiempo y velocidad de hasta x4.",
   "settings.tools.desc.deckInspector": "Coge un mazo del tablero y gíralo: el tuyo o el de tu rival.",
   "settings.tools.desc.friendSearch": "Añade una barra de búsqueda a la lista de amigos de Hearthstone. Se perdonan los errores de escritura.",
-  "settings.tools.desc.boardFix": "Tus esbirros se quedan donde los pones en la taberna de Campos de batalla: el tablero ya no salta mientras compras, colocas y reordenas.",
+  "settings.tools.desc.boardFix": "Tus esbirros se quedan donde los pones en el tablero de Campos de batalla: el tablero ya no salta mientras compras, colocas y reordenas.",
   "settings.tools.tab.catalogue": "Catálogo",
   "settings.tools.tab.installed": "Instalados ({0})",
   "settings.tools.installedVersion": "Instalada: {0}",

@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "录制你的酒馆战棋对局，并在炉石传说内回放，带有时间轴，最高支持 4 倍速。",
   "settings.tools.desc.deckInspector": "从场景中拿起一副卡组并转动查看：你的或对手的。",
   "settings.tools.desc.friendSearch": "为炉石传说的好友列表添加搜索栏。输错字也能找到。",
-  "settings.tools.desc.boardFix": "在酒馆战棋的酒馆中，随从会停在你放下的位置：购买、放置和调整顺序时，场面不再来回跳动。",
+  "settings.tools.desc.boardFix": "在酒馆战棋的场面上，随从会停在你放下的位置：购买、放置和调整顺序时，场面不再来回跳动。",
   "settings.tools.tab.catalogue": "目录",
   "settings.tools.tab.installed": "已安装（{0}）",
   "settings.tools.installedVersion": "已安装：{0}",

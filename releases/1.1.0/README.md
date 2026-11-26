@@ -23,7 +23,7 @@ v1.1.0
 - Language: Ukrainian. The menus, the panels and the Setup are in Ukrainian; cards, card text and the search stay in English.
 - Config page: a new ready-made config, "Default Standalone (Recommended)", first in the list, sets the toolkit's own default layout and features. The Firestone and Hearthstone Deck Tracker configs now start from it and then turn off what that app already shows. Your hotkeys are kept.
 - In-match panels: switches for the Session Recap (on or off, the latest matches, how many of them: 1 to 10), "Joined boxes" (stretch to one width, scale everything up, or keep the sizes you gave them) and "Two-line rows".
-- The BepInEx mods page lists Tantrum's Board Fix, which keeps your board from jumping around in the Battlegrounds shop.
+- The BepInEx mods page lists Tantrum's Board Fix, which keeps your Battlegrounds board from jumping around while you buy, drop and reorder.
 - Portrait/Sidebar overlay: two size sliders for what is drawn by the leaderboard portraits, one for the name and MMR plate and one for the tavern tier and minion type icons, 70% to 135% each. A picture of the leaderboard under them shows the result as you drag. In duos the icons stop at 120%, where teammates' icons would touch.
 - The General page is now two: "In-match panels" (turn counter, lobby minion types, joining the boxes), which the window opens on, and "Card search" (hotkeys, the in-game button, floating cards, the card art folder). "Start with Windows" moved to the Updates page, now "App & updates".
 - In-match panels: the lobby minion types box can be laid out as one row (1 × 5), one column (5 × 1), two rows (2 × 3) or three rows (3 × 2), with a picture of the box that follows the layout, the look and the banned types as you change them.

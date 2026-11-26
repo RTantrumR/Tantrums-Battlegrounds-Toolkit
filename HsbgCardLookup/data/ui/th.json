@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "บันทึกเกม Battlegrounds ของคุณและเล่นย้อนกลับภายใน Hearthstone พร้อมไทม์ไลน์และความเร็วสูงสุด x4",
   "settings.tools.desc.deckInspector": "หยิบเด็คจากกระดานแล้วหมุนดู ทั้งของคุณและของคู่ต่อสู้",
   "settings.tools.desc.friendSearch": "เพิ่มช่องค้นหาในรายชื่อเพื่อนของ Hearthstone พิมพ์ผิดก็ยังหาเจอ",
-  "settings.tools.desc.boardFix": "มินเนียนของคุณอยู่ตรงที่คุณวางไว้ในร้านของ Battlegrounds กระดานไม่กระโดดไปมาอีกขณะที่คุณซื้อ วาง และจัดลำดับ",
+  "settings.tools.desc.boardFix": "มินเนียนของคุณอยู่ตรงที่คุณวางไว้บนกระดาน Battlegrounds กระดานไม่กระโดดไปมาอีกขณะที่คุณซื้อ วาง และจัดลำดับ",
   "settings.tools.tab.catalogue": "แคตตาล็อก",
   "settings.tools.tab.installed": "ติดตั้งแล้ว ({0})",
   "settings.tools.installedVersion": "ติดตั้งแล้ว: {0}",

@@ -416,7 +416,7 @@
   "settings.tools.desc.replayWatcher": "Nagrywa twoje gry w Ustawce i odtwarza je w Hearthstone, z osią czasu i prędkością do x4.",
   "settings.tools.desc.deckInspector": "Weź talię ze stołu i obracaj ją: swoją lub przeciwnika.",
   "settings.tools.desc.friendSearch": "Dodaje pasek wyszukiwania do listy znajomych w Hearthstone. Literówki są wybaczane.",
-  "settings.tools.desc.boardFix": "Twoi stronnicy zostają tam, gdzie ich postawisz, w karczmie Ustawki: plansza nie skacze już podczas kupowania, wystawiania i przestawiania.",
+  "settings.tools.desc.boardFix": "Twoi stronnicy zostają tam, gdzie ich postawisz, na planszy Ustawki: plansza nie skacze już podczas kupowania, wystawiania i przestawiania.",
   "settings.tools.tab.catalogue": "Katalog",
   "settings.tools.tab.installed": "Zainstalowane ({0})",
   "settings.tools.installedVersion": "Zainstalowano: {0}",
