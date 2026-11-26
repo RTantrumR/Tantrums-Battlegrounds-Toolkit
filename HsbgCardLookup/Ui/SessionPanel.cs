@@ -57,7 +57,7 @@ namespace HsbgCardLookup.Ui
 
         private const double MinScale = 0.4, MaxScale = 4;
         private const double DefaultXF = 0.005, DefaultYF = 0.008;
-        private const double BodyWidth = 150;          // at scale 1: the same whatever the numbers in it
+        private const double BodyWidth = 215;          // at scale 1: the same whatever the numbers in it
         public const int MinGames = 1, MaxGames = 10;
 
         private readonly PluginConfig _config;
@@ -191,7 +191,7 @@ namespace HsbgCardLookup.Ui
         private static SessionView Sample()
         {
             var v = new SessionView { Start = 6480, Current = 6612 };
-            string[] heroes = { "TB_BaconShop_HERO_56", "BG20_HERO_202", "TB_BaconShop_HERO_08", "BG22_HERO_007", "TB_BaconShop_HERO_34" };
+            string[] heroes = { "TB_BaconShop_HERO_56", "BG20_HERO_202", "TB_BaconShop_HERO_08", "BG21_HERO_000", "TB_BaconShop_HERO_34" };
             int[] places = { 1, 5, 3, 8, 2 }, changes = { 98, -24, 41, -77, 94 };
             int rating = 6612;
             for (int i = 0; i < heroes.Length; i++)
@@ -260,7 +260,8 @@ namespace HsbgCardLookup.Ui
                 _body.Children.Add(new TextBlock
                 {
                     Text = from + view.Current.Value.ToString(CultureInfo.InvariantCulture), Foreground = UiKit.TextPrimary,
-                    FontSize = 17 * s, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 1 * s, 0, 0)
+                    FontSize = 17 * s, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 1 * s, 0, 0),
+                    HorizontalAlignment = HorizontalAlignment.Center
                 });
             }
 
@@ -272,7 +273,19 @@ namespace HsbgCardLookup.Ui
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.Children.Add(Portrait(g.Hero, 24 * s));
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                // A hero skin is its own card ("TB_BaconShop_HERO_90_SKIN_G"); we show the hero it dresses.
+                // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
+                BgCard hero = null;
+                try { hero = g.Hero == null ? null : _store?.Lookup(Regex.Replace(g.Hero, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(g.Hero); } catch { }
+                row.Children.Add(Portrait(hero, 24 * s));
+                var name = new TextBlock
+                {
+                    Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = 13 * s, TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxWidth = 116 * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(6 * s, 0, 6 * s, 0), VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(name, 2);
+                row.Children.Add(name);
                 var place = new TextBlock
                 {
                     Text = g.Place.ToString(CultureInfo.InvariantCulture), FontSize = 16 * s, FontWeight = FontWeights.Bold, Foreground = Frozen(PlaceColor(g.Place, most)),
@@ -283,7 +296,7 @@ namespace HsbgCardLookup.Ui
                 if (g.Change.HasValue)
                 {
                     var change = ChangeText(g.Change.Value, 14 * s, HorizontalAlignment.Right);
-                    Grid.SetColumn(change, 2);
+                    Grid.SetColumn(change, 3);
                     row.Children.Add(change);
                 }
                 _body.Children.Add(row);
@@ -308,16 +321,13 @@ namespace HsbgCardLookup.Ui
         private static Color Mix(Color a, Color b, double t) =>
             Color.FromRgb((byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
-        private Ellipse Portrait(string heroId, double size)
+        private Ellipse Portrait(BgCard card, double size)
         {
             var e = new Ellipse
             {
                 Width = size, Height = size, Fill = UiKit.Br(Color.FromRgb(0x23, 0x2B, 0x3B)), Stroke = UiKit.StrokeBrush, StrokeThickness = 1,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            // A hero skin is its own card ("TB_BaconShop_HERO_90_SKIN_G"); we draw the hero it dresses.
-            BgCard card = null;
-            try { card = heroId == null ? null : _store?.Lookup(Regex.Replace(heroId, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(heroId); } catch { }
             if (card == null) return e;
             Action<BitmapSource> set = bmp => e.Fill = new ImageBrush(bmp) { Viewbox = HeroArt, ViewboxUnits = BrushMappingMode.RelativeToBoundingBox, Stretch = Stretch.UniformToFill };
             try
