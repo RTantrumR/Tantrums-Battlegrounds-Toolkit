@@ -127,7 +127,7 @@ namespace HsbgCardLookup.Ui
             // "<page> full": the whole window (side menu and all) instead of the page alone.
             bool full = page.EndsWith(" full", StringComparison.Ordinal);
             if (full) page = page.Substring(0, page.Length - 5).Trim();
-            if (page == "tools") BuildTools(); else if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
+            if (page == "current") { } else if (page == "tools") BuildTools(); else if (page == "mmr") BuildMmr(); else if (page == "boards") BuildBoards(); else if (page == "search") BuildCardSearch();
             else if (page == "app") BuildUpdates(); else if (page == "gifts") BuildDarkGifts(); else if (page == "config") BuildConfig(); else if (page == "data") BuildMatchData();
             else if (page == "trinkets") BuildTrinkets(); else if (page == "anomaly") BuildAnomaly(); else BuildPanels();
             Action shoot = null;

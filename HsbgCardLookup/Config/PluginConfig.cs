@@ -157,6 +157,8 @@ namespace HsbgCardLookup.Config
         // element, so the first start of 1.1 opens the settings on the Config page (the new default
         // layout is one click there). A fresh install is shown them by its own welcome.
         public bool ConfigOffered { get; set; }
+        /// <summary>The newest patch-notes version the player has opened on App &amp; updates; the tab says "New" until then.</summary>
+        public string NotesSeen { get; set; }
         /// <summary>This start is the one that offers them.</summary>
         [XmlIgnore] public bool OfferConfig { get; private set; }
 

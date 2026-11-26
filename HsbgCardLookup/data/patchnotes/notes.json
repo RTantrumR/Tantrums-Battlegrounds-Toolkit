@@ -1,0 +1,20 @@
+{
+  "_comment": "The in-app patch notes, newest version first. An entry's title and text are the catalog keys notes.v<version digits>.<id>.title / .text (data/ui/*.json). image: a file in this folder. page: the settings page \"Show me\" opens (panels, mmr, boards, gifts, search, trinkets, anomaly, tools, config, data, app, language); row: the catalog key of the setting's label there, or text: the label as written.",
+  "versions": [
+    {
+      "version": "1.1.0",
+      "releaseUrl": "https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit/releases/tag/v1.1.0",
+      "entries": [
+        { "id": "session", "image": "v110-session.jpg", "page": "panels", "row": "settings.session.label" },
+        { "id": "layout", "image": "v110-layout.jpg", "page": "panels", "row": "settings.panels.compactRows" },
+        { "id": "ready", "image": "v110-ready.jpg", "page": "config", "text": "Default Standalone (Recommended)" },
+        { "id": "lobbytypes", "image": "v110-lobbytypes.jpg", "page": "panels", "row": "settings.lobbyTribes.layout" },
+        { "id": "sizes", "image": "v110-sizes.jpg", "page": "mmr", "row": "settings.mmr.portraitTextSize" },
+        { "id": "bell", "image": "v110-bell.jpg", "page": "app", "row": "settings.app.arrangeBellTitle" },
+        { "id": "mods", "image": "v110-mods.jpg", "page": "tools" },
+        { "id": "ukrainian", "page": "language", "text": "Українська" },
+        { "id": "matchdata", "page": "data", "row": "settings.share.label" }
+      ]
+    }
+  ]
+}

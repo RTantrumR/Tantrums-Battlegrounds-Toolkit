@@ -381,7 +381,7 @@ namespace HsbgCardLookup.Ui
             tabs.Children.Add(NavTab(Strings.T("settings.tools.title"), BuildTools, null));
             tabs.Children.Add(NavTab(Strings.T("settings.config.title"), BuildConfig, null));
             tabs.Children.Add(NavTab(Strings.T("settings.share.header"), BuildMatchData, () => _config.ShareMatchData));
-            tabs.Children.Add(NavTab(Strings.T("settings.app.title"), BuildUpdates, null));
+            tabs.Children.Add(NavTab(Strings.T("settings.app.title"), BuildUpdates, null, badge: NotesUnseen() ? Strings.T("settings.notes.new") : null));
             tabs.Children.Add(NavTab(Strings.T("settings.language"), BuildLanguage, null, Flags.Globe(15, UiKit.AccentBrush)));
             _navNone = new TextBlock
             {
@@ -406,10 +406,22 @@ namespace HsbgCardLookup.Ui
             };
         }
 
-        private UIElement NavTab(string title, Action open, Func<bool> on, UIElement icon = null)
+        private UIElement NavTab(string title, Action open, Func<bool> on, UIElement icon = null, string badge = null)
         {
             bool active = _currentPage == open;
             var dock = new DockPanel { LastChildFill = true };
+            if (badge != null)
+            {
+                // A small gold pill: something on the page the player has not seen yet.
+                var pill = new Border
+                {
+                    Background = UiKit.AccentBrush, CornerRadius = new CornerRadius(7), Padding = new Thickness(6, 1, 6, 1),
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0),
+                    Child = new TextBlock { Text = badge, FontSize = 11, FontWeight = FontWeights.Bold, Foreground = UiKit.Br(Color.FromRgb(0x14, 0x18, 0x22)) }
+                };
+                DockPanel.SetDock(pill, Dock.Right);
+                dock.Children.Add(pill);
+            }
             if (on != null)
             {
                 // A small lamp, lit while the page's feature is on. Taller than the row's text: the
@@ -1459,13 +1471,27 @@ namespace HsbgCardLookup.Ui
             _currentPage = BuildUpdates;
             var stack = NewPage(Strings.T("settings.app.title"), sub: true);
             _onUpdatesPage = true;
+            MarkNotesSeen();
+
+            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: true));
+            stack.Children.Add(new TextBlock
+            {
+                Text = Strings.F("settings.updates.installed", _currentVersion),
+                Foreground = UiKit.TextPrimary, FontSize = 15, Margin = new Thickness(0, 0, 0, 12)
+            });
+            _updateActionsHost = new StackPanel();
+            stack.Children.Add(_updateActionsHost);
+            RepaintUpdateArea();
+
+            // What each version brought, one card per change.
+            AddNotes(stack);
 
             // Start with Windows: the standalone's own switch (HDT starts the plugin, and has its own).
             bool? autostart = null;
             try { autostart = HsbgCardLookup.Host.HostServices.Shell?.StartWithWindows; } catch { }
             if (autostart.HasValue)
             {
-                stack.Children.Add(GroupHeader(Strings.T("settings.app.startHeader"), first: true));
+                stack.Children.Add(GroupHeader(Strings.T("settings.app.startHeader")));
                 stack.Children.Add(ToggleRow(Strings.T("settings.autostart.label"), autostart.Value, v =>
                 {
                     try { HsbgCardLookup.Host.HostServices.Shell.StartWithWindows = v; } catch { }
@@ -1477,18 +1503,6 @@ namespace HsbgCardLookup.Ui
                     TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8)
                 });
             }
-
-            stack.Children.Add(GroupHeader(Strings.T("settings.updates.title"), first: !autostart.HasValue));
-
-            stack.Children.Add(new TextBlock
-            {
-                Text = Strings.F("settings.updates.installed", _currentVersion),
-                Foreground = UiKit.TextPrimary, FontSize = 15, Margin = new Thickness(0, 0, 0, 12)
-            });
-
-            _updateActionsHost = new StackPanel();
-            stack.Children.Add(_updateActionsHost);
-            RepaintUpdateArea();
 
             // The in-game bell carries the update news, so it is placed from here.
             stack.Children.Add(new Border { Height = 10 });

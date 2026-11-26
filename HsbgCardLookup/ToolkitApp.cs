@@ -738,6 +738,12 @@ namespace HsbgCardLookup
                 int n; if (int.TryParse(search.Substring(4).Trim(), out n)) try { _settings?.TestTip(n); } catch { }
                 return;
             }
+            if (search.StartsWith("note ", StringComparison.Ordinal))
+            {
+                // "note N": the N-th patch-notes entry's "Show me", as its button does.
+                int n; if (int.TryParse(search.Substring(5).Trim(), out n)) try { _settings?.TestNote(n); _settings?.TestSnap("current full@0.6", System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.png")); } catch { }
+                return;
+            }
             if (search.StartsWith("ready ", StringComparison.Ordinal))
             {
                 // "ready <name>": a ready-made config applied as its button does (settings opened unseen if closed).

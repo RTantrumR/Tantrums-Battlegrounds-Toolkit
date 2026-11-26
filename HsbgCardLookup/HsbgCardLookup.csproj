@@ -201,6 +201,7 @@
     <Compile Include="Ui\FloatingCardManager.cs" />
     <Compile Include="Ui\SettingsWindow.cs" />
     <Compile Include="Ui\SettingsSearch.cs" />
+    <Compile Include="Ui\SettingsNotes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -235,6 +236,10 @@
     </None>
     <!-- Real game frames the settings demonstrations are drawn over (captured from a replay). -->
     <None Include="data\demos\*.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- The in-app patch notes (App & updates page) and their pictures. -->
+    <None Include="data\patchnotes\*.json;data\patchnotes\*.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
