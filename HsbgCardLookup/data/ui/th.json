@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "ตัวนับเทิร์น",
   "settings.general.turnCounterOn": "เลขเทิร์นแสดงที่มุมขวาบนระหว่างแมตช์ ลากกล่องเพื่อย้าย ลากมุมเพื่อปรับขนาด",
   "settings.general.turnCounterOff": "ตัวนับเทิร์นปิดอยู่",
-  "session.title": "เซสชัน",
+  "session.title": "สรุปเซสชัน",
   "session.new": "เริ่มเซสชันใหม่",
   "settings.session.header": "เซสชัน",
   "settings.session.label": "แผงเซสชัน",

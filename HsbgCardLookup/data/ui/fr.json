@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "Compteur de tours",
   "settings.general.turnCounterOn": "Le numéro du tour s’affiche en haut à droite pendant la partie. Glissez la case pour la déplacer, son coin pour la redimensionner.",
   "settings.general.turnCounterOff": "Compteur de tours désactivé.",
-  "session.title": "Session",
+  "session.title": "Résumé de session",
   "session.new": "Démarrer une nouvelle session",
   "settings.session.header": "Session",
   "settings.session.label": "Panneau de session",

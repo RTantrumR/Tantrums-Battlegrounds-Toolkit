@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "Contatore turni",
   "settings.general.turnCounterOn": "Il numero del turno compare in alto a destra durante la partita. Trascina il riquadro per spostarlo, l'angolo per ridimensionarlo.",
   "settings.general.turnCounterOff": "Contatore turni disattivato.",
-  "session.title": "Sessione",
+  "session.title": "Riepilogo sessione",
   "session.new": "Inizia una nuova sessione",
   "settings.session.header": "Sessione",
   "settings.session.label": "Pannello sessione",

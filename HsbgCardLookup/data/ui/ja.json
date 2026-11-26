@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "ターンカウンター",
   "settings.general.turnCounterOn": "試合中、右上にターン数を表示します。ボックスをドラッグで移動、右上の角をドラッグでサイズ変更。",
   "settings.general.turnCounterOff": "ターンカウンターはオフです。",
-  "session.title": "セッション",
+  "session.title": "セッションまとめ",
   "session.new": "新しいセッションを開始",
   "settings.session.header": "セッション",
   "settings.session.label": "セッションパネル",

@@ -248,13 +248,22 @@ namespace HsbgCardLookup.Ui
             _body.Children.Clear();
 
             int? net = view.Games.Count > 0 && view.Start.HasValue && view.Current.HasValue ? view.Current - view.Start : null;
+            // The title gives way to the session's net change beside it: a long one (some languages) is cut.
             var head = new Grid();
+            head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.Children.Add(new TextBlock
             {
                 Text = Strings.T("session.title").ToUpper(CultureInfo.CurrentCulture), Foreground = UiKit.TextMuted, FontSize = 10.5 * s, FontWeight = FontWeights.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
             });
-            if (net.HasValue) head.Children.Add(ChangeText(net.Value, 13 * s, HorizontalAlignment.Right));
+            if (net.HasValue)
+            {
+                var total = ChangeText(net.Value, 13 * s, HorizontalAlignment.Right);
+                total.Margin = new Thickness(6 * s, 0, 0, 0);
+                Grid.SetColumn(total, 1);
+                head.Children.Add(total);
+            }
             _body.Children.Add(head);
 
             if (view.Current.HasValue)

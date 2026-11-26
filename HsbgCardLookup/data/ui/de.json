@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "Zugzähler",
   "settings.general.turnCounterOn": "Die Zugnummer erscheint während einer Partie oben rechts. Zieht das Feld zum Verschieben, die Ecke zum Ändern der Größe.",
   "settings.general.turnCounterOff": "Zugzähler aus.",
-  "session.title": "Sitzung",
+  "session.title": "Sitzungsübersicht",
   "session.new": "Neue Sitzung starten",
   "settings.session.header": "Sitzung",
   "settings.session.label": "Sitzungs-Panel",

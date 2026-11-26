@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "回合计数",
   "settings.general.turnCounterOn": "对局中在右上角显示当前回合数。拖动方框可移动，拖动其右上角可调整大小。",
   "settings.general.turnCounterOff": "回合计数已关闭。",
-  "session.title": "本次游戏",
+  "session.title": "本次游戏回顾",
   "session.new": "开始新的统计",
   "settings.session.header": "本次游戏",
   "settings.session.label": "本次游戏面板",

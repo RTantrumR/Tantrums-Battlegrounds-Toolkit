@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "Licznik tur",
   "settings.general.turnCounterOn": "Numer tury pokazuje się w prawym górnym rogu podczas meczu. Przeciągnij pole, by je przesunąć, a jego róg, by zmienić rozmiar.",
   "settings.general.turnCounterOff": "Licznik tur wyłączony.",
-  "session.title": "Sesja",
+  "session.title": "Podsumowanie sesji",
   "session.new": "Rozpocznij nową sesję",
   "settings.session.header": "Sesja",
   "settings.session.label": "Panel sesji",

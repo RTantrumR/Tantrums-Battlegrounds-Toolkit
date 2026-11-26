@@ -136,7 +136,7 @@
   "settings.general.turnCounter": "턴 카운터",
   "settings.general.turnCounterOn": "경기 중 오른쪽 위에 현재 턴이 표시됩니다. 상자를 끌어 옮기고, 모서리를 끌어 크기를 조절하세요.",
   "settings.general.turnCounterOff": "턴 카운터 꺼짐.",
-  "session.title": "세션",
+  "session.title": "세션 요약",
   "session.new": "새 세션 시작",
   "settings.session.header": "세션",
   "settings.session.label": "세션 패널",
