@@ -59,6 +59,7 @@ namespace HsbgCardLookup.Ui
         private const double DefaultXF = 0.005, DefaultYF = 0.008;
         private const double BodyWidth = 222, SummaryWidth = 120;   // at scale 1, with the matches and without: the same whatever the numbers
         private const double NameWidth = 118, ChangeWidth = 40, NameSize = 15, MinNameSize = 9;
+        private const double CompactWidth = 156, CompactName = 112;   // two-line rows: a portrait and a name wide
         public const int MinGames = 1, MaxGames = 10;
 
         private readonly PluginConfig _config;
@@ -220,11 +221,12 @@ namespace HsbgCardLookup.Ui
             }
             if (_scale <= 0 && canvas.ActualHeight > 0)
             {
-                _scale = Clamp(canvas.ActualHeight / 1080.0, MinScale, MaxScale);
+                // Two-line rows start a quarter larger: about the width of the strip left of the leaderboard.
+                _scale = Clamp((_config.CompactRows ? 1.25 : 1) * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
                 Save();
             }
             int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));
-            string sig = string.Join("|", new[] { duos ? "d" : "s", _config.SessionShowGames ? "g" : "", view.Start?.ToString(), view.Current?.ToString(), Strings.Web, _scale.ToString("0.###", CultureInfo.InvariantCulture) }
+            string sig = string.Join("|", new[] { duos ? "d" : "s", _config.SessionShowGames ? "g" : "", _config.CompactRows ? "2" : "1", view.Start?.ToString(), view.Current?.ToString(), Strings.Web, _scale.ToString("0.###", CultureInfo.InvariantCulture) }
                 .Concat(view.Games.Take(rows).Select(g => g.Hero + ":" + g.Place + ":" + g.Change)));
             _view = view;
             bool rebuilt = sig != _shown;
@@ -242,7 +244,7 @@ namespace HsbgCardLookup.Ui
             double s = _scale;
             _root.Padding = new Thickness(9 * s, 6 * s, 9 * s, 7 * s);
             _handle.Margin = new Thickness(0, 2 - 6 * s, 2 - 9 * s, 0);     // in the box's own corner, whatever the padding
-            _body.MinWidth = (_config.SessionShowGames ? BodyWidth : SummaryWidth) * s;
+            _body.MinWidth = (!_config.SessionShowGames ? SummaryWidth : _config.CompactRows ? CompactWidth : BodyWidth) * s;
             _body.Children.Clear();
 
             int? net = view.Games.Count > 0 && view.Start.HasValue && view.Current.HasValue ? view.Current - view.Start : null;
@@ -278,16 +280,17 @@ namespace HsbgCardLookup.Ui
             {
                 if (!first) _body.Children.Add(Line(0.4, new Thickness(0)));
                 first = false;
+                // A hero skin is its own card ("TB_BaconShop_HERO_90_SKIN_G"); we show the hero it dresses.
+                // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
+                BgCard hero = null;
+                try { hero = g.Hero == null ? null : _store?.Lookup(Regex.Replace(g.Hero, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(g.Hero); } catch { }
+                if (_config.CompactRows) { _body.Children.Add(CompactRow(g, hero, most, s)); continue; }
                 var row = new Grid { Height = 33 * s };
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ChangeWidth * s) });
-                // A hero skin is its own card ("TB_BaconShop_HERO_90_SKIN_G"); we show the hero it dresses.
-                // A hero our card data doesn't hold (gone from the game since) has no picture and no name.
-                BgCard hero = null;
-                try { hero = g.Hero == null ? null : _store?.Lookup(Regex.Replace(g.Hero, "_SKIN_[A-Za-z0-9]+$", "")) ?? _store?.Lookup(g.Hero); } catch { }
                 row.Children.Add(Portrait(hero, 29 * s));
                 var name = new TextBlock
                 {
@@ -318,6 +321,45 @@ namespace HsbgCardLookup.Ui
                 }
                 _body.Children.Add(row);
             }
+        }
+
+        // The two-line form: the portrait beside both lines, the name on the first, the place and the
+        // rating change at the two ends of the second.
+        private FrameworkElement CompactRow(SessionGame g, BgCard hero, int most, double s)
+        {
+            var row = new Grid { Margin = new Thickness(0, 3 * s, 0, 3 * s) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var portrait = Portrait(hero, 36 * s);
+            Grid.SetRowSpan(portrait, 2);
+            row.Children.Add(portrait);
+            var name = new TextBlock
+            {
+                Text = hero?.DisplayName ?? "", Foreground = UiKit.TextSecondary, FontSize = NameSize * s, TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = CompactName * s, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7 * s, 0, 0, 0)
+            };
+            name.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            if (name.DesiredSize.Width > CompactName * s)
+                name.FontSize = Math.Max(MinNameSize * s, NameSize * s * CompactName * s / name.DesiredSize.Width * 0.97);
+            Grid.SetColumn(name, 1); Grid.SetColumnSpan(name, 2);
+            row.Children.Add(name);
+            var place = new TextBlock
+            {
+                Text = g.Place.ToString(CultureInfo.InvariantCulture), FontSize = 16 * s, FontWeight = FontWeights.Bold, Foreground = Frozen(PlaceColor(g.Place, most)),
+                Margin = new Thickness(7 * s, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left
+            };
+            Grid.SetColumn(place, 1); Grid.SetRow(place, 1);
+            row.Children.Add(place);
+            if (g.Change.HasValue)
+            {
+                var change = ChangeText(g.Change.Value, 15 * s, HorizontalAlignment.Right);
+                Grid.SetColumn(change, 2); Grid.SetRow(change, 1);
+                row.Children.Add(change);
+            }
+            return row;
         }
 
         private static Rectangle Line(double opacity, Thickness margin) => new Rectangle

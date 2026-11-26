@@ -148,9 +148,14 @@ namespace HsbgCardLookup.Config
         // Floating boxes assemble into one when dragged together (lobby types, sidebar, turn counter).
         // PanelLinks holds the joins, "child>parent:Side" (see Ui\PanelDock.cs).
         public bool AssemblePanels { get; set; } = true;
-        // Joined boxes are sized to one another (one width when stacked, one height side by side); off =
-        // they join at the sizes they have and the dock never resizes one.
-        public bool AssembleMatchSizes { get; set; } = true;
+        // What a join does to its boxes: "Stretch" (default: stacked boxes take the widest one's width,
+        // side by side the tallest one's height, their text unchanged), "Scale" (the smaller box is
+        // enlarged, text and all, until it matches: the rule until 2026-11-26) or "None" (they join at
+        // the sizes they have).
+        public string AssembleFit { get; set; } = "Stretch";
+        // Rows of the sidebar and of the session box on two lines (the name, and its numbers under it):
+        // a box as wide as a name, for the strip left of the game's leaderboard. On at a first run.
+        public bool CompactRows { get; set; }
         public System.Collections.Generic.List<string> PanelLinks { get; set; } = new System.Collections.Generic.List<string>();
 
         // The match's turn number in a small box, top right; XF = its RIGHT edge, WF = its scale
@@ -369,6 +374,10 @@ namespace HsbgCardLookup.Config
                 TavernTierMode = "Portraits",
                 OpponentTribeMode = "Portraits",
                 ShowDarkGifts = true,
+                // The left strip, from under the opponent's name to above the player's: lobby types, the
+                // sidebar, the session, as one column (owner, 2026-11-26).
+                CompactRows = true,
+                PanelLinks = new System.Collections.Generic.List<string> { "sidebar>tribes:Bottom", "session>sidebar:Bottom" },
             };
         }
 

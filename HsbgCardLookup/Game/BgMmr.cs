@@ -602,6 +602,7 @@ namespace HsbgCardLookup.Game
             _panel.ShowTiers = TiersInPanel;
             _panel.ShowTribes = TribesInPanel;
             _panel.DimDead = _config.DimDeadPlayers;
+            _panel.TwoLines = _config.CompactRows;
         }
 
         // Static so anything that renders the same surfaces (the settings preview) reads an axis

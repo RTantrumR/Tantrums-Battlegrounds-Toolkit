@@ -953,14 +953,19 @@ namespace HsbgCardLookup.Ui
                 _status.Text = v ? Strings.T("settings.general.assembleOn") : Strings.T("settings.general.assembleOff");
                 Changed();
             }));
-            var matchSizes = ToggleRow(Strings.T("settings.general.assembleFit"), _config.AssembleMatchSizes, v =>
-            {
-                _config.AssembleMatchSizes = v;
-                _status.Text = v ? Strings.T("settings.general.assembleFitOn") : Strings.T("settings.general.assembleFitOff");
-                Changed();
-            });
+            var matchSizes = CycleRow(Strings.T("settings.general.assembleFit"),
+                new[] { "Stretch", "Scale", "None" },
+                new[] { Strings.T("settings.general.assembleFitStretch"), Strings.T("settings.general.assembleFitScale"), Strings.T("settings.general.assembleFitNone") },
+                new[] { Strings.T("settings.general.assembleFitStretchHint"), Strings.T("settings.general.assembleFitOn"), Strings.T("settings.general.assembleFitOff") },
+                () => _config.AssembleFit == "Scale" || _config.AssembleFit == "None" ? _config.AssembleFit : "Stretch", v => _config.AssembleFit = v);
             FollowPart(matchSizes, () => _config.AssemblePanels);
             stack.Children.Add(matchSizes);
+            stack.Children.Add(ToggleRow(Strings.T("settings.panels.compactRows"), _config.CompactRows, v =>
+            {
+                _config.CompactRows = v;
+                _status.Text = v ? Strings.T("settings.panels.compactRowsOn") : Strings.T("settings.panels.compactRowsOff");
+                Changed();
+            }));
             if (!_indexing)
             {
                 try { stack.Children.Add(SettingsDemos.Assemble(_config)); } catch { }

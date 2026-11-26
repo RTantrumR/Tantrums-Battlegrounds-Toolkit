@@ -392,6 +392,7 @@ namespace HsbgCardLookup.Ui
             side.ShowTiers = Game.BgMmr.TiersInPanelFor(config);
             side.ShowTribes = Game.BgMmr.TribesInPanelFor(config);
             side.DimDead = config.DimDeadPlayers;
+            side.TwoLines = config.CompactRows;
             side.SetStandings(MmrSidePanel.SampleRows(false));
 
             // The types boxes, the real ones, in the user's look.

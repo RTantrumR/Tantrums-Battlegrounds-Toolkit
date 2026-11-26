@@ -105,6 +105,7 @@ namespace HsbgCardLookup.Ui
                 _panel.ShowTiers = Game.BgMmr.TiersInPanelFor(_config);
                 _panel.ShowTribes = Game.BgMmr.TribesInPanelFor(_config);
                 _panel.DimDead = _config.DimDeadPlayers;
+                _panel.TwoLines = _config.CompactRows;
                 _panel.IsDuos = _duos;
 
                 _panel.SetStandings(MmrSidePanel.SampleRows(_duos));

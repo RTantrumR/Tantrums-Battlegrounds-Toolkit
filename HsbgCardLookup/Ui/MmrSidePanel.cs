@@ -39,7 +39,7 @@ namespace HsbgCardLookup.Ui
         private bool _docks;
         // A join can make the box wider than its rows: they then sit in its middle. Only the rows, so
         // the resize arrow stays in the box's own corner.
-        public void JoinDock() { _docks = true; _list.HorizontalAlignment = HorizontalAlignment.Center; PanelDock.Register(this); }
+        public void JoinDock() { _docks = true; PanelDock.Register(this); }
         public double DockScale
         {
             // Off screen the settled width is the one that counts: the laid-out one is from its last showing.
@@ -70,6 +70,7 @@ namespace HsbgCardLookup.Ui
         private const double DefaultXF = 0.005, DefaultYF = 0.30;
         private const double MaxNameW = 90;       // reference px; a longer name is set smaller, down to MinNameScale, then cut
         private const double NameSize = 12.5, MinNameScale = 0.72;
+        private const double MaxNameW2 = 112;     // the name's line in the two-line form: the row is this wide
 
         /// <summary>What fills the name column: "Battletags", "Heroes" or "Off". See
         /// <see cref="PluginConfig.PanelNameMode"/>.</summary>
@@ -80,6 +81,10 @@ namespace HsbgCardLookup.Ui
         /// <summary>The minion-type icon column (most common type on the player's last-known board).</summary>
         public bool ShowTribes { get; set; } = true;
         public bool DimDead { get; set; } = true;
+        /// <summary>A player takes two lines: the name, and under it the rating, tier and minion type. The
+        /// box is then about as wide as a name, which fits the strip left of the game's own leaderboard at a
+        /// text size that one-line rows only reach at twice the width.</summary>
+        public bool TwoLines { get; set; }
         /// <summary>Duos: rows arrive team-ordered (pairs 0+1, 2+3, …) — a wider gap separates teams.</summary>
         public bool IsDuos { get; set; }
 
@@ -167,7 +172,7 @@ namespace HsbgCardLookup.Ui
             foreach (var c in _cols) _list.ColumnDefinitions.Add(c);
 
             // Rows run team, team-divider, team, … so a duos place number can span its pair.
-            for (int r = 0; r < MaxSlots + _teamDividers.Length; r++)
+            for (int r = 0; r < 2 * MaxSlots + _teamDividers.Length; r++)
                 _list.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             for (int t = 0; t < _placeSpans.Length; t++)
@@ -180,7 +185,7 @@ namespace HsbgCardLookup.Ui
                     TextAlignment = TextAlignment.Right,
                     Visibility = Visibility.Collapsed
                 };
-                Grid.SetColumn(span, ColPlace); Grid.SetRow(span, RowOf(t * 2)); Grid.SetRowSpan(span, 2);
+                Grid.SetColumn(span, ColPlace); Grid.SetRow(span, RowOf(t * 2)); Grid.SetRowSpan(span, 4);
                 _list.Children.Add(span);
                 _placeSpans[t] = span;
 
@@ -199,7 +204,7 @@ namespace HsbgCardLookup.Ui
                     var name = new TextBlock
                     {
                         Foreground = Brushes.White, FontWeight = FontWeights.SemiBold,
-                        TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap,
+                        TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, HorizontalAlignment = HorizontalAlignment.Left,
                         VerticalAlignment = VerticalAlignment.Center
                     };
                     var arrow = new TextBlock
@@ -248,7 +253,7 @@ namespace HsbgCardLookup.Ui
                         Opacity = 0.6,
                         Visibility = Visibility.Collapsed
                     };
-                    Grid.SetRow(d, RowOf(t * 2 + 1) + 1);
+                    Grid.SetRow(d, RowOf(t * 2 + 1) + 2);
                     Grid.SetColumn(d, 0); Grid.SetColumnSpan(d, ColCount);
                     _teamDividers[t] = d;
                     _list.Children.Add(d);
@@ -359,7 +364,8 @@ namespace HsbgCardLookup.Ui
         }
 
         // Grid row for player slot i: two players per team, then a divider row between teams.
-        private static int RowOf(int slot) => slot + slot / 2;
+        // A player's first grid row: two rows each (name line, numbers line), and a divider row after every pair.
+        private static int RowOf(int slot) => 2 * slot + slot / 2;
 
         private void SetRowVisible(int i, bool on)
         {
@@ -519,7 +525,7 @@ namespace HsbgCardLookup.Ui
             // A part switched on or off changes the width, more or fewer rows the height: tell the dock
             // HERE, once the columns really are rebuilt. A settings change invalidates the dock straight
             // away, but that measures the box before this update has run, so every fit came one change late.
-            string shape = n + (IsDuos ? "d" : "s") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
+            string shape = n + (IsDuos ? "d" : "s") + (TwoLines ? "2" : "1") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
             bool changed = shape != _shape || _root.Visibility != Visibility.Visible;
             _shape = shape;
 
@@ -606,7 +612,9 @@ namespace HsbgCardLookup.Ui
             {
                 if (_wpx <= 0)
                 {
-                    _wpx = Clamp(_wf > 0 ? _wf * cw : RefW * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
+                    // Never sized before: two-line rows start half as large again, which makes the box about as
+                    // wide as the strip left of the leaderboard (213 px at 1080p).
+                    _wpx = Clamp(_wf > 0 ? _wf * cw : RefW * (TwoLines ? 1.5 : 1) * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
                     try { WidthSettled?.Invoke(_wpx); } catch { }
                 }
                 _wf = _wpx / cw;
@@ -632,25 +640,37 @@ namespace HsbgCardLookup.Ui
                 span.MinWidth = 13 * s;
                 span.Margin = new Thickness(0);
             }
+            bool two = TwoLines;
+            double statSize = (two ? 11.5 : 12.5) * s, tierH = (two ? 16 : 20) * s, tribeD = (two ? 15 : 17) * s, countSize = (two ? 12.5 : 13.5) * s;
             for (int i = 0; i < MaxSlots; i++)
             {
+                int row = RowOf(i), line2 = two ? row + 1 : row;
+                double top = 1.5 * s, bottom = 1.5 * s;
+                // One line: every part in its own column of the player's row. Two lines: the place beside
+                // both, the name across the first, and under it the rating at the left with the tier and
+                // the type at the right.
+                Grid.SetRowSpan(_places[i], two ? 2 : 1);
+                Grid.SetColumnSpan(_names[i], two ? ColCount - ColName : 1);
+                Grid.SetRow(_arrows[i], line2); Grid.SetRow(_ratings[i], line2); Grid.SetRow(_tiers[i], line2); Grid.SetRow(_tribeCells[i], line2);
+                Grid.SetColumn(_ratings[i], two ? ColName : ColRating);
+                _ratings[i].HorizontalAlignment = two ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+
                 _places[i].FontSize = 11.5 * s;
                 _places[i].MinWidth = 13 * s;   // so 1..8 all occupy one column width
-                _places[i].Margin = new Thickness(0, 1.5 * s, 0, 1.5 * s);
-                _names[i].Margin = new Thickness(5 * s, 1.5 * s, 0, 1.5 * s);
-                // Cap the name rather than letting it widen the panel without limit: a long battletag
-                // is trimmed with an ellipsis instead of pushing the rating off to the right.
-                _names[i].MaxWidth = MaxNameW * s;
-                _arrows[i].FontSize = 10.5 * s;
-                _arrows[i].Margin = new Thickness(9 * s, 1.5 * s, 0, 1.5 * s);
-                _ratings[i].FontSize = 12.5 * s;
-                _ratings[i].Margin = new Thickness(5 * s, 1.5 * s, 0, 1.5 * s);
-                _tiers[i].Height = 20 * s;
-                _tiers[i].Margin = new Thickness(4 * s, 1.5 * s, 0, 1.5 * s);
-                _tribeCells[i].Margin = new Thickness(4 * s, 1.5 * s, 0, 1.5 * s);
-                _tribes[i].Width = _tribes[i].Height = 17 * s;   // reads as the tier shield's size (a disc fills its box, a shield doesn't)
+                _places[i].Margin = new Thickness(0, top, 0, bottom);
+                _names[i].Margin = new Thickness(5 * s, top, 0, two ? 0 : bottom);
+                // Cap the name rather than letting it widen the panel without limit (see FitNames).
+                _names[i].MaxWidth = (two ? MaxNameW2 : MaxNameW) * s;
+                _arrows[i].FontSize = (two ? 9.5 : 10.5) * s;
+                _arrows[i].Margin = new Thickness((two ? 4 : 9) * s, two ? 0 : top, 0, bottom);
+                _ratings[i].FontSize = statSize;
+                _ratings[i].Margin = new Thickness(5 * s, two ? 0 : top, 0, bottom);
+                _tiers[i].Height = tierH;
+                _tiers[i].Margin = new Thickness(4 * s, two ? 0 : top, 0, bottom);
+                _tribeCells[i].Margin = new Thickness(4 * s, two ? 0 : top, 0, bottom);
+                _tribes[i].Width = _tribes[i].Height = tribeD;   // reads as the tier shield's size (a disc fills its box, a shield doesn't)
                 _tribes[i].StrokeThickness = 1.2 * s;
-                _tribeCounts[i].FontSize = 13.5 * s;
+                _tribeCounts[i].FontSize = countSize;
                 _tribeCounts[i].Margin = new Thickness(2 * s, 0, 0, 0);
             }
 
@@ -659,29 +679,43 @@ namespace HsbgCardLookup.Ui
             // the data: a short name, a missing tier or an unknown rating no longer narrow it, so a box
             // joined to it is fitted once and stays fitted (Auto columns made the sidebar grow as names
             // arrived, and the fit chased it). A part switched off still gives its column back.
+            // The name's column is the one that takes spare room when the box is stretched (a joined
+            // box as wide as its neighbour): a star column with the fixed width as its least.
             double pxPerDip = 1;
             try { pxPerDip = VisualTreeHelper.GetDpi(_root).PixelsPerDip; } catch { }
-            double[] fixedW =
+            double wDelta = (two ? 4 : 9) * s + TextW(_arrows[0], "\u25BC888", (two ? 9.5 : 10.5) * s, pxPerDip);   // up / down and up to 3 digits
+            double wRating = 5 * s + Math.Max(TextW(_ratings[0], "88888", statSize, pxPerDip), TextW(_ratings[0], "8000\u2193", statSize, pxPerDip));
+            double wTier = 4 * s + tierH;
+            double wTribe = 4 * s + tribeD + 2 * s + TextW(_tribeCounts[0], "8", countSize, pxPerDip);
+            double[] fixedW = { 13 * s, 5 * s + MaxNameW * s, wDelta, wRating, wTier, wTribe };
+            bool[] used = (bool[])_colUsed.Clone();
+            if (two)
             {
-                13 * s,                                                                   // place: 1..8
-                5 * s + MaxNameW * s,                                                     // name, at its cap
-                9 * s + TextW(_arrows[0], "▼888", 10.5 * s, pxPerDip),                    // ▲/▼ and up to 3 digits
-                5 * s + Math.Max(TextW(_ratings[0], "88888", 12.5 * s, pxPerDip),
-                                 TextW(_ratings[0], "8000↓", 12.5 * s, pxPerDip)),        // 5 digits or "8000↓"
-                4 * s + 20 * s,                                                           // the tier shield
-                4 * s + 17 * s + 2 * s + TextW(_tribeCounts[0], "8", 13.5 * s, pxPerDip), // type disc + count
-            };
+                // The rating sits in the name's column, under the name; the row is as wide as the wider
+                // of its two lines.
+                double rest = (used[ColDelta] ? wDelta : 0) + (used[ColTier] ? wTier : 0) + (used[ColTribe] ? wTribe : 0);
+                double line1 = used[ColName] ? 5 * s + MaxNameW2 * s : 0, line2w = (used[ColRating] ? wRating : 0) + rest;
+                fixedW[ColName] = Math.Max(line1, line2w) - rest;
+                used[ColName] = used[ColName] || used[ColRating];
+                used[ColRating] = false;
+            }
             for (int c = 0; c < ColCount; c++)
-                _cols[c].Width = new GridLength(_colUsed[c] ? Math.Ceiling(fixedW[c]) : 0);
+            {
+                double colW = used[c] ? Math.Ceiling(fixedW[c]) : 0;
+                if (c == ColName) { _cols[c].Width = new GridLength(1, GridUnitType.Star); _cols[c].MinWidth = colW; }
+                else _cols[c].Width = new GridLength(colW);
+            }
 
             // The height with every row in, the same way: the tallest cell a row can hold, eight times,
             // the lines between teams, the padding and the border.
-            double cell = IsDuos ? 0 : TextH(_places[0], 11.5 * s, pxPerDip);      // duos: one number spans two rows
-            if (_colUsed[ColName]) cell = Math.Max(cell, TextH(_names[0], 12.5 * s, pxPerDip));
-            if (_colUsed[ColDelta]) cell = Math.Max(cell, TextH(_arrows[0], 10.5 * s, pxPerDip));
-            if (_colUsed[ColRating]) cell = Math.Max(cell, TextH(_ratings[0], 12.5 * s, pxPerDip));
-            if (_colUsed[ColTier]) cell = Math.Max(cell, 20 * s);
-            if (_colUsed[ColTribe]) cell = Math.Max(cell, Math.Max(17 * s, TextH(_tribeCounts[0], 13.5 * s, pxPerDip)));
+            double nameH = _colUsed[ColName] ? TextH(_names[0], NameSize * s, pxPerDip) : 0;
+            double statH = 0;
+            if (_colUsed[ColDelta]) statH = Math.Max(statH, TextH(_arrows[0], (two ? 9.5 : 10.5) * s, pxPerDip));
+            if (_colUsed[ColRating]) statH = Math.Max(statH, TextH(_ratings[0], statSize, pxPerDip));
+            if (_colUsed[ColTier]) statH = Math.Max(statH, tierH);
+            if (_colUsed[ColTribe]) statH = Math.Max(statH, Math.Max(tribeD, TextH(_tribeCounts[0], countSize, pxPerDip)));
+            double placeH = IsDuos ? 0 : TextH(_places[0], 11.5 * s, pxPerDip);      // duos: one number spans two rows
+            double cell = two ? Math.Max(placeH, nameH + statH) : Math.Max(placeH, Math.Max(nameH, statH));
             _fullH = MaxSlots * (cell + 3 * s) + (IsDuos ? _teamDividers.Length * (3.5 * s + 1) : 0) + 8 * s + 2;
 
             FitNames();
@@ -699,7 +733,7 @@ namespace HsbgCardLookup.Ui
             for (int i = 0; i < MaxSlots; i++)
             {
                 string text = _names[i].Text;
-                double full = NameSize * s, room = MaxNameW * s * 0.96;   // a little short of the column: a name that only just fits is cut
+                double full = NameSize * s, room = (TwoLines ? MaxNameW2 : MaxNameW) * s * 0.96;   // a little short of the column: a name that only just fits is cut
                 double wide = string.IsNullOrEmpty(text) ? 0 : TextW(_names[i], text, full, pxPerDip);
                 _names[i].FontSize = wide > room ? full * Math.Max(MinNameScale, room / wide) : full;
             }

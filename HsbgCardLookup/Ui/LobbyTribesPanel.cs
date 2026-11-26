@@ -50,7 +50,7 @@ namespace HsbgCardLookup.Ui
                                                   // wide per type, a longer name is set smaller instead
         private const double LabelSize = 13, MinLabelSize = 6;    // a name is this large unless its length asks for less
         private const double MinScale = 0.4, MaxScale = 4.8;   // of the settled (pixel) scale
-        private const double DefaultXF = 0.005, DefaultYF = 0.115;
+        private const double DefaultXF = 0.004, DefaultYF = 0.098;   // under the opponent's name
 
         /// <summary>English tribe name → the label to draw (the card language's vocabulary).</summary>
         public static Func<string, string> TribeLabel;

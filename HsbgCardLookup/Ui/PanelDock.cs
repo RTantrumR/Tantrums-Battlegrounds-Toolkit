@@ -147,9 +147,11 @@ namespace HsbgCardLookup.Ui
 
         // A join's shared dimension: the width of two stacked boxes, the height of two side by side.
         private static bool Stacked(DockSide s) => s == DockSide.Top || s == DockSide.Bottom;
-        // With AssembleMatchSizes off nothing fits anything: joined boxes keep the sizes they have.
+        // Two joined boxes that agree to share a width (stacked) or a height are brought to it by
+        // stretching the smaller one (its text unchanged) and, under "Scale" only, by sizing it up first.
         private static bool Fits(IDockPanel a, IDockPanel b, bool stacked) =>
-            _config != null && _config.AssembleMatchSizes && a.DockStretches(stacked) && b.DockStretches(stacked);
+            _config != null && _config.AssembleFit != "None" && a.DockStretches(stacked) && b.DockStretches(stacked);
+        private static bool Scales => _config != null && _config.AssembleFit == "Scale";
         private static double Across(FrameworkElement r, bool stacked) => stacked ? r.ActualWidth : r.ActualHeight;
         private static double MinAcross(FrameworkElement r, bool stacked) => stacked ? r.MinWidth : r.MinHeight;
         private static void SetMinAcross(FrameworkElement r, bool stacked, double v) { if (stacked) r.MinWidth = v; else r.MinHeight = v; }
@@ -291,6 +293,7 @@ namespace HsbgCardLookup.Ui
         // one box of it is sized. False = every pair fits.
         private static bool Fit()
         {
+            if (!Scales) return false;
             bool sized = false;
             Pairs((p, parent, stacked) =>
             {
@@ -597,7 +600,7 @@ namespace HsbgCardLookup.Ui
             bool stacked = Stacked(side);
             if (canvas != null && Shown(child) && Shown(parent)
                 && !parentSide.Contains(child)           // two groups meeting, not a group re-linked within itself
-                && Fits(child, parent, stacked))
+                && Scales && Fits(child, parent, stacked))
             {
                 foreach (var q in childSide.Concat(parentSide)) Unstretch(q.DockRoot);
                 for (int pass = 0; pass < 3; pass++)

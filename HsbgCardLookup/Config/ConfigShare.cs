@@ -56,7 +56,7 @@ namespace HsbgCardLookup.Config
             "ShowTrinkets", "ShowAnomaly", "LesserTrinketHud", "GreaterTrinketHud", "Trinket3Hud", "Trinket4Hud", "AnomalyHud",
             "ShowOpponentMmr", "OpponentMmrMode", "OpponentNameMode", "OpponentNameType", "ShowMmrDeltas", "TavernTierMode",
             "ShowLastOpponent", "DimDeadPlayers", "OpponentTribeMode", "PortraitTextSize", "PortraitIconSize", "MmrPanelHud",
-            "ShowLobbyTribes", "LobbyTribesLayout", "LobbyTribesStyle", "ShowBannedTribes", "LobbyTribesHud", "AssemblePanels", "AssembleMatchSizes", "PanelLinks", "ShowTurnCounter", "TurnCounterHud", "ShowSessionPanel", "SessionShowGames", "SessionGames", "SessionHud",
+            "ShowLobbyTribes", "LobbyTribesLayout", "LobbyTribesStyle", "ShowBannedTribes", "LobbyTribesHud", "AssemblePanels", "AssembleFit", "CompactRows", "PanelLinks", "ShowTurnCounter", "TurnCounterHud", "ShowSessionPanel", "SessionShowGames", "SessionGames", "SessionHud",
             "ShowOpponentBoards", "BoardPinOnClick", "OpponentBoardsHud",
             "ShowDarkGifts", "DarkGiftMode", "DarkGiftPoolCount",
         };
