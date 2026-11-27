@@ -347,7 +347,7 @@ namespace Toolkit.Standalone
                     bool ok = PrintWindow(HsWindow.Find(), dc, 0x1 | 0x2);   // PW_CLIENTONLY | PW_RENDERFULLCONTENT
                     g.ReleaseHdc(dc);
                     if (!ok) return "PrintWindow failed";
-                    if (ActualWidth > 0 && _drawn)
+                    if (ActualWidth > 0)
                     {
                         var dpi = VisualTreeHelper.GetDpi(this);
                         var rtb = new RenderTargetBitmap(w, h, 96 * dpi.DpiScaleX, 96 * dpi.DpiScaleY, PixelFormats.Pbgra32);
@@ -363,7 +363,7 @@ namespace Toolkit.Standalone
                 }
                 bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
             }
-            return "saved " + w + "x" + h + (_drawn ? "" : " (overlay faded)");
+            return "saved " + w + "x" + h + (_drawn ? "" : " (overlay faded on screen, drawn here anyway)");
         }
     }
 }
