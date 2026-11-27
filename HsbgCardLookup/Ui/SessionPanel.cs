@@ -164,8 +164,8 @@ namespace HsbgCardLookup.Ui
             {
                 var game = HostServices.Game; var memory = HostServices.Memory;
                 bool sample = OpponentBoardPanel.TestBoard || TestSession;   // the sample board's test aid shows a sample session too
-                bool inMatch = game != null && game.IsBattlegroundsMatch;
-                bool onMenu = !inMatch && memory != null && memory.OnBattlegroundsMenu;
+                bool inMatch = PanelDock.TestInMatch(game != null && game.IsBattlegroundsMatch);
+                bool onMenu = !inMatch && (PanelDock.TestScene == "menu" || memory != null && memory.OnBattlegroundsMenu);
                 if (!inMatch) _matchSince = null; else if (_matchSince == null) _matchSince = DateTime.UtcNow;
                 if (!_config.ShowSessionPanel || ArrangeSession.IsActive || !(inMatch || onMenu || sample)) { Hide(); return; }
 
@@ -174,7 +174,7 @@ namespace HsbgCardLookup.Ui
                 var now = DateTime.UtcNow;
                 if (onMenu && (now - _lastReload).TotalSeconds > 60) { _lastReload = now; _session.Reload(); }
 
-                bool duos = inMatch ? game.IsBattlegroundsDuosMatch : _session.LastWasDuos;
+                bool duos = inMatch && game != null ? game.IsBattlegroundsDuosMatch : _session.LastWasDuos;
                 int? client = null;
                 try { client = memory?.OwnRating(duos); } catch { }
                 var view = sample ? Sample() : _session.View(duos, _matchSince ?? now, new DateTime(Math.Max(0, _config.SessionResetTicks), DateTimeKind.Utc), client);

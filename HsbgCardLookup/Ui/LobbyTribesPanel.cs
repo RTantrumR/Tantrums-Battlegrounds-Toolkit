@@ -180,8 +180,8 @@ namespace HsbgCardLookup.Ui
             {
                 if (!_config.ShowLobbyTribes || ArrangeSession.IsActive) { Hide(); return; }
                 bool inMatch = _active && InBgMatch();
-                if (!inMatch && _tribes.Count > 0) { _tribes = new List<string>(); _banned = null; }
-                if (inMatch && _tribes.Count < 5 && DateTime.UtcNow >= _nextRead)
+                if ((!inMatch || PanelDock.TestScene != null) && _tribes.Count > 0) { _tribes = new List<string>(); _banned = null; }
+                if (inMatch && PanelDock.TestScene == null && _tribes.Count < 5 && DateTime.UtcNow >= _nextRead)
                 {
                     _nextRead = DateTime.UtcNow.AddSeconds(1);
                     var races = HostServices.Memory?.LobbyTribes();
@@ -201,7 +201,7 @@ namespace HsbgCardLookup.Ui
 
         private static bool InBgMatch()
         {
-            try { return HostServices.Game?.IsBattlegroundsMatch == true; } catch { return false; }
+            try { return PanelDock.TestInMatch(HostServices.Game?.IsBattlegroundsMatch == true); } catch { return false; }
         }
 
         public void OnSettingsChanged() { _shownKey = null; _banned = null; }

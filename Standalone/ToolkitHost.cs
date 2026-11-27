@@ -251,6 +251,16 @@ namespace Toolkit.Standalone
                         HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard = !HsbgCardLookup.Ui.OpponentBoardPanel.TestBoard;
                     }
 
+                    // Test aid: scene.trigger plays a scene for the dock's boxes ("menu", "start"; empty = the game).
+                    string sceneFile = Path.Combine(Shared.ExeDir, "scene.trigger");
+                    if (File.Exists(sceneFile))
+                    {
+                        string scene = "";
+                        try { scene = File.ReadAllText(sceneFile).Trim(); File.Delete(sceneFile); } catch { }
+                        HsbgCardLookup.Ui.PanelDock.TestScene = scene == "menu" || scene == "start" ? scene : null;
+                        Shared.Log("scene: " + (HsbgCardLookup.Ui.PanelDock.TestScene ?? "the game"));
+                    }
+
                     // Test aid: samplesession.trigger switches the sample session on or off, without the sample board.
                     string sessionFile = Path.Combine(Shared.ExeDir, "samplesession.trigger");
                     if (File.Exists(sessionFile))

@@ -165,6 +165,12 @@ namespace HsbgCardLookup.Ui
         // Collapsed: it takes no room and its group closes up.
         private static bool Present(IDockPanel p) => p != null && p.DockRoot.Visibility != Visibility.Collapsed && p.DockRoot.ActualHeight > 0;
 
+        /// <summary>Test aid (scene.trigger beside the exe): "menu" plays the Battlegrounds menu, "start" the
+        /// first moments of a match (no players and no types read yet), null the game as it is. Only what
+        /// the dock's boxes read is played; the game itself is not touched.</summary>
+        public static string TestScene;
+        public static bool TestInMatch(bool real) => TestScene == "menu" ? false : TestScene == "start" ? true : real;
+
         /// <summary>The overlay canvas is the game window's (not the 10x10 parking window the standalone
         /// keeps while Hearthstone is closed): a box may be laid out, and a size settled, against it.</summary>
         public static bool CanvasReady

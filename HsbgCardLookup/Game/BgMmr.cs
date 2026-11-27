@@ -87,8 +87,8 @@ namespace HsbgCardLookup.Game
                 try
                 {
                     var gg = HostServices.Game;
-                    isBg = gg != null && gg.IsBattlegroundsMatch;
-                    isDuos = isBg && gg.IsBattlegroundsDuosMatch;
+                    isBg = PanelDock.TestInMatch(gg != null && gg.IsBattlegroundsMatch);
+                    isDuos = isBg && gg != null && gg.IsBattlegroundsDuosMatch;
                 }
                 catch { }
                 // A fast requeue can go match→match without IsBattlegroundsMatch dipping false, so the
@@ -104,7 +104,7 @@ namespace HsbgCardLookup.Game
 
                 List<LeaderboardOverlay.Row> rows = null;
                 bool inMatch = isBg && !_ended;
-                if (inMatch)
+                if (inMatch && PanelDock.TestScene == null)
                 {
                     string region = CurrentRegion();
                     if (region != null) EnsureBlob(region, isDuos);
