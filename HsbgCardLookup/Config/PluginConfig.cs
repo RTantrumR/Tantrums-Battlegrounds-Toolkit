@@ -387,6 +387,7 @@ namespace HsbgCardLookup.Config
                 OpponentNameType = "Battletags",
                 TavernTierMode = "Portraits",
                 OpponentTribeMode = "Portraits",
+                ShowMmrDeltas = false,        // the owner's own setup (2026-11-27)
                 ShowDarkGifts = true,
                 // The left strip, from under the opponent's name to above the player's: lobby types, the
                 // sidebar, the session, as one column (owner, 2026-11-26). One-line rows, the joined boxes

@@ -289,7 +289,8 @@ namespace HsbgCardLookup.Ui
             if (_scale <= 0 && canvas.ActualHeight > 0)
             {
                 // Two-line rows start a quarter larger: about the width of the strip left of the leaderboard.
-                _scale = Clamp((_config.CompactRows ? 1.23 : 1) * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
+                // One-line rows at the owner's size (2026-11-27).
+                _scale = Clamp((_config.CompactRows ? 1.23 : 0.988) * canvas.ActualHeight / 1080.0, MinScale, MaxScale);
                 Save();
             }
             int rows = Math.Max(MinGames, Math.Min(MaxGames, _config.SessionGames));

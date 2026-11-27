@@ -50,7 +50,8 @@ namespace HsbgCardLookup.Ui
                                                   // wide per type, a longer name is set smaller instead
         private const double LabelSize = 13, MinLabelSize = 6;    // a name is this large unless its length asks for less
         private const double MinScale = 0.4, MaxScale = 4.8;   // of the settled (pixel) scale
-        private const double DefaultXF = 0.004, DefaultYF = 0.098;   // under the opponent's name
+        private const double DefaultXF = 0, DefaultYF = 0.0924;   // under the opponent's name (the owner's place, 2026-11-27)
+        private const double DefaultScale = 0.988;                // x height/1080 at the first showing (the owner's size)
 
         /// <summary>English tribe name → the label to draw (the card language's vocabulary).</summary>
         public static Func<string, string> TribeLabel;
@@ -82,7 +83,7 @@ namespace HsbgCardLookup.Ui
         private bool _attached;
         // _scale is the box's own scale in pixels terms once settled: at the first showing it takes the
         // game window's height into account (x height/1080), and is kept from then on (config Px).
-        private double _xf = DefaultXF, _yf = DefaultYF, _scale = 1;
+        private double _xf = DefaultXF, _yf = DefaultYF, _scale = DefaultScale;
         private bool _settled;
         private bool _dragging, _resizing, _moved;
         private Point _startCursor;
@@ -207,7 +208,7 @@ namespace HsbgCardLookup.Ui
 
         private void LoadPlacement()
         {
-            _xf = DefaultXF; _yf = DefaultYF; _scale = 1; _settled = false;
+            _xf = DefaultXF; _yf = DefaultYF; _scale = DefaultScale; _settled = false;
             var p = _config.LobbyTribesHud;
             if (p != null && p.WF > 0) { _xf = p.XF; _yf = p.YF; _scale = p.WF; }
             if (p != null && p.Px > 0) { _scale = Clamp(p.Px, MinScale, MaxScale); _settled = true; }

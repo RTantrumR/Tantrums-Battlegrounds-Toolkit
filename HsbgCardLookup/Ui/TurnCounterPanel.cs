@@ -42,8 +42,8 @@ namespace HsbgCardLookup.Ui
         }
 
         private const double MinScale = 0.4, MaxScale = 4;
-        private const double DefaultScale = 1.277;     // the owner's size on a 1920x1080 client
-        private const double DefaultXF = 0.995, DefaultYF = 0.008;
+        private const double DefaultScale = 1.458;     // the owner's size on a 1920x1080 client (2026-11-27)
+        private const double DefaultXF = 0.906, DefaultYF = 0.0024;   // right edge, top: the owner's own place for it
 
         private readonly PluginConfig _config;
         private readonly Dispatcher _ui;

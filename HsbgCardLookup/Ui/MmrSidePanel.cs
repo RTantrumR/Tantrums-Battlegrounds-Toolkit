@@ -67,7 +67,8 @@ namespace HsbgCardLookup.Ui
         private const int MaxSlots = 8;
         private const double RefW = 210;          // panel width at scale 1 (fonts are tuned to this)
         private const double MinW = 140, MaxW = 480;
-        private const double DefaultXF = 0, DefaultYF = 0.1794;   // the owner's own place for it: the strip left of the leaderboard
+        private const double DefaultXF = 0, DefaultYF = 0.1555;   // the owner's own place for it: the strip left of the leaderboard (2026-11-27)
+        private const double DefaultW = 281;      // one-line rows: the owner's width for it on a 1080p client (2026-11-27)
         private const double MaxNameW = 108;      // reference px; a longer name is cut with an ellipsis, never set smaller (owner, 2026-11-26)
         private const double NameSize = 12.5;
         private const double MaxNameW2 = 128;     // the name's line in the two-line form: the row is this wide
@@ -648,8 +649,8 @@ namespace HsbgCardLookup.Ui
                 if (_wpx <= 0)
                 {
                     // Never sized before: two-line rows start half as large again, which makes the box about as
-                    // wide as the strip left of the leaderboard (213 px at 1080p).
-                    _wpx = Clamp(_wf > 0 ? _wf * cw : RefW * (TwoLines ? 1.475 : 1) * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
+                    // wide as the strip left of the leaderboard (213 px at 1080p); one-line rows at the owner's width.
+                    _wpx = Clamp(_wf > 0 ? _wf * cw : (TwoLines ? RefW * 1.475 : DefaultW) * Math.Max(0.6, Math.Min(ch / 1080.0, 2.0)), MinW, MaxW);
                     try { WidthSettled?.Invoke(_wpx); } catch { }
                 }
                 _wf = _wpx / cw;
