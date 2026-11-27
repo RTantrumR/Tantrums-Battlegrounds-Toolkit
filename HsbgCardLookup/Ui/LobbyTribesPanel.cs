@@ -35,7 +35,7 @@ namespace HsbgCardLookup.Ui
         public double DockScale
         {
             get { return _scale; }
-            set { _scale = Clamp(value, MinScale, MaxScale); if (_root.Visibility == Visibility.Visible) Layout(); Save(false); }
+            set { _scale = Clamp(value, MinScale, MaxScale); if (_root.Visibility != Visibility.Collapsed) Layout(); Save(false); }
         }
         public void DockMoveTo(double left, double top, bool save)
         {
@@ -100,6 +100,7 @@ namespace HsbgCardLookup.Ui
         private static readonly Brush InRing = Frozen(Color.FromRgb(0x4C, 0xC8, 0x5A));
         private static readonly Brush OutRing = Frozen(Color.FromRgb(0xB8, 0x3A, 0x3A));
         private static readonly Brush CrossBrush = Frozen(Color.FromRgb(0xE5, 0x2B, 0x2B));
+        private static readonly Brush EmptyRing = Frozen(Color.FromArgb(0x99, 0x9A, 0xA3, 0xB4));   // a type not read yet
 
         public LobbyTribesPanel(PluginConfig config, Dispatcher ui)
         {
@@ -176,8 +177,10 @@ namespace HsbgCardLookup.Ui
         {
             try
             {
-                if (!_config.ShowLobbyTribes || ArrangeSession.IsActive || !_active) { Hide(); return; }
-                if (_tribes.Count < 5 && DateTime.UtcNow >= _nextRead)
+                if (!_config.ShowLobbyTribes || ArrangeSession.IsActive) { Hide(); return; }
+                bool inMatch = _active && InBgMatch();
+                if (!inMatch && _tribes.Count > 0) { _tribes = new List<string>(); _banned = null; }
+                if (inMatch && _tribes.Count < 5 && DateTime.UtcNow >= _nextRead)
                 {
                     _nextRead = DateTime.UtcNow.AddSeconds(1);
                     var races = HostServices.Memory?.LobbyTribes();
@@ -186,10 +189,18 @@ namespace HsbgCardLookup.Ui
                         foreach (int r in races) { string n = TribeTally.RaceName(r); if (n != null) names.Add(n); }
                     if (names.Count > 0) { _tribes = names; _banned = null; }
                 }
-                if (_tribes.Count == 0) { Hide(); return; }
-                Show();
+                // Whole from the start of a match: until the types are read, empty circles in their
+                // place. Out of a match laid out but not drawn, so the boxes joined to it keep their
+                // places (PanelDock.Present) — once the game window is there to lay it out against.
+                if (!inMatch && !PanelDock.CanvasReady) { Hide(); return; }
+                Show(inMatch);
             }
             catch { }
+        }
+
+        private static bool InBgMatch()
+        {
+            try { return HostServices.Game?.IsBattlegroundsMatch == true; } catch { return false; }
         }
 
         public void OnSettingsChanged() { _shownKey = null; _banned = null; }
@@ -203,7 +214,7 @@ namespace HsbgCardLookup.Ui
         }
 
         /// <summary>The saved place and size were replaced wholesale (a config import, a preset).</summary>
-        public void ReloadPlacement() { LoadPlacement(); _shownKey = null; if (_root.Visibility == Visibility.Visible) Layout(); }
+        public void ReloadPlacement() { LoadPlacement(); _shownKey = null; if (_root.Visibility != Visibility.Collapsed) Layout(); }
         public void OnLanguageChanged() { _shownKey = null; _banned = null; }
         public void CloseAll() { _ui.Invoke(new Action(() => { Hide(); RemoveHook(); })); }
 
@@ -212,14 +223,14 @@ namespace HsbgCardLookup.Ui
             if (_root.Visibility != Visibility.Collapsed) _root.Visibility = Visibility.Collapsed;
         }
 
-        private void Show()
+        private void Show(bool drawn)
         {
             var canvas = HostServices.Overlay?.Canvas;
             if (canvas == null) return;
             if (!_attached)
             {
                 canvas.Children.Add(_root);
-                canvas.SizeChanged += (s, e) => { if (_root.Visibility == Visibility.Visible) Layout(); };
+                canvas.SizeChanged += (s, e) => { if (_root.Visibility != Visibility.Collapsed) Layout(); };
                 _attached = true;
             }
             int perRow = PerRow(_config.LobbyTribesLayout);
@@ -229,10 +240,14 @@ namespace HsbgCardLookup.Ui
             if (key != _shownKey)
             {
                 _shownKey = key;
-                Build(_face, ByLabel(_tribes), banned, perRow, style);
+                // A lobby has five types; the ones not read yet are empty slots (null), drawn as rings.
+                var slots = ByLabel(_tribes);
+                while (slots.Count < 5) slots.Add(null);
+                Build(_face, slots, banned, perRow, style);
                 Layout();
             }
-            if (_root.Visibility != Visibility.Visible) { _root.Visibility = Visibility.Visible; Layout(); }
+            var want = drawn ? Visibility.Visible : Visibility.Hidden;
+            if (_root.Visibility != want) { _root.Visibility = want; Layout(); }
         }
 
         private static string Style(string style) => style == "Icons" || style == "Text" ? style : "IconsText";
@@ -330,13 +345,15 @@ namespace HsbgCardLookup.Ui
                 }
                 var c = new Cell { Marked = marked, TextOnly = style == "Text" };
                 var cell = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                bool empty = tribe == null;       // not read yet: the ring dashed, nothing inside
                 if (style != "Text")
                 {
                     c.Icon = new Ellipse
                     {
-                        Fill = TribeIcons.BrushFor(tribe), Stroke = !marked ? TribeIcons.Ring : (banned ? OutRing : InRing),
+                        Fill = empty ? null : TribeIcons.BrushFor(tribe), Stroke = empty ? EmptyRing : !marked ? TribeIcons.Ring : (banned ? OutRing : InRing),
                         HorizontalAlignment = HorizontalAlignment.Center, Opacity = banned ? 0.5 : 1
                     };
+                    if (empty) c.Icon.StrokeDashArray = new DoubleCollection { 2.2, 1.8 };
                     var art = new Grid { HorizontalAlignment = HorizontalAlignment.Center };
                     art.Children.Add(c.Icon);
                     if (banned)
@@ -355,8 +372,10 @@ namespace HsbgCardLookup.Ui
                 {
                     c.Label = new TextBlock
                     {
-                        Text = LabelOf(tribe), FontWeight = FontWeights.SemiBold,
-                        Foreground = c.TextOnly ? TribeIcons.TextBrush(tribe) : UiKit.TextPrimary,
+                        // An empty slot keeps the name's line (so the box keeps its height); in the
+                        // text-only look a dim dash stands for the name.
+                        Text = empty ? (c.TextOnly ? "—" : "") : LabelOf(tribe), FontWeight = FontWeights.SemiBold,
+                        Foreground = empty ? EmptyRing : c.TextOnly ? TribeIcons.TextBrush(tribe) : UiKit.TextPrimary,
                         TextAlignment = TextAlignment.Center, Opacity = banned ? 0.55 : 1,
                         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                     };

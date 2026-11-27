@@ -51,7 +51,7 @@ namespace HsbgCardLookup.Ui
                 double w = Clamp(value, MinW, MaxW);
                 _wf = w / canvas.ActualWidth;
                 if (_keepWidth) { _wpx = w; try { WidthSettled?.Invoke(_wpx); } catch { } }
-                if (_root.Visibility == Visibility.Visible) Layout();
+                if (_root.Visibility != Visibility.Collapsed) Layout();
                 try { GeometryChanged?.Invoke(_xf, _yf, _wf); } catch { }
             }
         }
@@ -440,9 +440,12 @@ namespace HsbgCardLookup.Ui
             _attached = false;
         }
 
-        /// <summary>Fill + show the panel (row 0 = 1st place). Canvas thread. Empty/null — or every
-        /// content part switched off — hides it.</summary>
-        public void SetStandings(IReadOnlyList<LeaderboardOverlay.Row> rows)
+        /// <summary>Fill + show the panel (row 0 = 1st place). Canvas thread. It always has all eight
+        /// rows: a player not in yet is a dim dash where the name and rating go, so the box is whole
+        /// from the start of a match and nothing joined to it moves as players load in. Every content
+        /// part switched off hides it. <paramref name="drawn"/> false lays it out without drawing it:
+        /// its place in an assembled group is kept while there is no match (see PanelDock.Present).</summary>
+        public void SetStandings(IReadOnlyList<LeaderboardOverlay.Row> rows, bool drawn = true)
         {
             bool showNames = !string.Equals(NameMode, "Off", StringComparison.OrdinalIgnoreCase);
             bool heroes = string.Equals(NameMode, "Heroes", StringComparison.OrdinalIgnoreCase);
@@ -453,11 +456,11 @@ namespace HsbgCardLookup.Ui
             // Arrange bring the game forward and then display nothing to position.
             bool anyContent = showNames || ShowRating || ShowDeltas || ShowTiers || ShowTribes || _editing;
             int n = rows?.Count ?? 0;
-            if (n == 0 || !anyContent || !Attach()) { Hide(); return; }
+            if (!anyContent || !Attach()) { Hide(); return; }
 
             for (int i = 0; i < MaxSlots; i++)
             {
-                if (i >= n) { SetRowVisible(i, false); continue; }
+                if (i >= n) { Placeholder(i, showNames); continue; }
                 var r = rows[i];
                 bool dim = DimDead && r.IsDead;
 
@@ -519,7 +522,7 @@ namespace HsbgCardLookup.Ui
             }
 
             for (int k = 0; k < _teamDividers.Length; k++)
-                _teamDividers[k].Visibility = IsDuos && k * 2 + 2 < n ? Visibility.Visible : Visibility.Collapsed;
+                _teamDividers[k].Visibility = IsDuos ? Visibility.Visible : Visibility.Collapsed;
 
             // A switched-off part gives its column back rather than leaving a gap: the panel sizes to
             // its content, so dropping the names really does make it narrower.
@@ -533,14 +536,38 @@ namespace HsbgCardLookup.Ui
             // A part switched on or off changes the width, more or fewer rows the height: tell the dock
             // HERE, once the columns really are rebuilt. A settings change invalidates the dock straight
             // away, but that measures the box before this update has run, so every fit came one change late.
-            string shape = n + (IsDuos ? "d" : "s") + (TwoLines ? "2" : "1") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
-            bool changed = shape != _shape || _root.Visibility != Visibility.Visible;
+            string shape = (IsDuos ? "d" : "s") + (TwoLines ? "2" : "1") + string.Concat(_colUsed.Select(u => u ? '1' : '0'));
+            var want = drawn ? Visibility.Visible : Visibility.Hidden;
+            bool changed = shape != _shape || _root.Visibility == Visibility.Collapsed;
             _shape = shape;
 
-            _root.Visibility = Visibility.Visible;
+            _root.Visibility = want;
             Layout();
             // At once, not on the next poll: the box is never drawn away from its group.
             if (changed && _docks) { PanelDock.Invalidate(); PanelDock.Layout(); }
+        }
+
+        // A seat no player has filled yet: a dim dash where the name and the rating go.
+        private void Placeholder(int i, bool showNames)
+        {
+            SetRowVisible(i, true);
+            foreach (var c in _rowCells[i]) c.Opacity = 1.0;
+            _places[i].Text = "";
+            _places[i].Visibility = IsDuos ? Visibility.Collapsed : Visibility.Visible;
+            _names[i].Text = "—";
+            _names[i].Foreground = Muted;
+            _names[i].Opacity = 0.45;
+            _names[i].Visibility = showNames ? Visibility.Visible : Visibility.Collapsed;
+            _ratings[i].Text = "—";
+            _ratings[i].Foreground = Muted;
+            _ratings[i].Opacity = 0.45;
+            _ratings[i].Visibility = ShowRating ? Visibility.Visible : Visibility.Collapsed;
+            _arrows[i].Visibility = Visibility.Collapsed;
+            _tiers[i].Source = null;
+            _tiers[i].Visibility = Visibility.Collapsed;
+            _tribes[i].Fill = null;
+            _tribes[i].Visibility = Visibility.Collapsed;
+            _tribeCounts[i].Visibility = Visibility.Collapsed;
         }
 
         /// <summary>Arrange mode: show the panel with sample standings + edit chrome, so it can be
@@ -606,7 +633,7 @@ namespace HsbgCardLookup.Ui
 
         private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (_root.Visibility == Visibility.Visible) Layout();
+            if (_root.Visibility != Visibility.Collapsed) Layout();
         }
 
         private void Layout()
@@ -736,6 +763,9 @@ namespace HsbgCardLookup.Ui
             double placeH = IsDuos ? 0 : TextH(_places[0], 11.5 * s, pxPerDip);      // duos: one number spans two rows
             double cell = two ? Math.Max(placeH, nameH + statH) : Math.Max(placeH, Math.Max(nameH, statH));
             _fullH = MaxSlots * (cell + 3 * s) + (IsDuos ? _teamDividers.Length * (3.5 * s + 1) : 0) + 8 * s + 2;
+            // ...and the box is never shorter than that: a row whose player has no tier or type yet is
+            // lower than one that has, and the box would grow under its group as they come in.
+            _list.MinHeight = Math.Max(0, _fullH - 8 * s - 2);
 
             ClampPosition();
         }

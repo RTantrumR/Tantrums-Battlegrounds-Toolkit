@@ -103,7 +103,8 @@ namespace HsbgCardLookup.Game
                 _lastPoll = now;
 
                 List<LeaderboardOverlay.Row> rows = null;
-                if (isBg && !_ended)
+                bool inMatch = isBg && !_ended;
+                if (inMatch)
                 {
                     string region = CurrentRegion();
                     if (region != null) EnsureBlob(region, isDuos);
@@ -130,18 +131,21 @@ namespace HsbgCardLookup.Game
                     + (_config.ShowMmrDeltas ? "a" : "") + "t" + _config.TavernTierMode
                     + (_config.ShowLastOpponent ? "o" : "") + (_config.DimDeadPlayers ? "d" : "")
                     + "T" + _config.OpponentTribeMode;
+                // No players yet: in a match the sidebar shows its empty seats ("E"); out of one it is
+                // laid out but not drawn ("H"), once the game window is there to lay it out against.
+                bool ready = !inMatch && PanelDock.CanvasReady;     // Poll runs on the UI thread
                 string sig = show
                     ? flags + "|" + string.Join(",", rows.Select(r =>
                         r.Place + ":" + r.Name + "/" + r.HeroName +
                         "=" + r.Rating + "/" + r.Delta + "/" + r.TavernTier + "/" + r.Tribe + r.TribeCount +
                         (r.IsDead ? "d" : "") + (r.IsLastOpponent ? "l" : "") + (r.IsCurrentOpponent ? "c" : "")))
-                    : "0";
+                    : flags + (inMatch ? "|E" : ready ? "|H" : "|0");
                 if (sig == _lastSig) return;
                 _lastSig = sig;
 
                 var rr = show ? rows : null;
-                bool duo = isDuos;
-                Marshal(() => ApplyUi(rr, duo));
+                bool duo = isDuos, match = inMatch, shell = ready;
+                Marshal(() => ApplyUi(rr, duo, match, shell));
             }
             catch { /* OnUpdate must never throw */ }
         }
@@ -526,7 +530,7 @@ namespace HsbgCardLookup.Game
         }
 
         // ── Overlay + panel (canvas thread) ─────────────────────────────────────────────────────────
-        private void ApplyUi(List<LeaderboardOverlay.Row> rows, bool isDuos)
+        private void ApplyUi(List<LeaderboardOverlay.Row> rows, bool isDuos, bool inMatch, bool shell)
         {
             try
             {
@@ -563,14 +567,16 @@ namespace HsbgCardLookup.Game
                 }
                 else _overlay.HideAll();
 
-                // Surface 2: the draggable sidebar (skipped while arrange mode owns it).
+                // Surface 2: the draggable sidebar (skipped while arrange mode owns it). Whole from the
+                // start of a match, empty seats and all; out of a match laid out but not drawn, so the
+                // boxes joined to it (the session box on the Battlegrounds menu) keep their places.
                 if (_editing) return;
-                if (any && _config.PanelInUse)
+                if (_config.PanelInUse && (any || inMatch || shell))
                 {
                     EnsurePanel();
-                    _panel.IsDuos = isDuos;
+                    if (inMatch) _panel.IsDuos = isDuos;      // out of one: the mode of the last match
                     SyncPanelFlags();
-                    _panel.SetStandings(rows);
+                    _panel.SetStandings(rows ?? new List<LeaderboardOverlay.Row>(), drawn: any || inMatch);
                 }
                 else _panel?.Hide();
             }

@@ -159,6 +159,22 @@ namespace HsbgCardLookup.Ui
 
         private static IDockPanel Find(string id) => Panels.FirstOrDefault(p => p.DockId == id);
         private static bool Shown(IDockPanel p) => p != null && p.DockRoot.Visibility == Visibility.Visible && p.DockRoot.ActualHeight > 0;
+        // Takes its room in the group, drawn or not. A box that is switched on but has nothing to show
+        // yet (the sidebar and the lobby types on the Battlegrounds menu) is laid out but not drawn
+        // (Hidden), so the boxes joined to it sit where they do in a match. A box switched off is
+        // Collapsed: it takes no room and its group closes up.
+        private static bool Present(IDockPanel p) => p != null && p.DockRoot.Visibility != Visibility.Collapsed && p.DockRoot.ActualHeight > 0;
+
+        /// <summary>The overlay canvas is the game window's (not the 10x10 parking window the standalone
+        /// keeps while Hearthstone is closed): a box may be laid out, and a size settled, against it.</summary>
+        public static bool CanvasReady
+        {
+            get
+            {
+                var c = HostServices.Overlay?.Canvas;
+                return c != null && c.ActualWidth >= 640 && c.ActualHeight >= 360;
+            }
+        }
         private static bool Placed(IDockPanel p) => p != null && !double.IsNaN(Canvas.GetLeft(p.DockRoot)) && !double.IsNaN(Canvas.GetTop(p.DockRoot));
 
         // The one way the dock moves a box. A box that has not been on screen in this run (the others of
@@ -200,8 +216,8 @@ namespace HsbgCardLookup.Ui
         private static Rect RectOf(IDockPanel p)
         {
             var r = p.DockRoot;
-            bool shown = Shown(p);
-            return new Rect(Canvas.GetLeft(r), Canvas.GetTop(r), shown ? r.ActualWidth : 0, shown ? r.ActualHeight : 0);
+            bool present = Present(p);
+            return new Rect(Canvas.GetLeft(r), Canvas.GetTop(r), present ? r.ActualWidth : 0, present ? r.ActualHeight : 0);
         }
 
         // Where a child goes beside its parent: flush, the two borders on one line.
@@ -234,7 +250,7 @@ namespace HsbgCardLookup.Ui
                 var canvas = HostServices.Overlay?.Canvas;
                 if (canvas == null) return;
                 canvas.UpdateLayout();                        // a box shown or rebuilt a moment ago has its size now
-                string shownSet = string.Join(",", Panels.Where(Shown).Select(p => p.DockId));
+                string shownSet = string.Join(",", Panels.Where(Present).Select(p => p.DockId));
                 if (shownSet != _shownSet) { _shownSet = shownSet; Invalidate(); }
                 if (_widthsStale)
                 {
@@ -255,7 +271,7 @@ namespace HsbgCardLookup.Ui
                         Link l;
                         if (!Links.TryGetValue(p.DockId, out l)) continue;
                         var parent = Find(l.Parent);
-                        if (!Placed(parent) || !Shown(p)) continue;
+                        if (!Placed(parent) || !Present(p)) continue;
                         var at = Beside(RectOf(parent), new Size(p.DockRoot.ActualWidth, p.DockRoot.ActualHeight), l.Side);
                         // "Not within 0.4 of it", so that a box never placed before (NaN) is placed too: the
                         // plain "further than 0.4" is false for NaN, and such a box sat at the screen's corner.
@@ -285,7 +301,7 @@ namespace HsbgCardLookup.Ui
                 Link l;
                 if (!Links.TryGetValue(p.DockId, out l)) continue;
                 var parent = Find(l.Parent);
-                if (Placed(parent) && Shown(p) && Shown(parent) && Fits(p, parent, Stacked(l.Side))) each(p, parent, Stacked(l.Side));
+                if (Placed(parent) && Present(p) && Present(parent) && Fits(p, parent, Stacked(l.Side))) each(p, parent, Stacked(l.Side));
             }
         }
 
@@ -353,7 +369,7 @@ namespace HsbgCardLookup.Ui
                 var group = GroupOf(root);
                 if (group.Count < 2) continue;
                 Rect b = Rect.Empty;
-                foreach (var p in group) if (Shown(p)) b.Union(RectOf(p));
+                foreach (var p in group) if (Present(p)) b.Union(RectOf(p));
                 if (b.IsEmpty) continue;
                 double dx = b.Left < 0 ? -b.Left : b.Right > canvas.ActualWidth ? Math.Max(-b.Left, canvas.ActualWidth - b.Right) : 0;
                 double dy = b.Top < 0 ? -b.Top : b.Bottom > canvas.ActualHeight ? Math.Max(-b.Top, canvas.ActualHeight - b.Bottom) : 0;
@@ -473,9 +489,9 @@ namespace HsbgCardLookup.Ui
         // that sits below its parent has the parent on its top side).
         private static bool Taken(IDockPanel box, DockSide side)
         {
-            if (Links.Any(kv => kv.Value.Parent == box.DockId && kv.Value.Side == side && Shown(Find(kv.Key)))) return true;
+            if (Links.Any(kv => kv.Value.Parent == box.DockId && kv.Value.Side == side && Present(Find(kv.Key)))) return true;
             Link l;
-            return Links.TryGetValue(box.DockId, out l) && Opposite(l.Side) == side && Shown(Find(l.Parent));
+            return Links.TryGetValue(box.DockId, out l) && Opposite(l.Side) == side && Present(Find(l.Parent));
         }
 
         // The two sides that will meet light up, and an outline shows the place (and the width) the
