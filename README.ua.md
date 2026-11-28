@@ -47,7 +47,8 @@ Hearthstone Deck Tracker чи іншого трекера, а також пор�
 
 ## Ліцензія
 
-[Apache License 2.0](LICENSE). Сторонні компоненти — див. [NOTICE](NOTICE).
+[GNU General Public License v3.0](LICENSE). Що саме вона охоплює та сторонні компоненти — див. [NOTICE](NOTICE).
+Версії до 1.1.0 включно були опубліковані під Apache License 2.0.
 
 Показ MMR натхненний плагіном [HDT-BGMMRPlugin](https://github.com/Reign-in-blood/HDT-BGMMRPlugin) і зроблений у
 співпраці з його автором.

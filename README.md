@@ -46,7 +46,8 @@ See [BUILDING.md](BUILDING.md). Corrections to the toolkit's own texts are welco
 
 ## License
 
-[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party components.
+[GNU General Public License v3.0](LICENSE). See [NOTICE](NOTICE) for what it covers and for third-party components.
+Versions up to and including 1.1.0 were published under the Apache License 2.0.
 
 MMR showcase is inspired by [HDT-BGMMRPlugin](https://github.com/Reign-in-blood/HDT-BGMMRPlugin) and was made in
 cooperation with the author.

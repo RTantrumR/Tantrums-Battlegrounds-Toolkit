@@ -1,12 +1,30 @@
 Tantrum's Battlegrounds Toolkit
 Copyright 2026 RTantrumR (hsbg.cards)
 
-Licensed under the Apache License, Version 2.0 (see LICENSE).
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 3, as published by the
+Free Software Foundation (see LICENSE). It is distributed in the hope that it
+will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Versions up to and including 1.1.0 were published under the Apache License,
+Version 2.0.
+
+Source code: https://github.com/RTantrumR/Tantrums-Battlegrounds-Toolkit
+
+What the license covers
+-----------------------
+
+The license above covers the toolkit's own code and texts. It does not cover
+Hearthstone artwork, card names and card text shown or bundled by the program
+(data/board, data/tiers, data/tribes, data/demos, data/patchnotes, data/cards.json),
+which belong to Blizzard Entertainment, or the logos of other programs described
+below, which belong to their owners.
 
 This product bundles third-party components:
 
   - SixLabors.ImageSharp (https://github.com/SixLabors/ImageSharp)
-    Licensed under the Apache License, Version 2.0.
+    Licensed under the Apache License, Version 2.0 (see licenses/Apache-2.0.txt).
 
   - System.* runtime support assemblies (System.Buffers, System.Memory,
     System.Numerics.Vectors, System.Runtime.CompilerServices.Unsafe,
