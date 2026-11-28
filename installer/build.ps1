@@ -75,6 +75,11 @@ New-Item -ItemType Directory -Force -Path "$stage\standalone" | Out-Null
 Copy-Item "$standaloneBin\TantrumsToolkitStandalone.exe", "$standaloneBin\TantrumsToolkitStandalone.exe.config", "$standaloneBin\toolkit.ico" "$stage\standalone" -Force
 Copy-Item "$standaloneBin\*.dll" "$stage\standalone" -Force
 Copy-Item "$standaloneBin\data" "$stage\standalone" -Recurse -Force
+# The license texts travel with the program (GPL-3.0 for the toolkit, Apache-2.0 and MIT notices for
+# the bundled libraries). Installed as .txt so a double click opens them.
+Copy-Item "$repo\LICENSE" "$stage\standalone\LICENSE.txt" -Force
+Copy-Item "$repo\NOTICE" "$stage\standalone\NOTICE.txt" -Force
+Copy-Item "$repo\licenses" "$stage\standalone" -Recurse -Force
 
 # Never ship a stale build: every staged binary of ours must carry the version being packaged.
 foreach ($f in "$stage\standalone\HsbgCardLookup.dll", "$stage\standalone\TantrumsToolkitStandalone.exe") {
