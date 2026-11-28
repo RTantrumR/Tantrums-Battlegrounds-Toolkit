@@ -9,9 +9,8 @@
 *.userosscache
 *.sln.docstates
 
-# HDT's own assemblies — referenced at build time only, not redistributed.
-# Run .\setup.ps1 to copy them out of your local HDT install. Everything else in libs/
-# (the WebP decoder closure) IS committed, because the plugin bundles it at runtime.
+# HDT's own assemblies, left in old checkouts from the plugin days: never commit them.
+# Everything else in libs/ (the WebP decoder closure, Json.NET) IS committed.
 libs/HearthstoneDeckTracker.exe
 libs/HearthDb.dll
 libs/HearthMirror.dll

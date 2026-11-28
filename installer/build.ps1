@@ -4,10 +4,10 @@
 
 .DESCRIPTION
   Builds Release (unless -SkipBuild), stages the standalone program — its exe, the plugin assembly
-  it hosts, the bundled DLLs and data\ — into installer\stage, then compiles HsbgCardLookup.iss. The version defaults to what Plugin.cs reports, like package.ps1.
+  it hosts, the bundled DLLs and data\ — into installer\stage, then compiles HsbgCardLookup.iss. The version defaults to AssemblyVersion in HsbgCardLookup\Properties\AssemblyInfo.cs.
   The wizard's texts in its 12 languages come from installer\i18n\<lang>.json, turned into
   out\messages.iss here — compile the .iss through this script, not on its own.
-  package.ps1 calls this with -SkipBuild after its own build and copies the result into dist\.
+  package.ps1 calls this and copies the result into dist\.
 
   -SignPfx <file.pfx> -SignPasswordFile <file> signs our own binaries (the plugin DLL, the standalone
   exe), the Setup and its uninstaller with that certificate, via the Windows SDK's signtool.exe.
@@ -42,22 +42,20 @@ function Find-MSBuildBin {
 }
 
 if (-not $Version) {
-    $pluginCs = Join-Path $repo "HsbgCardLookup\Plugin.cs"
-    $m = [regex]::Match((Get-Content -Raw $pluginCs), 'Version\s*=>\s*new\s+Version\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)')
-    if (-not $m.Success) { throw "Could not read plugin Version from $pluginCs" }
+    $asmInfo = Join-Path $repo "HsbgCardLookup\Properties\AssemblyInfo.cs"
+    $m = [regex]::Match((Get-Content -Raw $asmInfo), 'AssemblyVersion\("(\d+)\.(\d+)\.(\d+)')
+    if (-not $m.Success) { throw "Could not read AssemblyVersion from $asmInfo" }
     $Version = "{0}.{1}.{2}" -f $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
-    Write-Host "Version (from Plugin.cs): $Version" -ForegroundColor Cyan
+    Write-Host "Version (from AssemblyInfo.cs): $Version" -ForegroundColor Cyan
 }
 
 if (-not $SkipBuild) {
     $msbuild = Join-Path (Find-MSBuildBin) "MSBuild.exe"
-    # HdtHost=false: the Setup installs the standalone program only, so the HDT plugin host and HDT's own
-    # assemblies stay out of it. The same build runs on GitHub Actions, where those assemblies do not exist.
     Write-Host "Building Release..." -ForegroundColor Cyan
-    & $msbuild "$repo\HsbgCardLookup.sln" /t:Rebuild /p:Configuration=Release /p:HdtHost=false /v:minimal /nologo
+    & $msbuild "$repo\HsbgCardLookup.sln" /t:Rebuild /p:Configuration=Release /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Build failed (exit $LASTEXITCODE)." }
     # The standalone exe (not in the solution; it builds the Release plugin it references itself).
-    & $msbuild "$repo\Standalone\Standalone.csproj" /t:Rebuild /p:Configuration=Release /p:HdtHost=false /v:minimal /nologo
+    & $msbuild "$repo\Standalone\Standalone.csproj" /t:Rebuild /p:Configuration=Release /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Standalone build failed (exit $LASTEXITCODE)." }
 }
 

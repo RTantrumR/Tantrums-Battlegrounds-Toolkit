@@ -1,6 +1,4 @@
 # Builds the toolkit and its Setup from source on a GitHub-hosted runner: the build that gets signed.
-# HDT's own assemblies are not in the repository, so installer\build.ps1 builds with HdtHost=false
-# (the standalone program only).
 name: Build
 
 on:

@@ -32,11 +32,6 @@ This product bundles third-party components:
 
   - Json.NET (https://www.newtonsoft.com/json) — © James Newton-King, MIT License.
 
-Hearthstone Deck Tracker assemblies (HearthstoneDeckTracker.exe, HearthDb.dll,
-HearthMirror.dll) are referenced only when the HDT plugin host is built. They are
-NOT redistributed, neither with the source nor with the program. Contributors who
-build the plugin host copy them out of their own HDT install with setup.ps1.
-
 Logos of other programs
 -----------------------
 
