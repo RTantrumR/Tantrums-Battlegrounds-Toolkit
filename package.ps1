@@ -19,10 +19,15 @@ $root = $PSScriptRoot
 $buildArgs = @{}
 if ($Version) { $buildArgs.Version = $Version }
 if ($SignPfx) { $buildArgs.SignPfx = $SignPfx; $buildArgs.SignPasswordFile = $SignPasswordFile }
-$setup = & "$root\installer\build.ps1" @buildArgs
+# build.ps1 returns the Setup's file last; everything before it (MSBuild's and Inno Setup's output)
+# goes to the screen as it comes, so a failed build shows its compiler errors.
+$setup = $null
+& "$root\installer\build.ps1" @buildArgs | ForEach-Object {
+    if ($_ -is [System.IO.FileInfo]) { $setup = $_ } else { Write-Host $_ }
+}
+if (-not $setup) { throw "installer\build.ps1 returned no Setup file" }
 
 $dist = "$root\dist"
-Remove-Item $dist -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 Copy-Item $setup.FullName $dist -Force
 Write-Host "Packaged: $dist\$($setup.Name)" -ForegroundColor Green
